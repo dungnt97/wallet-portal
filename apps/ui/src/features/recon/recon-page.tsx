@@ -1,4 +1,4 @@
-import { ChainPill, TokenPill } from '@/components/custody';
+import { ChainPill, PageFrame, TokenPill } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtCompact, fmtUSD } from '@/lib/format';
@@ -110,32 +110,33 @@ export function ReconPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">Scan:</span>
-          <span className="fw-600">every 15m · cron</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Check size={11} />
-          <span className="text-muted">Last pass:</span>
-          <span className="fw-600">2m ago</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Compliance · <span className="env-inline">{t('recon.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          Compliance · <span className="env-inline">{t('recon.subtitle')}</span>
+        </>
+      }
+      title={t('recon.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">Scan:</span>
+            <span className="fw-600">every 15m · cron</span>
           </div>
-          <h1 className="page-title">{t('recon.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Check size={11} />
+            <span className="text-muted">Last pass:</span>
+            <span className="fw-600">2m ago</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <button className="btn btn-secondary" onClick={runScan} disabled={running}>
             <I.Refresh size={12} /> {running ? 'Scanning…' : 'Run scan now'}
           </button>
@@ -145,9 +146,9 @@ export function ReconPage() {
           >
             <I.External size={12} /> Export report
           </button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <div className="kpi-strip">
         <div className="kpi-mini">
           <div className="kpi-mini-label">
@@ -265,6 +266,6 @@ export function ReconPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </PageFrame>
   );
 }

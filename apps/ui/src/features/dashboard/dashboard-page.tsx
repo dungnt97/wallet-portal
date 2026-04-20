@@ -1,7 +1,7 @@
 // Port of ~/Documents/portal/src/page_dashboard.jsx — visual fidelity verified 2026-04-20.
 // Dashboard page — full prototype port, composed of split sub-components.
 // Real data fetches via TanStack Query; falls back to prototype fixtures for visual parity.
-import { ChainPill, Hash, StatusBadge } from '@/components/custody';
+import { ChainPill, Hash, PageFrame, StatusBadge } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
@@ -39,46 +39,45 @@ export function DashboardPage() {
   const recentTx = FIX_TRANSACTIONS_FULL.slice(0, 6);
 
   return (
-    <div className="page page-dense">
-      {/* Policy strip */}
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">{t('dashboard.withdrawalPolicy')}</span>
-          <span className="fw-600">{t('dashboard.treasurers', { n: 2, m: 3 })}</span>
-          <span className="text-faint">· {t('dashboard.threshold')} $0</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">{t('dashboard.hsm')}</span>
-          <span className="fw-600">AWS CloudHSM</span>
-          <LiveDot />
-          <span className="text-muted">{t('dashboard.active')}</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Activity size={11} />
-          <span className="text-muted">{t('dashboard.recon')}</span>
-          <span className="fw-600">{t('dashboard.blockByBlock')}</span>
-          <span className="text-faint text-mono">
-            · {t('dashboard.lastRun')} <LiveTimeAgo at={new Date(rt.now - 4200).toISOString()} />
-          </span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('dashboard.eyebrow')} · <span className="env-inline">{t('topbar.env')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('dashboard.eyebrow')} · <span className="env-inline">{t('topbar.env')}</span>
+        </>
+      }
+      title={t('dashboard.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">{t('dashboard.withdrawalPolicy')}</span>
+            <span className="fw-600">{t('dashboard.treasurers', { n: 2, m: 3 })}</span>
+            <span className="text-faint">· {t('dashboard.threshold')} $0</span>
           </div>
-          <h1 className="page-title">{t('dashboard.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">{t('dashboard.hsm')}</span>
+            <span className="fw-600">AWS CloudHSM</span>
+            <LiveDot />
+            <span className="text-muted">{t('dashboard.active')}</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Activity size={11} />
+            <span className="text-muted">{t('dashboard.recon')}</span>
+            <span className="fw-600">{t('dashboard.blockByBlock')}</span>
+            <span className="text-faint text-mono">
+              · {t('dashboard.lastRun')} <LiveTimeAgo at={new Date(rt.now - 4200).toISOString()} />
+            </span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> {t('dashboard.live')} · {t('dashboard.updated')}{' '}
             <LiveTimeAgo at={new Date(rt.now - 1200).toISOString()} />
@@ -93,11 +92,10 @@ export function DashboardPage() {
           <button className="btn btn-accent" onClick={() => goTo('withdrawals')}>
             <I.Plus size={13} /> {t('dashboard.newWithdrawal')}
           </button>
-        </div>
-      </div>
-
-      <DashboardKpiGrid onNavigate={(p) => goTo(p)} />
-
+        </>
+      }
+      kpis={<DashboardKpiGrid onNavigate={(p) => goTo(p)} />}
+    >
       <div className="dash-grid-2">
         <DashboardChart />
         <HoldingsList />
@@ -225,6 +223,6 @@ export function DashboardPage() {
           <ComplianceList />
         </div>
       </div>
-    </div>
+    </PageFrame>
   );
 }

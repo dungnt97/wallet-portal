@@ -1,6 +1,6 @@
 // Audit log page — ports prototype page_audit.jsx.
 // Two tabs: Actions (filterable + paginated) and Sign-ins.
-import { Filter, Tabs } from '@/components/custody';
+import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useEffect, useMemo, useState } from 'react';
@@ -70,48 +70,46 @@ export function AuditPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">Log integrity:</span>
-          <span className="fw-600">SHA-256 chained</span>
-          <LiveDot />
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">Retention:</span>
-          <span className="fw-600">7 years</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.External size={11} />
-          <span className="text-muted">Export:</span>
-          <span className="fw-600">SIEM + S3 Glacier</span>
-        </div>
-        <div className="spacer" />
-        <span className="policy-strip-item text-mono text-xs text-muted">
-          <I.Lock size={11} /> tamper-evident · append-only
-        </span>
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Compliance · <span className="env-inline">{t('audit.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          Compliance · <span className="env-inline">{t('audit.subtitle')}</span>
+        </>
+      }
+      title={t('audit.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">Log integrity:</span>
+            <span className="fw-600">SHA-256 chained</span>
+            <LiveDot />
           </div>
-          <h1 className="page-title">{t('audit.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">Retention:</span>
+            <span className="fw-600">7 years</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.External size={11} />
+            <span className="text-muted">Export:</span>
+            <span className="fw-600">SIEM + S3 Glacier</span>
+          </div>
+          <div className="spacer" />
+          <span className="policy-strip-item text-mono text-xs text-muted">
+            <I.Lock size={11} /> tamper-evident · append-only
+          </span>
         </div>
-        <div className="page-actions">
-          <button type="button" className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> {t('common.export')}
-          </button>
-        </div>
-      </div>
-
-      <AuditKpiStrip log={AUDIT_LOG} logins={FIXTURE_LOGIN_HISTORY} />
-
+      }
+      actions={
+        <button type="button" className="btn btn-secondary" onClick={doExport}>
+          <I.External size={13} /> {t('common.export')}
+        </button>
+      }
+      kpis={<AuditKpiStrip log={AUDIT_LOG} logins={FIXTURE_LOGIN_HISTORY} />}
+    >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <Tabs
@@ -165,6 +163,6 @@ export function AuditPage() {
           />
         )}
       </div>
-    </div>
+    </PageFrame>
   );
 }

@@ -1,6 +1,6 @@
 // Transactions — unified on-chain tx log (deposits + withdrawals + sweeps).
 // Ports prototype page_transactions.jsx. Split: kpi-strip + table + sheet.
-import { Filter, Tabs } from '@/components/custody';
+import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
@@ -92,39 +92,40 @@ export function TransactionsPage() {
   const sweeps = FIX_TRANSACTIONS_FULL.filter((t) => t.type === 'sweep');
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Logs size={11} />
-          <span className="text-muted">Ledger:</span>
-          <span className="fw-600">unified · append-only</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Activity size={11} />
-          <span className="text-muted">Indexer:</span>
-          <LiveDot />
-          <span className="fw-600">synced</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">Retention:</span>
-          <span className="fw-600">7y · immutable</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Ledger · <span className="env-inline">{t('transactions.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          Ledger · <span className="env-inline">{t('transactions.subtitle')}</span>
+        </>
+      }
+      title={t('transactions.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Logs size={11} />
+            <span className="text-muted">Ledger:</span>
+            <span className="fw-600">unified · append-only</span>
           </div>
-          <h1 className="page-title">{t('transactions.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Activity size={11} />
+            <span className="text-muted">Indexer:</span>
+            <LiveDot />
+            <span className="fw-600">synced</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">Retention:</span>
+            <span className="fw-600">7y · immutable</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> Live · updated <LiveTimeAgo at={new Date(rt.now - 1500).toISOString()} />
           </span>
@@ -137,11 +138,10 @@ export function TransactionsPage() {
               style={refreshing ? { animation: 'spin 700ms linear infinite' } : undefined}
             />
           </button>
-        </div>
-      </div>
-
-      <TransactionsKpiStrip rows={FIX_TRANSACTIONS_FULL} />
-
+        </>
+      }
+      kpis={<TransactionsKpiStrip rows={FIX_TRANSACTIONS_FULL} />}
+    >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <Tabs
@@ -197,6 +197,6 @@ export function TransactionsPage() {
       </div>
 
       <TransactionSheet tx={selected} onClose={() => setSelected(null)} />
-    </div>
+    </PageFrame>
   );
 }

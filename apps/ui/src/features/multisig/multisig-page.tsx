@@ -1,4 +1,5 @@
 import { useAuth } from '@/auth/use-auth';
+import { PageFrame } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { MULTISIG_POLICY } from '@/lib/constants';
@@ -77,42 +78,43 @@ export function MultisigPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">Threshold:</span>
-          <span className="fw-600">
-            {MULTISIG_POLICY.required} of {MULTISIG_POLICY.total}
-          </span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">BSC Safe:</span>
-          <LiveDot />
-          <span className="fw-600">synced</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">SOL Squads:</span>
-          <LiveDot />
-          <span className="fw-600">synced</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('multisig.eyebrow')} · <span className="env-inline">{t('multisig.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('multisig.eyebrow')} · <span className="env-inline">{t('multisig.subtitle')}</span>
+        </>
+      }
+      title={t('multisig.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">Threshold:</span>
+            <span className="fw-600">
+              {MULTISIG_POLICY.required} of {MULTISIG_POLICY.total}
+            </span>
           </div>
-          <h1 className="page-title">{t('multisig.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">BSC Safe:</span>
+            <LiveDot />
+            <span className="fw-600">synced</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">SOL Squads:</span>
+            <LiveDot />
+            <span className="fw-600">synced</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> last sync <LiveTimeAgo at={new Date(Date.now() - 18000).toISOString()} />
           </span>
@@ -123,11 +125,10 @@ export function MultisigPage() {
             />
             {t('common.retry')}
           </button>
-        </div>
-      </div>
-
-      <MultisigKpiStrip ops={ops} failedCount={failed.length} />
-
+        </>
+      }
+      kpis={<MultisigKpiStrip ops={ops} failedCount={failed.length} />}
+    >
       <div className="dash-grid-2" style={{ marginTop: 14 }}>
         <VaultCard
           chain="bnb"
@@ -165,6 +166,6 @@ export function MultisigPage() {
         onReject={onReject}
         onExecute={onExecute}
       />
-    </div>
+    </PageFrame>
   );
 }

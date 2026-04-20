@@ -1,4 +1,4 @@
-import { ChainPill } from '@/components/custody';
+import { ChainPill, PageFrame } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
@@ -93,33 +93,32 @@ export function RecoveryPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.AlertTri size={11} />
-          <span className="text-muted">Stuck:</span>
-          <span className="fw-600">{rows.length} tx</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Clock size={11} />
-          <span className="text-muted">Gas bumping:</span>
-          <span className="fw-600">EIP-1559 +25%</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Ops · <span className="env-inline">{t('recovery.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          Ops · <span className="env-inline">{t('recovery.subtitle')}</span>
+        </>
+      }
+      title={t('recovery.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.AlertTri size={11} />
+            <span className="text-muted">Stuck:</span>
+            <span className="fw-600">{rows.length} tx</span>
           </div>
-          <h1 className="page-title">{t('recovery.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Clock size={11} />
+            <span className="text-muted">Gas bumping:</span>
+            <span className="fw-600">EIP-1559 +25%</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-      </div>
-
+      }
+    >
       {rows.length === 0 ? (
         <div className="card" style={{ padding: 40, marginTop: 14, textAlign: 'center' }}>
           <I.Check
@@ -196,6 +195,6 @@ export function RecoveryPage() {
           </table>
         </div>
       )}
-    </div>
+    </PageFrame>
   );
 }

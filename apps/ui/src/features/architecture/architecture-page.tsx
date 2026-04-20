@@ -1,4 +1,4 @@
-import { Tabs } from '@/components/custody';
+import { PageFrame, Tabs } from '@/components/custody';
 // Architecture page — tabbed viewer: service map, flows, sequence, data,
 // API, jobs, security, MVP plan. Ports prototype page_architecture.jsx.
 import { useState } from 'react';
@@ -19,17 +19,12 @@ export function ArchitecturePage() {
   const [tab, setTab] = useState<Tab>('overview');
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">{t('architecture.title')}</h1>
-          <p className="page-subtitle">{t('architecture.subtitle')}</p>
-        </div>
-        <div className="page-actions">
-          <span className="badge muted text-mono">v0.4.2 · 18 Apr 2026</span>
-        </div>
-      </div>
-
+    <PageFrame
+      dense={false}
+      title={t('architecture.title')}
+      subtitle={t('architecture.subtitle')}
+      actions={<span className="badge muted text-mono">v0.4.2 · 18 Apr 2026</span>}
+    >
       <Tabs
         value={tab}
         onChange={(v) => setTab(v as Tab)}
@@ -53,6 +48,6 @@ export function ArchitecturePage() {
       {tab === 'jobs' && <TabJobs />}
       {tab === 'security' && <TabSecurity />}
       {tab === 'mvp' && <TabMvp />}
-    </div>
+    </PageFrame>
   );
 }

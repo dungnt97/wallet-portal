@@ -1,4 +1,4 @@
-import { Toggle } from '@/components/custody';
+import { PageFrame, Toggle } from '@/components/custody';
 import { Modal, useToast } from '@/components/overlays';
 import { I, type IconKey } from '@/icons';
 // Notifications routing page — channels + event→channel matrix.
@@ -108,47 +108,48 @@ export function NotifsPage() {
     setChannels((cs) => cs.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)));
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Bell size={11} />
-          <span className="text-muted">Channels:</span>
-          <span className="fw-600">{channels.filter((c) => c.enabled).length} active</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Activity size={11} />
-          <span className="text-muted">Delivered 24h:</span>
-          <span className="fw-600">142</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.AlertTri size={11} />
-          <span className="text-muted">Failed 24h:</span>
-          <span className="fw-600" style={{ color: 'var(--err-text)' }}>
-            1
-          </span>
-        </div>
-        <div className="spacer" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            System · <span className="env-inline">{t('notifs.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          System · <span className="env-inline">{t('notifs.subtitle')}</span>
+        </>
+      }
+      title={t('notifs.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Bell size={11} />
+            <span className="text-muted">Channels:</span>
+            <span className="fw-600">{channels.filter((c) => c.enabled).length} active</span>
           </div>
-          <h1 className="page-title">{t('notifs.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Activity size={11} />
+            <span className="text-muted">Delivered 24h:</span>
+            <span className="fw-600">142</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.AlertTri size={11} />
+            <span className="text-muted">Failed 24h:</span>
+            <span className="fw-600" style={{ color: 'var(--err-text)' }}>
+              1
+            </span>
+          </div>
+          <div className="spacer" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <button className="btn btn-secondary" onClick={() => setTestOpen(true)}>
             <I.Zap size={12} /> Send test
           </button>
           <button className="btn btn-accent" onClick={() => toast('Channel saved', 'success')}>
             <I.Plus size={13} /> Add channel
           </button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <div className="notif-routing-grid" style={{ marginTop: 14 }}>
         <div className="card pro-card">
           <div className="pro-card-header">
@@ -246,6 +247,6 @@ export function NotifsPage() {
           see a <strong>[TEST]</strong> banner.
         </div>
       </Modal>
-    </div>
+    </PageFrame>
   );
 }

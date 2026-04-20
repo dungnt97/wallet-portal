@@ -1,7 +1,7 @@
 // Cold wallet rebalance page — keeps hot wallet in target band.
 // Ports prototype page_cold.jsx with local fixtures.
 import { useAuth } from '@/auth/use-auth';
-import { ChainPill, StatusBadge } from '@/components/custody';
+import { ChainPill, PageFrame, StatusBadge } from '@/components/custody';
 import { Sheet, useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { FIXTURE_STAFF } from '@/lib/constants';
@@ -49,48 +49,47 @@ export function ColdPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Lock size={11} />
-          <span className="text-muted">Cold:</span>
-          <span className="fw-600">HSM · geographically split</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">Threshold:</span>
-          <span className="fw-600">2/3 (outbound) · 3/5 cold signers</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Clock size={11} />
-          <span className="text-muted">Band check:</span>
-          <span className="fw-600">every 15m</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('cold.eyebrow')} · <span className="env-inline">{t('cold.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('cold.eyebrow')} · <span className="env-inline">{t('cold.subtitle')}</span>
+        </>
+      }
+      title={t('cold.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Lock size={11} />
+            <span className="text-muted">Cold:</span>
+            <span className="fw-600">HSM · geographically split</span>
           </div>
-          <h1 className="page-title">{t('cold.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">Threshold:</span>
+            <span className="fw-600">2/3 (outbound) · 3/5 cold signers</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Clock size={11} />
+            <span className="text-muted">Band check:</span>
+            <span className="fw-600">every 15m</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => toast('Manual band check triggered.')}
-          >
-            <I.Refresh size={12} /> Run band check
-          </button>
-        </div>
-      </div>
-
+      }
+      actions={
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => toast('Manual band check triggered.')}
+        >
+          <I.Refresh size={12} /> Run band check
+        </button>
+      }
+    >
       <div className="cold-grid">
         {HOT_WALLETS.map((h) => {
           const cold = COLD_WALLETS.find((c) => c.chain === h.chain);
@@ -179,6 +178,6 @@ export function ColdPage() {
           />
         )}
       </Sheet>
-    </div>
+    </PageFrame>
   );
 }

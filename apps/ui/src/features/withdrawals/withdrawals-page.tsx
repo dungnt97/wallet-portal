@@ -1,5 +1,5 @@
 import { useAuth } from '@/auth/use-auth';
-import { Filter, Tabs } from '@/components/custody';
+import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { MULTISIG_POLICY, ROLES } from '@/lib/constants';
@@ -180,42 +180,46 @@ export function WithdrawalsPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">{t('withdrawals.policy')}</span>
-          <span className="fw-600">
-            {t('withdrawals.treasurers', { n: MULTISIG_POLICY.required, m: MULTISIG_POLICY.total })}
-          </span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">{t('withdrawals.signer')}</span>
-          <span className="fw-600">{t('withdrawals.hsmCosign')}</span>
-          <LiveDot />
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Activity size={11} />
-          <span className="text-muted">{t('withdrawals.broadcastQueue')}</span>
-          <span className="fw-600 text-mono">{t('withdrawals.pendingCount', { n: 0 })}</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('withdrawals.eyebrow')} ·{' '}
-            <span className="env-inline">{t('withdrawals.subEyebrow')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('withdrawals.eyebrow')} ·{' '}
+          <span className="env-inline">{t('withdrawals.subEyebrow')}</span>
+        </>
+      }
+      title={t('withdrawals.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">{t('withdrawals.policy')}</span>
+            <span className="fw-600">
+              {t('withdrawals.treasurers', {
+                n: MULTISIG_POLICY.required,
+                m: MULTISIG_POLICY.total,
+              })}
+            </span>
           </div>
-          <h1 className="page-title">{t('withdrawals.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">{t('withdrawals.signer')}</span>
+            <span className="fw-600">{t('withdrawals.hsmCosign')}</span>
+            <LiveDot />
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Activity size={11} />
+            <span className="text-muted">{t('withdrawals.broadcastQueue')}</span>
+            <span className="fw-600 text-mono">{t('withdrawals.pendingCount', { n: 0 })}</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> {t('withdrawals.live')} · {t('withdrawals.updated')}{' '}
             <LiveTimeAgo at={new Date(rt.now - 2400).toISOString()} />
@@ -238,11 +242,10 @@ export function WithdrawalsPage() {
               <I.Lock size={13} /> {t('withdrawals.newWithdrawal')}
             </button>
           )}
-        </div>
-      </div>
-
-      <WithdrawalsKpiStrip list={list} />
-
+        </>
+      }
+      kpis={<WithdrawalsKpiStrip list={list} />}
+    >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <Tabs
@@ -287,6 +290,6 @@ export function WithdrawalsPage() {
         onComplete={onSigningComplete}
         onRejected={onSigningRejected}
       />
-    </div>
+    </PageFrame>
   );
 }

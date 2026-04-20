@@ -1,6 +1,6 @@
 // Users page — staff directory + end-user list. Ports prototype page_users.jsx.
 import { useAuth } from '@/auth/use-auth';
-import { Filter, Tabs } from '@/components/custody';
+import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useTweaksStore } from '@/stores/tweaks-store';
@@ -70,43 +70,44 @@ export function UsersPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">RBAC:</span>
-          <span className="fw-600">4 roles</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Users size={11} />
-          <span className="text-muted">Staff MFA:</span>
-          <span className="fw-600">enforced</span>
-          <LiveDot />
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">HD wallet:</span>
-          <span className="fw-600">m/44'/60·501'</span>
-        </div>
-        <div className="spacer" />
-        <span className="policy-strip-item text-mono text-xs text-muted">
-          <I.Logs size={11} /> audit: every action logged
-        </span>
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Identity ·{' '}
-            <span className="env-inline">
-              {tab === 'staff' ? t('users.tabStaff') : t('users.tabUsers')}
-            </span>
+    <PageFrame
+      eyebrow={
+        <>
+          Identity ·{' '}
+          <span className="env-inline">
+            {tab === 'staff' ? t('users.tabStaff') : t('users.tabUsers')}
+          </span>
+        </>
+      }
+      title={t('users.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">RBAC:</span>
+            <span className="fw-600">4 roles</span>
           </div>
-          <h1 className="page-title">{t('users.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Users size={11} />
+            <span className="text-muted">Staff MFA:</span>
+            <span className="fw-600">enforced</span>
+            <LiveDot />
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">HD wallet:</span>
+            <span className="fw-600">m/44'/60·501'</span>
+          </div>
+          <div className="spacer" />
+          <span className="policy-strip-item text-mono text-xs text-muted">
+            <I.Logs size={11} /> audit: every action logged
+          </span>
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <button type="button" className="btn btn-secondary" onClick={doExport}>
             <I.External size={13} /> {t('common.export')}
           </button>
@@ -131,11 +132,10 @@ export function UsersPage() {
               <I.Plus size={13} /> Add user
             </button>
           )}
-        </div>
-      </div>
-
-      <UsersKpiStrip users={ENRICHED_USERS} staff={STAFF_DIRECTORY} />
-
+        </>
+      }
+      kpis={<UsersKpiStrip users={ENRICHED_USERS} staff={STAFF_DIRECTORY} />}
+    >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <Tabs
@@ -176,6 +176,6 @@ export function UsersPage() {
         showRiskFlags={showRiskFlags}
         onClose={() => setSelected(null)}
       />
-    </div>
+    </PageFrame>
   );
 }

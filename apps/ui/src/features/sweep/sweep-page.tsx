@@ -1,5 +1,5 @@
 import { connectSocket, disconnectSocket } from '@/api/socket';
-import { Segmented } from '@/components/custody';
+import { PageFrame, Segmented } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -109,62 +109,62 @@ export function SweepPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Sweep size={11} />
-          <span className="text-muted">{t('sweep.policyLabel')}</span>
-          <span className="fw-600">{t('sweep.policyValue')}</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Lightning size={11} />
-          <span className="text-muted">{t('sweep.gasTopupLabel')}</span>
-          <span className="fw-600">{t('sweep.gasTopupValue')}</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">{t('sweep.idempotencyLabel')}</span>
-          <span className="fw-600">{t('sweep.idempotencyValue')}</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('sweep.eyebrow')} · <span className="env-inline">{t('sweep.subEyebrow')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('sweep.eyebrow')} · <span className="env-inline">{t('sweep.subEyebrow')}</span>
+        </>
+      }
+      title={t('sweep.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Sweep size={11} />
+            <span className="text-muted">{t('sweep.policyLabel')}</span>
+            <span className="fw-600">{t('sweep.policyValue')}</span>
           </div>
-          <h1 className="page-title">{t('sweep.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Lightning size={11} />
+            <span className="text-muted">{t('sweep.gasTopupLabel')}</span>
+            <span className="fw-600">{t('sweep.gasTopupValue')}</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">{t('sweep.idempotencyLabel')}</span>
+            <span className="fw-600">{t('sweep.idempotencyValue')}</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
-          <Segmented
-            options={[
-              { value: 'bnb', label: 'BNB Chain' },
-              { value: 'sol', label: 'Solana' },
-            ]}
-            value={chain}
-            onChange={(v) => {
-              setChain(v);
-              setSelected([]);
-            }}
-          />
-        </div>
-      </div>
-
-      <SweepKpiStrip
-        chain={chain}
-        readyTotal={readyTotal}
-        readyCount={filtered.length}
-        selectedCount={selectedAddrs.length}
-        selectedTotal={total}
-        estFee={estFee}
-        latest={batches[0]}
-      />
-
+      }
+      actions={
+        <Segmented
+          options={[
+            { value: 'bnb', label: 'BNB Chain' },
+            { value: 'sol', label: 'Solana' },
+          ]}
+          value={chain}
+          onChange={(v) => {
+            setChain(v);
+            setSelected([]);
+          }}
+        />
+      }
+      kpis={
+        <SweepKpiStrip
+          chain={chain}
+          readyTotal={readyTotal}
+          readyCount={filtered.length}
+          selectedCount={selectedAddrs.length}
+          selectedTotal={total}
+          estFee={estFee}
+          latest={batches[0]}
+        />
+      }
+    >
       <GasMonitor chain={chain} />
 
       <div className="alert info" style={{ margin: '14px 0' }}>
@@ -211,6 +211,6 @@ export function SweepPage() {
         estFee={estFee}
         onConfirm={executeBatch}
       />
-    </div>
+    </PageFrame>
   );
 }

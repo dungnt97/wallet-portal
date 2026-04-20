@@ -1,7 +1,7 @@
 // Signers page — Treasurer roster + pending changes + change history.
 // Ports prototype page_signers.jsx (split across several files).
 import { useAuth } from '@/auth/use-auth';
-import { Tabs } from '@/components/custody';
+import { PageFrame, Tabs } from '@/components/custody';
 import { Sheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { useState } from 'react';
@@ -30,52 +30,50 @@ export function SignersPage() {
     useSignerChanges();
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.Shield size={11} />
-          <span className="text-muted">Policy:</span>
-          <span className="fw-600">Signer changes themselves need 2/3</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Key size={11} />
-          <span className="text-muted">Key custody:</span>
-          <span className="fw-600">Ledger HW · per-signer</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Clock size={11} />
-          <span className="text-muted">Time-lock:</span>
-          <span className="fw-600">48h before activation</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            Governance · <span className="env-inline">{t('signers.subtitle')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          Governance · <span className="env-inline">{t('signers.subtitle')}</span>
+        </>
+      }
+      title={t('signers.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.Shield size={11} />
+            <span className="text-muted">Policy:</span>
+            <span className="fw-600">Signer changes themselves need 2/3</span>
           </div>
-          <h1 className="page-title">{t('signers.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Key size={11} />
+            <span className="text-muted">Key custody:</span>
+            <span className="fw-600">Ledger HW · per-signer</span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Clock size={11} />
+            <span className="text-muted">Time-lock:</span>
+            <span className="fw-600">48h before activation</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
-          <button
-            type="button"
-            className="btn btn-accent"
-            disabled={!canManage}
-            title={!canManage ? 'Admin only' : ''}
-            onClick={() => setProposeOpen(true)}
-          >
-            {canManage ? <I.UserPlus size={13} /> : <I.Lock size={13} />} Propose new Treasurer
-          </button>
-        </div>
-      </div>
-
-      <SignersKpiStrip active={ACTIVE_SIGNERS} pendingChanges={activeChanges.length} />
-
+      }
+      actions={
+        <button
+          type="button"
+          className="btn btn-accent"
+          disabled={!canManage}
+          title={!canManage ? 'Admin only' : ''}
+          onClick={() => setProposeOpen(true)}
+        >
+          {canManage ? <I.UserPlus size={13} /> : <I.Lock size={13} />} Propose new Treasurer
+        </button>
+      }
+      kpis={<SignersKpiStrip active={ACTIVE_SIGNERS} pendingChanges={activeChanges.length} />}
+    >
       <SignerChangeRequests
         requests={activeChanges}
         currentStaffId={staff?.id}
@@ -162,6 +160,6 @@ export function SignersPage() {
           />
         )}
       </Sheet>
-    </div>
+    </PageFrame>
   );
 }

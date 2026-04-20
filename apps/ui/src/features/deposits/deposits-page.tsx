@@ -1,4 +1,4 @@
-import { Filter, Tabs } from '@/components/custody';
+import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
@@ -122,42 +122,43 @@ export function DepositsPage() {
   };
 
   return (
-    <div className="page page-dense">
-      <div className="policy-strip">
-        <div className="policy-strip-item">
-          <I.ArrowDown size={11} />
-          <span className="text-muted">{t('deposits.confirmsRequired')}</span>
-          <span className="fw-600">BNB 12 · SOL 32</span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Activity size={11} />
-          <span className="text-muted">{t('deposits.watcher')}</span>
-          <LiveDot />
-          <span className="fw-600">{t('deposits.online')}</span>
-          <span className="text-faint text-mono">
-            · {t('deposits.lag')} {rt.rpc.bnb.lagBlocks} {t('deposits.blk')}
-          </span>
-        </div>
-        <div className="policy-strip-sep" />
-        <div className="policy-strip-item">
-          <I.Database size={11} />
-          <span className="text-muted">{t('deposits.hdDeriv')}</span>
-          <span className="fw-600">BIP-44</span>
-        </div>
-        <div className="spacer" />
-        <BlockTicker chain="bnb" />
-        <BlockTicker chain="sol" />
-      </div>
-
-      <div className="page-header">
-        <div>
-          <div className="page-eyebrow">
-            {t('deposits.eyebrow')} · <span className="env-inline">{t('deposits.subEyebrow')}</span>
+    <PageFrame
+      eyebrow={
+        <>
+          {t('deposits.eyebrow')} · <span className="env-inline">{t('deposits.subEyebrow')}</span>
+        </>
+      }
+      title={t('deposits.title')}
+      policyStrip={
+        <div className="policy-strip">
+          <div className="policy-strip-item">
+            <I.ArrowDown size={11} />
+            <span className="text-muted">{t('deposits.confirmsRequired')}</span>
+            <span className="fw-600">BNB 12 · SOL 32</span>
           </div>
-          <h1 className="page-title">{t('deposits.title')}</h1>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Activity size={11} />
+            <span className="text-muted">{t('deposits.watcher')}</span>
+            <LiveDot />
+            <span className="fw-600">{t('deposits.online')}</span>
+            <span className="text-faint text-mono">
+              · {t('deposits.lag')} {rt.rpc.bnb.lagBlocks} {t('deposits.blk')}
+            </span>
+          </div>
+          <div className="policy-strip-sep" />
+          <div className="policy-strip-item">
+            <I.Database size={11} />
+            <span className="text-muted">{t('deposits.hdDeriv')}</span>
+            <span className="fw-600">BIP-44</span>
+          </div>
+          <div className="spacer" />
+          <BlockTicker chain="bnb" />
+          <BlockTicker chain="sol" />
         </div>
-        <div className="page-actions">
+      }
+      actions={
+        <>
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> {t('deposits.live')} · {t('deposits.updated')}{' '}
             <LiveTimeAgo at={new Date(rt.now - 1800).toISOString()} />
@@ -176,11 +177,10 @@ export function DepositsPage() {
           <button className="btn btn-secondary" onClick={doExport}>
             <I.External size={13} /> {t('deposits.exportCsv')}
           </button>
-        </div>
-      </div>
-
-      <DepositsKpiStrip deposits={deposits} />
-
+        </>
+      }
+      kpis={<DepositsKpiStrip deposits={deposits} />}
+    >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <Tabs
@@ -247,6 +247,6 @@ export function DepositsPage() {
       </div>
 
       <DepositSheet deposit={selected} onClose={() => setSelected(null)} />
-    </div>
+    </PageFrame>
   );
 }

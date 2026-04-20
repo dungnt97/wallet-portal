@@ -20,8 +20,8 @@ type Tab = 'all' | 'pending' | 'completed' | 'failed';
 export function WithdrawalsPage() {
   const toast = useToast();
   const rt = useRealtime();
-  const { staff } = useAuth();
-  const canCreate = staff?.role === 'admin' || staff?.role === 'operator';
+  const { staff, hasPerm } = useAuth();
+  const canCreate = hasPerm('withdrawal.create');
 
   useWithdrawalsSocketListener();
   const { data } = useWithdrawals();

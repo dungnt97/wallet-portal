@@ -1,8 +1,10 @@
+import { ApiError, api } from '@/api/client';
+import type { RoleId } from '@/lib/constants';
 // Auth context — fetches /auth/me on mount, exposes staff + OIDC login + logout
 // P06: initiateLogin() starts Google OIDC flow (redirects away); no more fixture auth.
-import React, { createContext, useCallback, useEffect, useState } from 'react';
-import type { RoleId } from '@/lib/constants';
-import { api, ApiError } from '@/api/client';
+// Pass 4: adds hasPerm(permission) from prototype RBAC matrix.
+import type React from 'react';
+import { createContext, useCallback, useEffect, useState } from 'react';
 
 export interface StaffUser {
   id: string;
@@ -13,12 +15,38 @@ export interface StaffUser {
   initials: string;
 }
 
+// ── Permission matrix (ported from prototype auth.jsx) ───────────────────────
+// Role → list of permissions. hasPerm(k) walks this map.
+export const PERMS: Record<string, RoleId[]> = {
+  'withdrawal.create': ['admin', 'operator'],
+  'withdrawal.cancel': ['admin', 'operator'],
+  'withdrawal.approve': ['treasurer'],
+  'withdrawal.reject': ['treasurer', 'admin'],
+  'withdrawal.execute': ['admin', 'operator'],
+  'sweep.create': ['admin', 'operator'],
+  'sweep.execute': ['admin', 'operator'],
+  'sweep.trigger': ['admin', 'operator'],
+  'multisig.approve': ['treasurer'],
+  'multisig.reject': ['treasurer', 'admin'],
+  'user.create': ['admin', 'operator'],
+  'user.update': ['admin', 'operator'],
+  'user.view': ['admin', 'operator', 'treasurer', 'viewer'],
+  'staff.manage': ['admin'],
+  'config.update': ['admin'],
+  'deposit.view': ['admin', 'operator', 'treasurer', 'viewer'],
+  'export.csv': ['admin', 'operator', 'treasurer', 'viewer'],
+  'audit.view': ['admin', 'treasurer'],
+  'architecture.view': ['admin', 'treasurer', 'operator', 'viewer'],
+};
+
 interface AuthContextValue {
   staff: StaffUser | null;
   loading: boolean;
   /** Initiates Google OIDC flow — redirects the browser to Google consent page */
   initiateLogin: () => Promise<void>;
   logout: () => Promise<void>;
+  /** RBAC check — returns true if the logged-in staff's role grants `perm`. */
+  hasPerm: (perm: string) => boolean;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -92,6 +120,16 @@ export function AuthProvider({ children }: Props) {
     }
   }, []);
 
+  const hasPerm = useCallback(
+    (perm: string): boolean => {
+      if (!staff) return false;
+      const roles = PERMS[perm];
+      if (!roles) return false;
+      return roles.includes(staff.role);
+    },
+    [staff]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -99,6 +137,7 @@ export function AuthProvider({ children }: Props) {
         loading,
         initiateLogin,
         logout,
+        hasPerm,
         // @ts-expect-error — refreshAuth is internal, not part of public AuthContextValue
         _refreshAuth: refreshAuth,
       }}

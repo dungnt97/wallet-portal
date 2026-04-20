@@ -27,8 +27,10 @@ export function WithdrawalSheet({
   onExecute,
   onSubmitDraft,
 }: Props) {
-  const { staff } = useAuth();
+  const { staff, hasPerm } = useAuth();
   const toast = useToast();
+  const canApprove = hasPerm('withdrawal.approve');
+  const canExecute = hasPerm('withdrawal.execute');
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
   if (!withdrawal) return null;
   const w = withdrawal;
@@ -46,7 +48,7 @@ export function WithdrawalSheet({
           Submit to multisig
         </button>
       )}
-      {w.stage === 'awaiting_signatures' && staff?.role === 'treasurer' && !alreadyApproved && (
+      {w.stage === 'awaiting_signatures' && canApprove && !alreadyApproved && (
         <>
           <button
             className="btn btn-ghost"
@@ -60,7 +62,7 @@ export function WithdrawalSheet({
           </button>
         </>
       )}
-      {w.stage === 'executing' && (
+      {w.stage === 'executing' && canExecute && (
         <button
           className="btn btn-primary"
           onClick={() => {
@@ -71,12 +73,12 @@ export function WithdrawalSheet({
           <I.Send size={11} /> Execute on-chain
         </button>
       )}
-      {w.stage === 'awaiting_signatures' && staff?.role === 'treasurer' && alreadyApproved && (
+      {w.stage === 'awaiting_signatures' && canApprove && alreadyApproved && (
         <span className="approved-stamp">
           <I.Check size={10} /> you signed
         </span>
       )}
-      {w.stage === 'awaiting_signatures' && staff && staff.role !== 'treasurer' && (
+      {w.stage === 'awaiting_signatures' && staff && !canApprove && (
         <button className="btn btn-secondary" disabled>
           <I.Lock size={12} /> Treasurers only
         </button>

@@ -1,11 +1,11 @@
-// Smoke test — renders AppLayout with required providers, asserts sidebar + topbar present
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppLayout } from '@/shell/app-layout';
 import { AuthContext } from '@/auth/auth-provider';
 import type { StaffUser } from '@/auth/auth-provider';
+import { AppLayout } from '@/shell/app-layout';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+// Smoke test — renders AppLayout with required providers, asserts sidebar + topbar present
+import { describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 
 // Minimal stub staff for auth context
@@ -23,7 +23,15 @@ function renderWithProviders(ui: React.ReactElement) {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ staff: STUB_STAFF, loading: false, initiateLogin: vi.fn(), logout: vi.fn() }}>
+      <AuthContext.Provider
+        value={{
+          staff: STUB_STAFF,
+          loading: false,
+          initiateLogin: vi.fn(),
+          logout: vi.fn(),
+          hasPerm: () => true,
+        }}
+      >
         <MemoryRouter initialEntries={['/app/dashboard']}>
           <Routes>
             <Route path="/app/*" element={ui}>
@@ -32,7 +40,7 @@ function renderWithProviders(ui: React.ReactElement) {
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 

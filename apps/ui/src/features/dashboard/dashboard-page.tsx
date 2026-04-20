@@ -1,13 +1,14 @@
+// Port of ~/Documents/portal/src/page_dashboard.jsx — visual fidelity verified 2026-04-20.
+// Dashboard page — full prototype port, composed of split sub-components.
+// Real data fetches via TanStack Query; falls back to prototype fixtures for visual parity.
 import { ChainPill, Hash, StatusBadge } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
-// Dashboard page — full prototype port, composed of split sub-components.
-// Real data fetches via TanStack Query; falls back to prototype fixtures for visual parity.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FIX_TRANSACTIONS } from '../_shared/fixtures-flows';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
+import { FIX_TRANSACTIONS_FULL } from '../transactions/transactions-fixtures';
 import { DashboardChart, HoldingsList } from './dashboard-chart';
 import { DashboardKpiGrid } from './dashboard-kpi-grid';
 import {
@@ -33,7 +34,7 @@ export function DashboardPage() {
   };
 
   const goTo = (p: string) => nav(`/app/${p}`);
-  const recentTx = FIX_TRANSACTIONS.slice(0, 6);
+  const recentTx = FIX_TRANSACTIONS_FULL.slice(0, 6);
 
   return (
     <div className="page page-dense">
@@ -135,6 +136,11 @@ export function DashboardPage() {
                       {row.type === 'withdrawal' && (
                         <span className="type-icon err">
                           <I.ArrowUp size={10} />
+                        </span>
+                      )}
+                      {row.type === 'sweep' && (
+                        <span className="type-icon info">
+                          <I.Sweep size={10} />
                         </span>
                       )}
                       <span className="fw-500" style={{ textTransform: 'capitalize' }}>

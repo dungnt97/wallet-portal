@@ -1,8 +1,9 @@
-import { ChainPill } from '@/components/custody';
-// Dashboard panel components — System status / Gas wallets / SLA / Compliance.
+// Port of ~/Documents/portal/src/page_dashboard.jsx (sub-sections) — visual fidelity verified 2026-04-20.
+// Dashboard panel components — System status / Gas wallets / SLA / Compliance / Alerts.
 // Split from dashboard-page.tsx to keep each file under 200 LOC.
+import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
-import { LiveDot, useRealtime } from '../_shared/realtime';
+import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 
 export function SystemStatusList() {
   const rt = useRealtime();
@@ -167,7 +168,7 @@ export function ComplianceList() {
   );
 }
 
-export function AlertsList({ onOpenAudit }: { onOpenAudit?: () => void }) {
+export function AlertsList() {
   const alerts = [
     {
       id: 'al1',
@@ -201,7 +202,9 @@ export function AlertsList({ onOpenAudit }: { onOpenAudit?: () => void }) {
           <div className="alert-compact-head">
             <I.AlertTri size={11} />
             <span className="alert-compact-title">{a.title}</span>
-            <span className="text-xs text-faint text-mono">{onOpenAudit ? '' : ''}</span>
+            <span className="text-xs text-faint text-mono">
+              <LiveTimeAgo at={a.when} />
+            </span>
           </div>
           <div className="alert-compact-text">{a.text}</div>
         </div>

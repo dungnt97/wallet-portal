@@ -45,6 +45,8 @@ interface AuthContextValue {
   /** Initiates Google OIDC flow — redirects the browser to Google consent page */
   initiateLogin: () => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-fetch `/auth/me` — used after dev-login / OIDC callback to hydrate staff */
+  refresh: () => Promise<void>;
   /** RBAC check — returns true if the logged-in staff's role grants `perm`. */
   hasPerm: (perm: string) => boolean;
 }
@@ -137,9 +139,8 @@ export function AuthProvider({ children }: Props) {
         loading,
         initiateLogin,
         logout,
+        refresh: refreshAuth,
         hasPerm,
-        // @ts-expect-error — refreshAuth is internal, not part of public AuthContextValue
-        _refreshAuth: refreshAuth,
       }}
     >
       {children}

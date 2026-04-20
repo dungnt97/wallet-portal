@@ -14,7 +14,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    code?: string,
+    code?: string
   ) {
     super(message);
     this.name = 'ApiError';
@@ -57,9 +57,7 @@ async function handleResponse<T>(res: Response): Promise<{ data: T; isStepUpRequ
 }
 
 async function fetchWithStepUp<T>(buildRequest: () => Request): Promise<T> {
-  const { data, isStepUpRequired } = await fetch(buildRequest()).then((r) =>
-    handleResponse<T>(r),
-  );
+  const { data, isStepUpRequired } = await fetch(buildRequest()).then((r) => handleResponse<T>(r));
 
   if (!isStepUpRequired) return data;
 
@@ -82,42 +80,45 @@ async function fetchWithStepUp<T>(buildRequest: () => Request): Promise<T> {
 
 export const api = {
   get<T>(path: string, init?: RequestInit): Promise<T> {
-    return fetchWithStepUp<T>(() =>
-      new Request(`/api${path}`, { ...init, credentials: 'include' }),
+    return fetchWithStepUp<T>(
+      () => new Request(`/api${path}`, { ...init, credentials: 'include' })
     );
   },
 
   post<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
-    return fetchWithStepUp<T>(() =>
-      new Request(`/api${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-        ...init,
-      }),
+    return fetchWithStepUp<T>(
+      () =>
+        new Request(`/api${path}`, {
+          method: 'POST',
+          headers: body !== undefined ? { 'content-type': 'application/json' } : {},
+          credentials: 'include',
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+          ...init,
+        })
     );
   },
 
   patch<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
-    return fetchWithStepUp<T>(() =>
-      new Request(`/api${path}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-        ...init,
-      }),
+    return fetchWithStepUp<T>(
+      () =>
+        new Request(`/api${path}`, {
+          method: 'PATCH',
+          headers: body !== undefined ? { 'content-type': 'application/json' } : {},
+          credentials: 'include',
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+          ...init,
+        })
     );
   },
 
   delete<T>(path: string, init?: RequestInit): Promise<T> {
-    return fetchWithStepUp<T>(() =>
-      new Request(`/api${path}`, {
-        method: 'DELETE',
-        credentials: 'include',
-        ...init,
-      }),
+    return fetchWithStepUp<T>(
+      () =>
+        new Request(`/api${path}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          ...init,
+        })
     );
   },
 };

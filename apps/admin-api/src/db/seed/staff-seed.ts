@@ -2,15 +2,15 @@
 import type { Db } from '../index.js';
 import { staffMembers } from '../schema/index.js';
 
+// Matches prototype `portal/src/auth.jsx` STAFF array
 export const STAFF_FIXTURES = [
-  { email: 'alice@company.com', name: 'Alice Chen', role: 'admin' as const },
-  { email: 'bob@company.com', name: 'Bob Nguyen', role: 'treasurer' as const },
-  { email: 'carol@company.com', name: 'Carol Kim', role: 'treasurer' as const },
-  { email: 'dave@company.com', name: 'Dave Patel', role: 'treasurer' as const },
-  { email: 'eve@company.com', name: 'Eve Santos', role: 'operator' as const },
-  { email: 'frank@company.com', name: 'Frank Liu', role: 'operator' as const },
-  { email: 'grace@company.com', name: 'Grace Obi', role: 'viewer' as const },
-  { email: 'henry@company.com', name: 'Henry Park', role: 'viewer' as const },
+  { email: 'mira@treasury.io', name: 'Mira Sato', role: 'admin' as const },
+  { email: 'ben@treasury.io', name: 'Ben Foster', role: 'treasurer' as const },
+  { email: 'hana@treasury.io', name: 'Hana Petersen', role: 'treasurer' as const },
+  { email: 'ana@treasury.io', name: 'Ana Müller', role: 'treasurer' as const },
+  { email: 'tomas@treasury.io', name: 'Tomás Ribeiro', role: 'operator' as const },
+  { email: 'iris@treasury.io', name: 'Iris Bergström', role: 'operator' as const },
+  { email: 'kenji@treasury.io', name: 'Kenji Mori', role: 'viewer' as const },
 ] as const;
 
 export async function seedStaff(db: Db): Promise<void> {

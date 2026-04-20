@@ -3,20 +3,20 @@
 // GET  /auth/session/callback  → exchanges code, verifies id_token, sets session
 // POST /auth/session/logout    → destroys session
 // GET  /auth/me                → returns current session staff
-import { randomBytes, createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import type { Config } from '../config/env.js';
+import { staffMembers } from '../db/schema/index.js';
 import {
   buildAuthUrlWithDomain,
   exchangeCodeForIdToken,
-  verifyIdToken,
   isAllowedWorkspaceDomain,
+  verifyIdToken,
 } from './google-oidc-client.js';
-import { staffMembers } from '../db/schema/index.js';
 import { requireAuth } from './rbac.middleware.js';
-import type { Config } from '../config/env.js';
 
 const StaffOut = z.object({
   id: z.string().uuid(),
@@ -55,7 +55,7 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
 
       const url = buildAuthUrlWithDomain(oidcCfg, state, challenge, cfg.GOOGLE_WORKSPACE_DOMAIN);
       return reply.code(200).send({ url });
-    },
+    }
   );
 
   // GET /auth/session/callback — exchange code, verify id_token, upsert staff, set session
@@ -81,22 +81,30 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
 
       const { verifier } = saved;
       // Clear oauth state immediately — one-time use
-      // Double cast needed: FastifySessionObject lacks index signature
+      // biome-ignore lint/performance/noDelete: fastify-session requires delete to unset
+      // biome-ignore lint/complexity/useLiteralKeys: double-cast forces bracket access
       delete (req.session as unknown as Record<string, unknown>)['oauthState'];
 
-      let idPayload;
+      let idPayload: Awaited<ReturnType<typeof verifyIdToken>>;
       try {
         const idToken = await exchangeCodeForIdToken(oidcCfg, code, verifier);
         idPayload = await verifyIdToken(idToken, cfg.GOOGLE_CLIENT_ID);
       } catch (err) {
         app.log.warn({ err }, 'OIDC token verification failed');
-        return reply.code(401).send({ code: 'TOKEN_INVALID', message: 'ID token verification failed' });
+        return reply
+          .code(401)
+          .send({ code: 'TOKEN_INVALID', message: 'ID token verification failed' });
       }
 
       // D3 — enforce workspace domain if env is set (never hardcoded)
       if (!isAllowedWorkspaceDomain(idPayload, cfg.GOOGLE_WORKSPACE_DOMAIN)) {
-        app.log.warn({ email: idPayload.email, hd: idPayload.hd }, 'Login rejected: workspace domain mismatch');
-        return reply.code(403).send({ code: 'DOMAIN_NOT_ALLOWED', message: 'Account domain not permitted' });
+        app.log.warn(
+          { email: idPayload.email, hd: idPayload.hd },
+          'Login rejected: workspace domain mismatch'
+        );
+        return reply
+          .code(403)
+          .send({ code: 'DOMAIN_NOT_ALLOWED', message: 'Account domain not permitted' });
       }
 
       // Staff must exist and be active — no self-provisioning
@@ -114,7 +122,9 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
 
       const staff = rows[0];
       if (!staff || staff.status !== 'active') {
-        return reply.code(403).send({ code: 'UNAUTHORIZED_STAFF', message: 'Staff not found or inactive' });
+        return reply
+          .code(403)
+          .send({ code: 'UNAUTHORIZED_STAFF', message: 'Staff not found or inactive' });
       }
 
       // Update last_login_at — fire-and-forget, non-blocking
@@ -135,7 +145,7 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
       };
 
       return reply.redirect(`${cfg.CORS_ORIGIN}/auth/callback?ok=1`);
-    },
+    }
   );
 
   // GET /auth/me — return current session staff (401 if not logged in)
@@ -155,7 +165,7 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
         return reply.code(401).send({ code: 'UNAUTHENTICATED', message: 'Login required' });
       }
       return reply.code(200).send(req.session.staff);
-    },
+    }
   );
 
   // POST /auth/session/logout — destroy session
@@ -171,6 +181,48 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
     async (req, reply) => {
       await req.session.destroy();
       return reply.code(200).send({ ok: true });
+    }
+  );
+
+  // POST /auth/session/dev-login — AUTH_DEV_MODE only, creates session by email
+  // Demo-account quick-login for prototype parity. Rejected when AUTH_DEV_MODE=false.
+  r.post(
+    '/auth/session/dev-login',
+    {
+      schema: {
+        tags: ['auth'],
+        body: z.object({ email: z.string().email() }),
+        response: {
+          200: StaffOut,
+          403: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
     },
+    async (req, reply) => {
+      if (cfg.AUTH_DEV_MODE !== 'true') {
+        return reply
+          .code(403)
+          .send({ code: 'DEV_MODE_DISABLED', message: 'AUTH_DEV_MODE is not enabled' });
+      }
+      const [staff] = await app.db
+        .select()
+        .from(staffMembers)
+        .where(eq(staffMembers.email, req.body.email))
+        .limit(1);
+      if (!staff) {
+        return reply
+          .code(404)
+          .send({ code: 'STAFF_NOT_FOUND', message: 'No staff for that email' });
+      }
+      app.db
+        .update(staffMembers)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(staffMembers.id, staff.id))
+        .catch((err) => app.log.error({ err }, 'Failed to update last_login_at'));
+      await req.session.regenerate();
+      req.session.staff = { id: staff.id, email: staff.email, name: staff.name, role: staff.role };
+      return reply.code(200).send(req.session.staff);
+    }
   );
 };

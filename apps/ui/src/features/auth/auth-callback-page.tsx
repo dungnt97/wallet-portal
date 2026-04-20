@@ -1,13 +1,11 @@
+import { ApiError } from '@/api/client';
+import { AuthContext } from '@/auth/auth-provider';
 // /auth/callback — landing page after Google OIDC consent
 // Reads ?ok=1 (success) or ?error=... from the query string.
 // On success: calls /auth/me to hydrate AuthContext, then navigates to dashboard.
 // On error: shows message and redirects to /login.
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useContext } from 'react';
-import { AuthContext } from '@/auth/auth-provider';
-import { api, ApiError } from '@/api/client';
-import type { StaffUser } from '@/auth/auth-provider';
 
 export function AuthCallbackPage() {
   const [params] = useSearchParams();
@@ -16,6 +14,7 @@ export function AuthCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one-shot mount-effect; reading search params deliberately untracked
   useEffect(() => {
     const ok = params.get('ok');
     const error = params.get('error');
@@ -28,26 +27,21 @@ export function AuthCallbackPage() {
     }
 
     // Hydrate session — server already set the cookie during the callback redirect
-    api
-      .get<StaffUser>('/auth/me')
-      .then((staff) => {
-        // Inject staff into AuthContext via the internal escape hatch
-        if (authCtx && '_refreshAuth' in authCtx) {
-          (authCtx as unknown as { _refreshAuth: () => Promise<void> })._refreshAuth();
-        }
-        void staff; // staff used by _refreshAuth
-        // Navigate to intended destination (stored before login) or dashboard
+    authCtx
+      ?.refresh()
+      .then(() => {
         const intended = sessionStorage.getItem('wp_intended_path') ?? '/app/dashboard';
         sessionStorage.removeItem('wp_intended_path');
         navigate(intended, { replace: true });
       })
       .catch((err) => {
-        const msg = err instanceof ApiError ? `Auth error ${err.status}` : 'Session validation failed';
+        const msg =
+          err instanceof ApiError ? `Auth error ${err.status}` : 'Session validation failed';
         setErrorMsg(msg);
         setStatus('error');
         setTimeout(() => navigate('/login', { replace: true }), 3000);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (status === 'error') {

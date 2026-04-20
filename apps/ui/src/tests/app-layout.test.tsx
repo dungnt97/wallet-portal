@@ -29,6 +29,7 @@ function renderWithProviders(ui: React.ReactElement) {
           loading: false,
           initiateLogin: vi.fn(),
           logout: vi.fn(),
+          refresh: vi.fn(),
           hasPerm: () => true,
         }}
       >

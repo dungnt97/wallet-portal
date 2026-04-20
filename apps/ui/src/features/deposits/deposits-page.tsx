@@ -8,8 +8,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FIX_DEPOSITS, type FixDeposit } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
-import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
+import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { DepositsKpiStrip } from './deposits-kpi-strip';
+import { DepositsPolicyStrip } from './deposits-policy-strip';
 import { DepositSheet } from './deposits-sheet';
 import { DepositsTable } from './deposits-table';
 import { useDepositSocketListener } from './socket-listener';
@@ -129,34 +130,7 @@ export function DepositsPage() {
         </>
       }
       title={t('deposits.title')}
-      policyStrip={
-        <div className="policy-strip">
-          <div className="policy-strip-item">
-            <I.ArrowDown size={11} />
-            <span className="text-muted">{t('deposits.confirmsRequired')}</span>
-            <span className="fw-600">BNB 12 · SOL 32</span>
-          </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Activity size={11} />
-            <span className="text-muted">{t('deposits.watcher')}</span>
-            <LiveDot />
-            <span className="fw-600">{t('deposits.online')}</span>
-            <span className="text-faint text-mono">
-              · {t('deposits.lag')} {rt.rpc.bnb.lagBlocks} {t('deposits.blk')}
-            </span>
-          </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Database size={11} />
-            <span className="text-muted">{t('deposits.hdDeriv')}</span>
-            <span className="fw-600">BIP-44</span>
-          </div>
-          <div className="spacer" />
-          <BlockTicker chain="bnb" />
-          <BlockTicker chain="sol" />
-        </div>
-      }
+      policyStrip={<DepositsPolicyStrip />}
       actions={
         <>
           <span className="meta-hint text-xs text-muted">

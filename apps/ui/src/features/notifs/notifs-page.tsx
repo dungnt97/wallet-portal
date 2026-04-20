@@ -1,95 +1,11 @@
+// Notifications routing page — channels + event→channel matrix.
+// Ports prototype page_ops_extras.jsx PageNotifs.
 import { PageFrame, Toggle } from '@/components/custody';
 import { Modal, useToast } from '@/components/overlays';
 import { I, type IconKey } from '@/icons';
-// Notifications routing page — channels + event→channel matrix.
-// Ports prototype page_ops_extras.jsx PageNotifs.
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-type Severity = 'info' | 'warn' | 'err';
-type ChannelKind = 'email' | 'slack' | 'pagerduty' | 'webhook';
-
-interface Channel {
-  id: string;
-  kind: ChannelKind;
-  label: string;
-  enabled: boolean;
-  filter: string;
-}
-
-interface EventKind {
-  id: string;
-  label: string;
-  severity: Severity;
-  routed: ChannelKind[];
-}
-
-const DEFAULT_CHANNELS: Channel[] = [
-  {
-    id: 'ch_email_ops',
-    kind: 'email',
-    label: 'treasury-ops@treasury.io',
-    enabled: true,
-    filter: 'all',
-  },
-  { id: 'ch_slack_ops', kind: 'slack', label: '#treasury-ops', enabled: true, filter: 'all' },
-  {
-    id: 'ch_slack_sec',
-    kind: 'slack',
-    label: '#security-alerts',
-    enabled: true,
-    filter: 'critical',
-  },
-  { id: 'ch_pd', kind: 'pagerduty', label: 'Treasury on-call', enabled: true, filter: 'critical' },
-  {
-    id: 'ch_wh',
-    kind: 'webhook',
-    label: 'https://hooks.acme.io/treasury',
-    enabled: false,
-    filter: 'all',
-  },
-];
-
-const EVENT_KINDS: EventKind[] = [
-  {
-    id: 'multisig.pending',
-    label: 'Multisig pending signature',
-    severity: 'warn',
-    routed: ['email', 'slack', 'pagerduty'],
-  },
-  {
-    id: 'withdrawal.executed',
-    label: 'Withdrawal executed',
-    severity: 'info',
-    routed: ['email', 'slack'],
-  },
-  {
-    id: 'withdrawal.failed',
-    label: 'Withdrawal failed on-chain',
-    severity: 'err',
-    routed: ['email', 'slack', 'pagerduty'],
-  },
-  { id: 'sweep.completed', label: 'Sweep batch completed', severity: 'info', routed: ['slack'] },
-  {
-    id: 'sweep.partial',
-    label: 'Sweep batch partial failure',
-    severity: 'warn',
-    routed: ['email', 'slack'],
-  },
-  {
-    id: 'recon.drift',
-    label: 'Reconciliation drift > $100',
-    severity: 'err',
-    routed: ['email', 'slack', 'pagerduty'],
-  },
-  { id: 'rpc.failover', label: 'RPC primary failover', severity: 'warn', routed: ['slack'] },
-  {
-    id: 'signer.change',
-    label: 'Signer change proposed',
-    severity: 'warn',
-    routed: ['email', 'slack'],
-  },
-];
+import { type Channel, type ChannelKind, DEFAULT_CHANNELS, EVENT_KINDS } from '../_shared/fixtures';
 
 const CHANNEL_ICON: Record<ChannelKind, IconKey> = {
   email: 'External',
@@ -226,11 +142,12 @@ export function NotifsPage() {
         title="Send test notification"
         footer={
           <>
-            <button className="btn btn-ghost" onClick={() => setTestOpen(false)}>
+            <button type="button" className="btn btn-ghost" onClick={() => setTestOpen(false)}>
               Cancel
             </button>
             <div className="spacer" />
             <button
+              type="button"
               className="btn btn-accent"
               onClick={() => {
                 setTestOpen(false);

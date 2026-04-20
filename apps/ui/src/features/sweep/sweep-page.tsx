@@ -6,47 +6,17 @@ import { useQueryClient } from '@tanstack/react-query';
 // Sweep page — prototype visual port. Uses fixtures until /sweeps endpoint lands.
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIX_DEPOSIT_ADDRESSES, type FixSweepAddr } from '../_shared/fixtures';
-import { minutesAgo } from '../_shared/helpers';
-import { BlockTicker } from '../_shared/realtime';
+import {
+  FIX_DEPOSIT_ADDRESSES,
+  type FixSweepAddr,
+  INITIAL_SWEEP_BATCHES,
+} from '../_shared/fixtures';
 import { GasMonitor } from './gas-monitor';
 import { SweepAddressTable, SweepCart } from './sweep-address-table';
 import { type Batch, SweepBatchHistory } from './sweep-batch-history';
 import { SweepConfirmModal } from './sweep-confirm-modal';
 import { SweepKpiStrip } from './sweep-kpi-strip';
-
-const INITIAL_BATCHES: Batch[] = [
-  {
-    id: 'b_8112',
-    chain: 'bnb',
-    addresses: 6,
-    total: 12_840.55,
-    fee: 0.018,
-    status: 'completed',
-    createdAt: minutesAgo(120),
-    executedAt: minutesAgo(115),
-  },
-  {
-    id: 'b_8111',
-    chain: 'sol',
-    addresses: 4,
-    total: 8_220.1,
-    fee: 0.000012,
-    status: 'completed',
-    createdAt: minutesAgo(220),
-    executedAt: minutesAgo(218),
-  },
-  {
-    id: 'b_8104',
-    chain: 'bnb',
-    addresses: 6,
-    total: 14_018.2,
-    fee: 0.022,
-    status: 'partial',
-    createdAt: minutesAgo(96 * 60),
-    executedAt: minutesAgo(96 * 60 - 2),
-  },
-];
+import { SweepPolicyStrip } from './sweep-policy-strip';
 
 export function SweepPage() {
   const { t } = useTranslation();
@@ -56,7 +26,7 @@ export function SweepPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
-  const [batches, setBatches] = useState<Batch[]>(INITIAL_BATCHES);
+  const [batches, setBatches] = useState<Batch[]>(INITIAL_SWEEP_BATCHES);
 
   useEffect(() => {
     const socket = connectSocket();
@@ -116,30 +86,7 @@ export function SweepPage() {
         </>
       }
       title={t('sweep.title')}
-      policyStrip={
-        <div className="policy-strip">
-          <div className="policy-strip-item">
-            <I.Sweep size={11} />
-            <span className="text-muted">{t('sweep.policyLabel')}</span>
-            <span className="fw-600">{t('sweep.policyValue')}</span>
-          </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Lightning size={11} />
-            <span className="text-muted">{t('sweep.gasTopupLabel')}</span>
-            <span className="fw-600">{t('sweep.gasTopupValue')}</span>
-          </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Database size={11} />
-            <span className="text-muted">{t('sweep.idempotencyLabel')}</span>
-            <span className="fw-600">{t('sweep.idempotencyValue')}</span>
-          </div>
-          <div className="spacer" />
-          <BlockTicker chain="bnb" />
-          <BlockTicker chain="sol" />
-        </div>
-      }
+      policyStrip={<SweepPolicyStrip />}
       actions={
         <Segmented
           options={[

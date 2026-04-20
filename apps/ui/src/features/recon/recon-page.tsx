@@ -6,86 +6,8 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 // Ports prototype page_ops_extras.jsx PageRecon.
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BlockTicker } from '../_shared/realtime';
-
-interface ReconRow {
-  id: string;
-  account: string;
-  chain: 'bnb' | 'sol';
-  token: 'USDT' | 'USDC';
-  internal: number;
-  onchain: number;
-  status: 'match' | 'drift';
-  note?: string;
-}
-
-const RECON_ROWS: ReconRow[] = [
-  {
-    id: 'rc_1',
-    account: 'BSC Hot Wallet',
-    chain: 'bnb',
-    token: 'USDT',
-    internal: 482_341.55,
-    onchain: 482_341.55,
-    status: 'match',
-  },
-  {
-    id: 'rc_2',
-    account: 'BSC Hot Wallet',
-    chain: 'bnb',
-    token: 'USDC',
-    internal: 318_902.41,
-    onchain: 318_902.41,
-    status: 'match',
-  },
-  {
-    id: 'rc_3',
-    account: 'Solana Hot',
-    chain: 'sol',
-    token: 'USDT',
-    internal: 224_119.07,
-    onchain: 224_119.07,
-    status: 'match',
-  },
-  {
-    id: 'rc_4',
-    account: 'Deposit addr 0x4a…',
-    chain: 'bnb',
-    token: 'USDT',
-    internal: 1_820,
-    onchain: 1_820,
-    status: 'match',
-  },
-  {
-    id: 'rc_5',
-    account: 'Deposit addr 0x7e…',
-    chain: 'bnb',
-    token: 'USDT',
-    internal: 320,
-    onchain: 350,
-    status: 'drift',
-    note: 'On-chain > internal — possible missed deposit',
-  },
-  {
-    id: 'rc_6',
-    account: 'Deposit addr Gs9…',
-    chain: 'sol',
-    token: 'USDC',
-    internal: 1_100,
-    onchain: 0,
-    status: 'drift',
-    note: 'Internal > on-chain — user credited but chain empty (swept?)',
-  },
-  {
-    id: 'rc_7',
-    account: 'BSC Cold Vault',
-    chain: 'bnb',
-    token: 'USDT',
-    internal: 3_850_200.14,
-    onchain: 3_850_200.14,
-    status: 'match',
-  },
-];
+import { RECON_ROWS, type ReconRow } from '../_shared/fixtures';
+import { ReconPolicyStrip } from './recon-policy-strip';
 
 export function ReconPage() {
   const { t } = useTranslation();
@@ -117,24 +39,7 @@ export function ReconPage() {
         </>
       }
       title={t('recon.title')}
-      policyStrip={
-        <div className="policy-strip">
-          <div className="policy-strip-item">
-            <I.Database size={11} />
-            <span className="text-muted">Scan:</span>
-            <span className="fw-600">every 15m · cron</span>
-          </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Check size={11} />
-            <span className="text-muted">Last pass:</span>
-            <span className="fw-600">2m ago</span>
-          </div>
-          <div className="spacer" />
-          <BlockTicker chain="bnb" />
-          <BlockTicker chain="sol" />
-        </div>
-      }
+      policyStrip={<ReconPolicyStrip />}
       actions={
         <>
           <button className="btn btn-secondary" onClick={runScan} disabled={running}>

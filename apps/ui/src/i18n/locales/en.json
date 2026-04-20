@@ -1,0 +1,79 @@
+{
+  "sidebar": {
+    "brandName": "Wallet Portal",
+    "brandMeta": "Custodial Treasury",
+    "overview": "Overview",
+    "flows": "Flows",
+    "queue": "Queue",
+    "records": "Records",
+    "admin": "Admin",
+    "dashboard": "Dashboard",
+    "deposits": "Deposits",
+    "sweep": "Sweep",
+    "withdrawals": "Withdrawals",
+    "cold": "Cold Storage",
+    "multisig": "Multisig",
+    "failedTxs": "TX Errors",
+    "users": "Users",
+    "transactions": "Transactions",
+    "recon": "Reconciliation",
+    "audit": "Audit",
+    "signers": "Signers",
+    "notifs": "Notifications",
+    "architecture": "Architecture"
+  },
+  "pageTitles": {
+    "dashboard": "Dashboard",
+    "deposits": "Deposits",
+    "sweep": "Sweep",
+    "withdrawals": "Withdrawals",
+    "cold": "Cold Storage",
+    "multisig": "Multisig Queue",
+    "recovery": "TX Errors",
+    "users": "Users",
+    "transactions": "Transactions",
+    "recon": "Reconciliation",
+    "audit": "Audit Trail",
+    "signers": "Signers",
+    "notifs": "Notifications",
+    "architecture": "Architecture"
+  },
+  "topbar": {
+    "searchLong": "Search pages, transactions, users…",
+    "searchShort": "Search…",
+    "notifications": "Notifications",
+    "darkMode": "Switch to dark mode",
+    "lightMode": "Switch to light mode",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "common": {
+    "search": "Search",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "empty": "No results",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "export": "Export CSV"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Staff access only. Managed through Google Workspace.",
+    "continueGoogle": "Continue with Google",
+    "openingGoogle": "Opening Google…",
+    "orEmail": "or use email & password",
+    "workEmail": "Work email",
+    "continuePassword": "Continue with password",
+    "auditNote": "Every sign-in and write action is written to the audit trail.",
+    "demoAccounts": "Demo accounts",
+    "demoSubtitle": "Skip auth and jump straight in as a specific role."
+  },
+  "auth": {
+    "unauthorized": "You are not authorized to view this page.",
+    "sessionExpired": "Your session has expired. Please sign in again."
+  }
+}

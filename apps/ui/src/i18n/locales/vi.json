@@ -1,0 +1,79 @@
+{
+  "sidebar": {
+    "brandName": "Wallet Portal",
+    "brandMeta": "Quản lý tài sản",
+    "overview": "Tổng quan",
+    "flows": "Luồng giao dịch",
+    "queue": "Hàng đợi",
+    "records": "Hồ sơ",
+    "admin": "Quản trị",
+    "dashboard": "Bảng điều khiển",
+    "deposits": "Nạp tiền",
+    "sweep": "Gom tiền",
+    "withdrawals": "Rút tiền",
+    "cold": "Lưu trữ lạnh",
+    "multisig": "Đa chữ ký",
+    "failedTxs": "Lỗi giao dịch",
+    "users": "Người dùng",
+    "transactions": "Giao dịch",
+    "recon": "Đối soát",
+    "audit": "Kiểm toán",
+    "signers": "Người ký",
+    "notifs": "Thông báo",
+    "architecture": "Kiến trúc"
+  },
+  "pageTitles": {
+    "dashboard": "Bảng điều khiển",
+    "deposits": "Nạp tiền",
+    "sweep": "Gom tiền",
+    "withdrawals": "Rút tiền",
+    "cold": "Lưu trữ lạnh",
+    "multisig": "Hàng đợi đa chữ ký",
+    "recovery": "Lỗi giao dịch",
+    "users": "Người dùng",
+    "transactions": "Giao dịch",
+    "recon": "Đối soát",
+    "audit": "Nhật ký kiểm toán",
+    "signers": "Người ký",
+    "notifs": "Thông báo",
+    "architecture": "Kiến trúc"
+  },
+  "topbar": {
+    "searchLong": "Tìm trang, giao dịch, người dùng…",
+    "searchShort": "Tìm kiếm…",
+    "notifications": "Thông báo",
+    "darkMode": "Chế độ tối",
+    "lightMode": "Chế độ sáng",
+    "settings": "Cài đặt",
+    "signOut": "Đăng xuất"
+  },
+  "common": {
+    "search": "Tìm kiếm",
+    "loading": "Đang tải…",
+    "error": "Đã xảy ra lỗi",
+    "empty": "Không có kết quả",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "view": "Xem",
+    "export": "Xuất CSV"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "subtitle": "Chỉ dành cho nhân sự. Quản lý qua Google Workspace.",
+    "continueGoogle": "Tiếp tục với Google",
+    "openingGoogle": "Đang mở Google…",
+    "orEmail": "hoặc dùng email & mật khẩu",
+    "workEmail": "Email công việc",
+    "continuePassword": "Tiếp tục với mật khẩu",
+    "auditNote": "Mọi lần đăng nhập và thao tác ghi đều được lưu vào audit log.",
+    "demoAccounts": "Tài khoản demo",
+    "demoSubtitle": "Bỏ qua xác thực và vào ngay với một role cụ thể."
+  },
+  "auth": {
+    "unauthorized": "Bạn không có quyền truy cập trang này.",
+    "sessionExpired": "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại."
+  }
+}

@@ -1,0 +1,97 @@
+name: Deploy — Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'deploy' to confirm production deployment"
+        required: true
+        type: string
+      version:
+        description: "Image tag / commit SHA to deploy (defaults to latest main)"
+        required: false
+        type: string
+
+jobs:
+  gate:
+    name: Deployment gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation input
+        # Prevents accidental triggers — user must type 'deploy' explicitly
+        # Safe: inputs.confirm moved to env var to prevent shell injection
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "deploy" ]; then
+            echo "Confirmation input does not match 'deploy'. Aborting."
+            exit 1
+          fi
+          echo "Confirmation accepted."
+
+  build-and-push:
+    name: Build image (${{ matrix.service }})
+    needs: gate
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [admin-api, wallet-engine, policy-engine, ui]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Derive image tag
+        id: meta
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_SHA::8}"
+          fi
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: |
+            wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.tag }}
+            wallet-portal-${{ matrix.service }}:prod-latest
+          cache-from: type=gha,scope=prod-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=prod-${{ matrix.service }}
+
+      # ── ECR login (disabled until AWS credentials configured) ─────────────
+      # TODO: uncomment after IaC setup
+      # - name: Configure AWS credentials
+      #   if: false
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_PROD_DEPLOY_ROLE_ARN }}
+      #     aws-region: us-east-1
+      #
+      # - name: Login to Amazon ECR
+      #   if: false
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #
+      # - name: Push to ECR
+      #   if: false
+      #   run: |
+      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+      #     docker tag wallet-portal-${{ matrix.service }}:prod-latest       #       $ECR_URI/wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.tag }}
+      #     docker push $ECR_URI/wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.tag }}
+      #
+      # - name: Update ECS service (prod)
+      #   if: false
+      #   run: |
+      #     echo "would deploy wallet-portal-${{ matrix.service }} to ECS prod cluster"
+      #     # aws ecs update-service --cluster wp-prod --service ${{ matrix.service }} --force-new-deployment
+
+      - name: Stub deploy log
+        run: echo "Would deploy wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.tag }} to PRODUCTION (AWS not yet configured)"

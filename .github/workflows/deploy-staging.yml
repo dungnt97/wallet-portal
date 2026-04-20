@@ -1,0 +1,72 @@
+name: Deploy — Staging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build image (${{ matrix.service }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [admin-api, wallet-engine, policy-engine, ui]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Derive image tag
+        id: meta
+        # Safe: github.sha is a commit hash, not user-controlled text
+        run: |
+          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: |
+            wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+            wallet-portal-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      # ── ECR login (disabled until AWS credentials configured) ─────────────
+      # TODO: uncomment after IaC setup
+      # - name: Configure AWS credentials
+      #   if: false
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+      #
+      # - name: Login to Amazon ECR
+      #   if: false
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #
+      # - name: Push to ECR
+      #   if: false
+      #   run: |
+      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+      #     docker tag wallet-portal-${{ matrix.service }}:latest       #       $ECR_URI/wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+      #     docker push $ECR_URI/wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+      #
+      # - name: Update ECS service
+      #   if: false
+      #   run: |
+      #     echo "would deploy wallet-portal-${{ matrix.service }} to ECS staging cluster"
+      #     # aws ecs update-service --cluster wp-staging --service ${{ matrix.service }} --force-new-deployment
+
+      - name: Stub deploy log
+        run: echo "Would deploy wallet-portal-${{ matrix.service }}:${{ steps.meta.outputs.short_sha }} to staging (AWS not yet configured)"

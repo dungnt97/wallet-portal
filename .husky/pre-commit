@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Skip husky hooks in CI environment
+if [ "$CI" = "true" ]; then
+  exit 0
+fi
+
+# Add common node binary paths to PATH for git hooks
+export PATH="$HOME/.nvm/versions/node/$(node -v 2>/dev/null || echo 'v20.0.0')/bin:$HOME/.bun/bin:$PATH"
+
+# Run lint-staged to format and lint staged files before commit
+npx --no-install lint-staged

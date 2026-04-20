@@ -1,0 +1,10 @@
+{
+  "name": "@wp/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["*.json"],
+  "scripts": {
+    "lint": "echo 'config package: no lint target'"
+  }
+}

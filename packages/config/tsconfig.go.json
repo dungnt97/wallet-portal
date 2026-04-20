@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_comment": "Unused placeholder — Go policy-engine does not use TypeScript. Reserved for future Go tooling integration."
+}

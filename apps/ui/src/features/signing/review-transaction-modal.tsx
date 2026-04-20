@@ -171,8 +171,8 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
             Cancel
           </button>
           <button
-            className="btn btn-primary"
-            disabled={!policy.passed || !acknowledged}
+            className={`btn ${policy.passed ? 'btn-primary' : 'btn-danger'}`}
+            disabled={!acknowledged}
             onClick={onConfirm}
           >
             {policy.passed ? 'Sign in wallet' : 'Blocked by policy'}

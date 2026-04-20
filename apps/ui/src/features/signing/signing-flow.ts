@@ -1,11 +1,17 @@
-// Signing flow orchestrator — review → wallet-sign → step-up → execute → done.
-// Pass 4 ports the 811-LOC prototype signing_modals.jsx into a state machine
-// that drives the separate modal components. All chain calls are mocked by
-// default; real wagmi/viem adapters can slot in behind this interface.
+// Signing flow orchestrator — 7-stage state machine mirroring prototype
+// signing_modals.jsx. Stages: review → wallet-sign → step-up → execute → done.
+// Branches: policy-block (if policy fails at review), reject (any stage),
+// otp (fallback from step-up). All chain calls are mocked by default.
 import { useCallback, useState } from 'react';
 import type { FixWithdrawal } from '../_shared/fixtures-flows';
 import { mockBroadcast, mockSign } from './mock-adapters';
-import type { SignedSignature, SigningFlowState, SigningOp } from './signing-flow-types';
+import { evaluatePolicy } from './policy-preview';
+import type {
+  SignedSignature,
+  SigningFlowState,
+  SigningOp,
+  StepUpResult,
+} from './signing-flow-types';
 
 // Re-export types for external consumers
 export type {
@@ -14,14 +20,17 @@ export type {
   SigningFlowState,
   SigningOp,
   SigningStep,
+  StepUpResult,
 } from './signing-flow-types';
 
 const INITIAL: SigningFlowState = {
   step: 'idle',
   op: null,
   signature: null,
+  stepUp: null,
   broadcast: null,
   error: null,
+  rejectReason: null,
 };
 
 /** Convert a fixture withdrawal into an op the signing flow can drive. */
@@ -47,9 +56,15 @@ export function withdrawalToOp(w: FixWithdrawal): SigningOp {
 export interface SigningFlow {
   state: SigningFlowState;
   start: (op: SigningOp) => void;
+  /** Advance review → wallet-sign (or policy-block if policy fails). */
   confirmReview: () => void;
   walletSigned: (sig: SignedSignature) => void;
-  stepUpPassed: () => Promise<void>;
+  /** Success of WebAuthn step-up — advances to execute. */
+  stepUpPassed: (r: StepUpResult) => Promise<void>;
+  /** Switch from step-up to OTP fallback. */
+  useOtpFallback: () => void;
+  /** OTP verified — same effect as stepUpPassed. */
+  otpVerified: (r: StepUpResult) => Promise<void>;
   cancel: () => void;
   reject: (reason?: string) => void;
   reset: () => void;
@@ -60,11 +75,17 @@ export function useSigningFlow(): SigningFlow {
   const [state, setState] = useState<SigningFlowState>(INITIAL);
 
   const start = useCallback((op: SigningOp) => {
-    setState({ step: 'review', op, signature: null, broadcast: null, error: null });
+    setState({ ...INITIAL, step: 'review', op });
   }, []);
 
+  // review → policy-block OR wallet-sign based on policy evaluation.
   const confirmReview = useCallback(() => {
-    setState((prev) => (prev.step === 'review' ? { ...prev, step: 'wallet-sign' } : prev));
+    setState((prev) => {
+      if (prev.step !== 'review' || !prev.op) return prev;
+      const policy = evaluatePolicy(prev.op);
+      if (!policy.passed) return { ...prev, step: 'policy-block' };
+      return { ...prev, step: 'wallet-sign' };
+    });
   }, []);
 
   const walletSigned = useCallback((sig: SignedSignature) => {
@@ -73,15 +94,46 @@ export function useSigningFlow(): SigningFlow {
     );
   }, []);
 
-  const stepUpPassed = useCallback(async () => {
-    setState((prev) => {
-      if (prev.step !== 'step-up' || !prev.op) return prev;
-      void mockBroadcast(prev.op).then((result) => {
-        setState((p) => ({ ...p, step: 'done', broadcast: result }));
-      });
-      return { ...prev, step: 'execute' };
-    });
+  // Broadcast happens during 'execute' → transitions to 'done' or 'error'.
+  const broadcastAndFinish = useCallback((op: SigningOp) => {
+    void mockBroadcast(op)
+      .then((result) =>
+        setState((p) => (p.step === 'execute' ? { ...p, step: 'done', broadcast: result } : p))
+      )
+      .catch((e) =>
+        setState((p) =>
+          p.step === 'execute'
+            ? { ...p, step: 'error', error: String((e as Error).message ?? 'Broadcast failed') }
+            : p
+        )
+      );
   }, []);
+
+  const stepUpPassed = useCallback(
+    async (r: StepUpResult) => {
+      setState((prev) => {
+        if (prev.step !== 'step-up' || !prev.op) return prev;
+        broadcastAndFinish(prev.op);
+        return { ...prev, step: 'execute', stepUp: r };
+      });
+    },
+    [broadcastAndFinish]
+  );
+
+  const useOtpFallback = useCallback(() => {
+    setState((prev) => (prev.step === 'step-up' ? { ...prev, step: 'otp' } : prev));
+  }, []);
+
+  const otpVerified = useCallback(
+    async (r: StepUpResult) => {
+      setState((prev) => {
+        if (prev.step !== 'otp' || !prev.op) return prev;
+        broadcastAndFinish(prev.op);
+        return { ...prev, step: 'execute', stepUp: r };
+      });
+    },
+    [broadcastAndFinish]
+  );
 
   const cancel = useCallback(() => setState(INITIAL), []);
 
@@ -89,7 +141,7 @@ export function useSigningFlow(): SigningFlow {
     setState((prev) => ({
       ...prev,
       step: 'rejected',
-      error: reason ?? 'Signer rejected operation.',
+      rejectReason: reason ?? 'Signer rejected operation.',
     }));
   }, []);
 
@@ -101,6 +153,8 @@ export function useSigningFlow(): SigningFlow {
     confirmReview,
     walletSigned,
     stepUpPassed,
+    useOtpFallback,
+    otpVerified,
     cancel,
     reject,
     reset,

@@ -1,7 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
 // Socket.io listener — subscribes to 'deposit.credited' events and invalidates TanStack Query cache
 // Mount once at app level or within DepositsPage — unmounts cleanly on component teardown
 import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { connectSocket, disconnectSocket } from '../../api/socket';
 import { DEPOSITS_QUERY_KEY } from './use-deposits';
 

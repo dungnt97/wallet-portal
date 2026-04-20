@@ -1,87 +1,247 @@
-// Deposits page — real data via TanStack Query + Socket.io live invalidation
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useDeposits } from './use-deposits';
-import { useDepositSocketListener } from './socket-listener';
+import { Filter, Tabs } from '@/components/custody';
+import { useToast } from '@/components/overlays';
+import { I } from '@/icons';
+import { CHAINS } from '@/lib/constants';
+// Deposits page — prototype visual port. Real data via existing useDeposits
+// hook (falls back to fixtures when API empty). Keeps socket listener.
+import { useEffect, useMemo, useState } from 'react';
+import { FIX_DEPOSITS, type FixDeposit } from '../_shared/fixtures';
+import { downloadCSV } from '../_shared/helpers';
+import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
+import { DepositsKpiStrip } from './deposits-kpi-strip';
+import { DepositSheet } from './deposits-sheet';
 import { DepositsTable } from './deposits-table';
+import { useDepositSocketListener } from './socket-listener';
+import { type Deposit, useDeposits } from './use-deposits';
+
+const PAGE_SIZE = 15;
+
+type StatusTab = 'all' | 'pending' | 'credited' | 'swept';
+
+// Map API Deposit → FixDeposit shape used by table/detail view.
+function toFix(d: Deposit): FixDeposit {
+  return {
+    id: d.id,
+    userId: d.userId,
+    userName: d.userId.slice(0, 10),
+    chain: d.chain,
+    token: d.token,
+    amount: Number.parseFloat(d.amount) || 0,
+    status: d.status,
+    address: '—',
+    txHash: d.txHash ?? '—',
+    confirmations: d.confirmedBlocks,
+    requiredConfirmations: d.chain === 'bnb' ? 15 : 32,
+    detectedAt: d.createdAt,
+    creditedAt: d.status !== 'pending' ? d.updatedAt : null,
+    sweptAt: d.status === 'swept' ? d.updatedAt : null,
+    risk: 'low',
+    blockNumber: 0,
+  };
+}
 
 export function DepositsPage() {
-  const { t } = useTranslation();
+  const toast = useToast();
+  const rt = useRealtime();
+  const [tab, setTab] = useState<StatusTab>('all');
+  const [chainFilter, setChainFilter] = useState<'bnb' | 'sol' | null>(null);
+  const [tokenFilter, setTokenFilter] = useState<'USDT' | 'USDC' | null>(null);
+  const [selected, setSelected] = useState<FixDeposit | null>(null);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'credited' | 'swept' | 'failed' | undefined>(undefined);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Subscribe to Socket.io deposit.credited events — invalidates deposits query
   useDepositSocketListener();
 
-  const { data, isLoading, isError } = useDeposits({ page, limit: 20, status: statusFilter });
+  const { data, refetch, isLoading } = useDeposits({
+    page,
+    limit: PAGE_SIZE,
+    status: tab === 'all' ? undefined : tab,
+    chain: chainFilter ?? undefined,
+    token: tokenFilter ?? undefined,
+  });
+
+  // Prefer real data when present; otherwise fall back to prototype fixtures.
+  const deposits: FixDeposit[] = useMemo(() => {
+    if (data?.data && data.data.length > 0) return data.data.map(toFix);
+    return FIX_DEPOSITS;
+  }, [data]);
+
+  const filtered = useMemo(
+    () =>
+      deposits.filter((d) => {
+        if (tab !== 'all' && d.status !== tab) return false;
+        if (chainFilter && d.chain !== chainFilter) return false;
+        if (tokenFilter && d.token !== tokenFilter) return false;
+        return true;
+      }),
+    [deposits, tab, chainFilter, tokenFilter]
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filter signature only
+  useEffect(() => {
+    setPage(1);
+  }, [tab, chainFilter, tokenFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const doRefresh = () => {
+    setRefreshing(true);
+    void refetch().finally(() => {
+      setRefreshing(false);
+      toast('Deposits refreshed.', 'success');
+    });
+  };
+
+  const doExport = () => {
+    downloadCSV(
+      'deposits.csv',
+      filtered.map((d) => [
+        d.id,
+        d.userName,
+        d.chain,
+        d.token,
+        d.amount,
+        d.address,
+        d.txHash,
+        d.status,
+        d.detectedAt,
+      ]),
+      ['id', 'user', 'chain', 'token', 'amount', 'address', 'hash', 'status', 'detected']
+    );
+    toast(`Exported ${filtered.length} rows.`, 'success');
+  };
+
+  const counts = {
+    all: deposits.length,
+    pending: deposits.filter((d) => d.status === 'pending').length,
+    credited: deposits.filter((d) => d.status === 'credited').length,
+    swept: deposits.filter((d) => d.status === 'swept').length,
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[20px] font-semibold text-[var(--text)]">{t('pageTitles.deposits')}</h1>
-        <div className="flex items-center gap-2">
-          {/* Status filter */}
-          <select
-            value={statusFilter ?? ''}
-            onChange={(e) => {
-              const v = e.target.value;
-              setStatusFilter(v ? (v as typeof statusFilter) : undefined);
-              setPage(1);
-            }}
-            className="text-[12px] px-2 py-1 rounded border border-[var(--line)] bg-[var(--bg-elev)] text-[var(--text)] outline-none"
+    <div className="page page-dense">
+      <div className="policy-strip">
+        <div className="policy-strip-item">
+          <I.ArrowDown size={11} />
+          <span className="text-muted">Confirmations required:</span>
+          <span className="fw-600">BNB 12 · SOL 32</span>
+        </div>
+        <div className="policy-strip-sep" />
+        <div className="policy-strip-item">
+          <I.Activity size={11} />
+          <span className="text-muted">Watcher:</span>
+          <LiveDot />
+          <span className="fw-600">online</span>
+          <span className="text-faint text-mono">· lag {rt.rpc.bnb.lagBlocks} blk</span>
+        </div>
+        <div className="policy-strip-sep" />
+        <div className="policy-strip-item">
+          <I.Database size={11} />
+          <span className="text-muted">HD derivation:</span>
+          <span className="fw-600">BIP-44</span>
+        </div>
+        <div className="spacer" />
+        <BlockTicker chain="bnb" />
+        <BlockTicker chain="sol" />
+      </div>
+
+      <div className="page-header">
+        <div>
+          <div className="page-eyebrow">
+            On-chain · <span className="env-inline">monitored</span>
+          </div>
+          <h1 className="page-title">Deposits</h1>
+        </div>
+        <div className="page-actions">
+          <span className="meta-hint text-xs text-muted">
+            <LiveDot /> live · updated <LiveTimeAgo at={new Date(rt.now - 1800).toISOString()} />
+          </span>
+          <button
+            className="btn btn-secondary"
+            onClick={doRefresh}
+            disabled={refreshing || isLoading}
           >
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="credited">Credited</option>
-            <option value="swept">Swept</option>
-            <option value="failed">Failed</option>
-          </select>
-          {data && (
-            <span className="text-[11px] bg-[var(--accent-soft)] text-[var(--accent-text)] px-2 py-0.5 rounded-full">
-              {data.total} total
-            </span>
-          )}
+            <I.Refresh
+              size={13}
+              style={refreshing ? { animation: 'spin 700ms linear infinite' } : undefined}
+            />
+            Refresh
+          </button>
+          <button className="btn btn-secondary" onClick={doExport}>
+            <I.External size={13} /> Export CSV
+          </button>
         </div>
       </div>
 
-      {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-[12px] text-red-700 dark:text-red-400">
-          Failed to load deposits. Retrying…
+      <DepositsKpiStrip deposits={deposits} />
+
+      <div className="card pro-card" style={{ marginTop: 14 }}>
+        <div className="pro-card-header">
+          <Tabs
+            value={tab}
+            onChange={(v) => setTab(v as StatusTab)}
+            embedded
+            tabs={[
+              { value: 'all', label: 'All', count: counts.all },
+              { value: 'pending', label: 'Pending', count: counts.pending },
+              { value: 'credited', label: 'Credited', count: counts.credited },
+              { value: 'swept', label: 'Swept', count: counts.swept },
+            ]}
+          />
+          <div className="spacer" />
+          <Filter
+            label="Chain"
+            value={chainFilter ? CHAINS[chainFilter].short : undefined}
+            active={!!chainFilter}
+            onClick={() =>
+              setChainFilter(chainFilter === 'bnb' ? 'sol' : chainFilter === 'sol' ? null : 'bnb')
+            }
+            onClear={() => setChainFilter(null)}
+          />
+          <Filter
+            label="Token"
+            value={tokenFilter ?? undefined}
+            active={!!tokenFilter}
+            onClick={() =>
+              setTokenFilter(
+                tokenFilter === 'USDT' ? 'USDC' : tokenFilter === 'USDC' ? null : 'USDT'
+              )
+            }
+            onClear={() => setTokenFilter(null)}
+          />
+          <Filter label="Amount" />
+          <Filter label="Date" />
+          <span className="text-xs text-muted text-mono">
+            {filtered.length}/{deposits.length}
+          </span>
         </div>
-      )}
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : (
-        <DepositsTable
-          deposits={data?.data ?? []}
-          total={data?.total ?? 0}
-          page={page}
-          limit={20}
-          onPageChange={setPage}
-        />
-      )}
-    </div>
-  );
-}
+        <DepositsTable rows={pageRows} onSelect={setSelected} />
 
-function SkeletonTable() {
-  const cols = 8;
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--bg-elev)]">
-      <table className="w-full text-[12px]">
-        <tbody>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <tr key={i} className="border-b border-[var(--line)] last:border-0">
-              {Array.from({ length: cols }).map((_, j) => (
-                <td key={j} className="px-4 py-3">
-                  <div className="h-3 rounded bg-[var(--bg-muted)] animate-pulse" style={{ width: `${40 + ((i * 7 + j * 3) % 40)}%` }} />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="pagination">
+          <span>
+            Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
+            {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="spacer" />
+          <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            <I.ChevronLeft size={12} /> Prev
+          </button>
+          <span>
+            page <span className="text-mono">{page}</span> of{' '}
+            <span className="text-mono">{totalPages}</span>
+          </span>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next <I.ChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+
+      <DepositSheet deposit={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

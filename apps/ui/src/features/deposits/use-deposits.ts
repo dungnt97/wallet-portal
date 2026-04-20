@@ -1,6 +1,6 @@
 // TanStack Query hook for deposits — real API fetch with 5s polling interval
 // Invalidated on Socket.io 'deposit.credited' event via socket-listener.ts
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryResult, useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 
 export interface Deposit {

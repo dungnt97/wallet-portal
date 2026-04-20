@@ -32,10 +32,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# package manager
+# package manager (pnpm-lock.yaml tracked for supply-chain reproducibility)
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 
 # semantic-release
 .nyc_output

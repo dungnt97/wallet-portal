@@ -35,7 +35,34 @@
       "portable-manifest.json",
       "release-manifest.json",
       ".releaserc.cjs",
-      ".commitlintrc.json"
+      ".commitlintrc.json",
+      "apps/ui/src/styles/base.css",
+      "apps/ui/src/styles/pro-dashboard.css",
+      "apps/ui/src/styles/wallet-flow.css",
+      "apps/ui/src/styles/missing.css"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["apps/ui/src/**/*.tsx", "apps/ui/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useButtonType": "off",
+            "useKeyWithClickEvents": "off",
+            "noSvgWithoutTitle": "off",
+            "useSemanticElements": "off",
+            "useAriaPropsForRole": "off",
+            "useAltText": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -51,6 +51,14 @@ const NAMES = [
   'Iris Berg',
   'Kenji Mori',
   'Carla Ferreira',
+  'Pavel Sidorov',
+  'Lina Park',
+  'Felipe Costa',
+  'Aoife Byrne',
+  'Zara Khan',
+  'Diego Romero',
+  'Ana Petrovic',
+  'Yusuf Yilmaz',
 ];
 
 export interface FixUser {
@@ -64,7 +72,7 @@ export interface FixUser {
   risk: 'low' | 'med' | 'high';
 }
 
-export const FIX_USERS: FixUser[] = Array.from({ length: 20 }, (_, i) => {
+export const FIX_USERS: FixUser[] = Array.from({ length: 28 }, (_, i) => {
   const name = NAMES[i % NAMES.length] as string;
   return {
     id: `usr_${(1000 + i).toString(36)}`,
@@ -116,7 +124,7 @@ const STATUSES: FixDeposit['status'][] = [
   'pending',
 ];
 
-export const FIX_DEPOSITS: FixDeposit[] = Array.from({ length: 30 }, (_, i) => {
+export const FIX_DEPOSITS: FixDeposit[] = Array.from({ length: 42 }, (_, i) => {
   const user = FIX_USERS[i % FIX_USERS.length] as FixUser;
   const chain: 'bnb' | 'sol' = i % 3 === 0 ? 'sol' : 'bnb';
   const token: 'USDT' | 'USDC' = i % 2 === 0 ? 'USDT' : 'USDC';

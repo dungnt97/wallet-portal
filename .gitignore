@@ -43,6 +43,9 @@ yarn.lock
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.compose.example
+# infra compose secret env
+infra/.env.compose
 
 # vercel
 .vercel

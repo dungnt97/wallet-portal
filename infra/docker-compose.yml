@@ -1,0 +1,207 @@
+# Local development stack — single-command startup for wallet-portal
+# Usage: docker compose up -d
+# Observability profile: docker compose --profile observability up -d
+
+networks:
+  wp-net:
+    driver: bridge
+
+volumes:
+  wp_pg_data:
+  wp_redis_data:
+
+services:
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wallet_portal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - wp_pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - '5432:5432'
+    networks:
+      - wp-net
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres', '-d', 'wallet_portal']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '/usr/local/etc/redis/redis.conf']
+    volumes:
+      - wp_redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - '6379:6379'
+    networks:
+      - wp-net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ./otel/config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+      - '8888:8888' # Prometheus metrics (collector self-metrics)
+      - '8889:8889' # Prometheus exporter
+    networks:
+      - wp-net
+    depends_on:
+      - jaeger
+    profiles:
+      - observability
+    restart: unless-stopped
+
+  # Standalone OTel collector (always on, no jaeger dep) for base profile
+  otel-collector-base:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ./otel/config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+      - '8888:8888' # collector self-metrics
+    networks:
+      - wp-net
+    restart: unless-stopped
+
+  # ── Application services ───────────────────────────────────────────────────
+
+  admin-api:
+    build:
+      context: ..
+      dockerfile: apps/admin-api/Dockerfile
+    env_file:
+      - .env.compose
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector-base:4318
+      OTEL_SERVICE_NAME: admin-api
+    ports:
+      - '3001:3001'
+    networks:
+      - wp-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector-base:
+        condition: service_started
+    restart: unless-stopped
+
+  wallet-engine:
+    build:
+      context: ..
+      dockerfile: apps/wallet-engine/Dockerfile
+    env_file:
+      - .env.compose
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector-base:4318
+      OTEL_SERVICE_NAME: wallet-engine
+    ports:
+      - '3002:3002'
+    networks:
+      - wp-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector-base:
+        condition: service_started
+    restart: unless-stopped
+
+  policy-engine:
+    build:
+      context: ..
+      dockerfile: apps/policy-engine/Dockerfile
+    env_file:
+      - .env.compose
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector-base:4318
+      OTEL_SERVICE_NAME: policy-engine
+    ports:
+      - '3003:3003'
+    networks:
+      - wp-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector-base:
+        condition: service_started
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ..
+      dockerfile: apps/ui/Dockerfile
+    env_file:
+      - .env.compose
+    ports:
+      - '5173:5173'
+    networks:
+      - wp-net
+    depends_on:
+      - admin-api
+    restart: unless-stopped
+
+  # ── Observability profile (opt-in) ─────────────────────────────────────────
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4319:4317'   # OTLP gRPC (mapped to avoid conflict with base collector)
+      - '4320:4318'   # OTLP HTTP  (mapped)
+    networks:
+      - wp-net
+    profiles:
+      - observability
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    networks:
+      - wp-net
+    profiles:
+      - observability
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: devpass
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - '3000:3000'
+    networks:
+      - wp-net
+    profiles:
+      - observability
+    depends_on:
+      - prometheus
+    restart: unless-stopped

@@ -1,4 +1,5 @@
 // Signers KPI strip + set-health card.
+import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { MULTISIG_POLICY } from '@/lib/constants';
 import type { SignerRow } from './signers-fixtures';
@@ -10,68 +11,87 @@ interface KpiProps {
 
 export function SignersKpiStrip({ active, pendingChanges }: KpiProps) {
   return (
-    <div className="kpi-strip">
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Users size={10} />
-          Active Treasurers
-        </div>
-        <div className="kpi-mini-value">{active.length}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted">of {MULTISIG_POLICY.total} slots</span>
-          <span className="badge-tight ok">
-            <span className="dot" />
-            Full
-          </span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Shield size={10} />
-          Threshold
-        </div>
-        <div className="kpi-mini-value">
-          {MULTISIG_POLICY.required}/{MULTISIG_POLICY.total}
-        </div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted">per withdrawal</span>
-          <span className="badge-tight info">
-            <span className="dot" />
-            Standard
-          </span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Clock size={10} />
-          Pending changes
-        </div>
-        <div className="kpi-mini-value">{pendingChanges}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">awaiting signatures</span>
-          <span className="badge-tight warn">
-            <span className="dot" />
-            Review
-          </span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Key size={10} />
-          Last key rotation
-        </div>
-        <div className="kpi-mini-value" style={{ fontSize: 16 }}>
-          18h ago
-        </div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted">Ana · EVM</span>
-          <span className="badge-tight ok">
-            <span className="dot" />
-            Executed
-          </span>
-        </div>
-      </div>
-    </div>
+    <KpiStrip
+      items={[
+        {
+          key: 'active',
+          label: (
+            <>
+              <I.Users size={10} />
+              Active Treasurers
+            </>
+          ),
+          value: active.length,
+          foot: (
+            <>
+              <span className="text-xs text-muted">of {MULTISIG_POLICY.total} slots</span>
+              <span className="badge-tight ok">
+                <span className="dot" />
+                Full
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'threshold',
+          label: (
+            <>
+              <I.Shield size={10} />
+              Threshold
+            </>
+          ),
+          value: `${MULTISIG_POLICY.required}/${MULTISIG_POLICY.total}`,
+          foot: (
+            <>
+              <span className="text-xs text-muted">per withdrawal</span>
+              <span className="badge-tight info">
+                <span className="dot" />
+                Standard
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'pending',
+          label: (
+            <>
+              <I.Clock size={10} />
+              Pending changes
+            </>
+          ),
+          value: pendingChanges,
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">awaiting signatures</span>
+              <span className="badge-tight warn">
+                <span className="dot" />
+                Review
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'rotation',
+          label: (
+            <>
+              <I.Key size={10} />
+              Last key rotation
+            </>
+          ),
+          value: '18h ago',
+          valueStyle: { fontSize: 16 },
+          foot: (
+            <>
+              <span className="text-xs text-muted">Ana · EVM</span>
+              <span className="badge-tight ok">
+                <span className="dot" />
+                Executed
+              </span>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }
 

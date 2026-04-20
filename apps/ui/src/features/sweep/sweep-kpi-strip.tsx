@@ -1,5 +1,5 @@
-import { StatusBadge } from '@/components/custody';
-// Sweep KPI strip — 4 mini cards.
+// Sweep KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+import { KpiStrip, StatusBadge } from '@/components/custody';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtCompact } from '@/lib/format';
@@ -31,58 +31,83 @@ export function SweepKpiStrip({
   latest,
 }: Props) {
   return (
-    <div className="kpi-strip">
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Sweep size={10} />
-          Ready to sweep
-        </div>
-        <div className="kpi-mini-value">${fmtCompact(readyTotal)}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">
-            {readyCount} {CHAINS[chain].short} addrs
-          </span>
-          <span className="badge-tight warn">
-            <span className="dot" />
-            pending
-          </span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Check size={10} />
-          Selected
-        </div>
-        <div className="kpi-mini-value">${fmtCompact(selectedTotal)}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">{selectedCount} addrs</span>
-          <span className="text-xs delta-up">batch</span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Lightning size={10} />
-          Est. network fee
-        </div>
-        <div className="kpi-mini-value">{estFee.toFixed(chain === 'bnb' ? 4 : 6)}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">{chain === 'bnb' ? 'BNB' : 'SOL'}</span>
-          <span className="text-xs text-muted">per batch</span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Activity size={10} />
-          Last sweep
-        </div>
-        <div className="kpi-mini-value" style={{ fontSize: 16 }}>
-          {latest ? <LiveTimeAgo at={latest.executedAt} /> : '—'}
-        </div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">{latest?.id}</span>
-          {latest && <StatusBadge status={latest.status === 'partial' ? 'failed' : 'completed'} />}
-        </div>
-      </div>
-    </div>
+    <KpiStrip
+      items={[
+        {
+          key: 'ready',
+          label: (
+            <>
+              <I.Sweep size={10} />
+              Ready to sweep
+            </>
+          ),
+          value: `$${fmtCompact(readyTotal)}`,
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">
+                {readyCount} {CHAINS[chain].short} addrs
+              </span>
+              <span className="badge-tight warn">
+                <span className="dot" />
+                pending
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'selected',
+          label: (
+            <>
+              <I.Check size={10} />
+              Selected
+            </>
+          ),
+          value: `$${fmtCompact(selectedTotal)}`,
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">{selectedCount} addrs</span>
+              <span className="text-xs delta-up">batch</span>
+            </>
+          ),
+        },
+        {
+          key: 'fee',
+          label: (
+            <>
+              <I.Lightning size={10} />
+              Est. network fee
+            </>
+          ),
+          value: estFee.toFixed(chain === 'bnb' ? 4 : 6),
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">
+                {chain === 'bnb' ? 'BNB' : 'SOL'}
+              </span>
+              <span className="text-xs text-muted">per batch</span>
+            </>
+          ),
+        },
+        {
+          key: 'last',
+          label: (
+            <>
+              <I.Activity size={10} />
+              Last sweep
+            </>
+          ),
+          value: latest ? <LiveTimeAgo at={latest.executedAt} /> : '—',
+          valueStyle: { fontSize: 16 },
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">{latest?.id}</span>
+              {latest && (
+                <StatusBadge status={latest.status === 'partial' ? 'failed' : 'completed'} />
+              )}
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

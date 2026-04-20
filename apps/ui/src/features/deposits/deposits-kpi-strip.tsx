@@ -1,7 +1,7 @@
-import { ChainPill } from '@/components/custody';
+// Deposits KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+import { ChainPill, KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-// Deposits KPI strip — 4 mini cards above the table.
 import { useMemo } from 'react';
 import { Sparkline, makeSeries } from '../_shared/charts';
 import type { FixDeposit } from '../_shared/fixtures';
@@ -23,56 +23,77 @@ export function DepositsKpiStrip({ deposits }: Props) {
   const countSeries = useMemo(() => makeSeries(72, 48, 0.02, 0.12), []);
 
   return (
-    <div className="kpi-strip">
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Clock size={10} />
-          Pending value
-        </div>
-        <div className="kpi-mini-value">${fmtCompact(pendingVal)}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">{pending.length} txs</span>
-          <Sparkline data={countSeries} width={56} height={14} stroke="var(--warn)" />
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Check size={10} />
-          Credited · 24h
-        </div>
-        <div className="kpi-mini-value">${fmtCompact(credited24h)}</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs delta-up">+12.1%</span>
-          <Sparkline data={volSeries.slice(-24)} width={56} height={14} stroke="var(--ok)" />
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Lightning size={10} />
-          Avg confirm time
-        </div>
-        <div className="kpi-mini-value">38s</div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted">target &lt; 60s</span>
-          <span className="badge-tight ok">
-            <span className="dot" />
-            SLA
-          </span>
-        </div>
-      </div>
-      <div className="kpi-mini">
-        <div className="kpi-mini-label">
-          <I.Database size={10} />
-          Last detected
-        </div>
-        <div className="kpi-mini-value" style={{ fontSize: 16 }}>
-          {last ? <LiveTimeAgo at={last.detectedAt} /> : '—'}
-        </div>
-        <div className="kpi-mini-foot">
-          <span className="text-xs text-muted text-mono">{last?.userName}</span>
-          {last && <ChainPill chain={last.chain} label={false} />}
-        </div>
-      </div>
-    </div>
+    <KpiStrip
+      items={[
+        {
+          key: 'pending',
+          label: (
+            <>
+              <I.Clock size={10} />
+              Pending value
+            </>
+          ),
+          value: `$${fmtCompact(pendingVal)}`,
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">{pending.length} txs</span>
+              <Sparkline data={countSeries} width={56} height={14} stroke="var(--warn)" />
+            </>
+          ),
+        },
+        {
+          key: 'credited',
+          label: (
+            <>
+              <I.Check size={10} />
+              Credited · 24h
+            </>
+          ),
+          value: `$${fmtCompact(credited24h)}`,
+          foot: (
+            <>
+              <span className="text-xs delta-up">+12.1%</span>
+              <Sparkline data={volSeries.slice(-24)} width={56} height={14} stroke="var(--ok)" />
+            </>
+          ),
+        },
+        {
+          key: 'confirm',
+          label: (
+            <>
+              <I.Lightning size={10} />
+              Avg confirm time
+            </>
+          ),
+          value: '38s',
+          foot: (
+            <>
+              <span className="text-xs text-muted">target &lt; 60s</span>
+              <span className="badge-tight ok">
+                <span className="dot" />
+                SLA
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'last',
+          label: (
+            <>
+              <I.Database size={10} />
+              Last detected
+            </>
+          ),
+          value: last ? <LiveTimeAgo at={last.detectedAt} /> : '—',
+          valueStyle: { fontSize: 16 },
+          foot: (
+            <>
+              <span className="text-xs text-muted text-mono">{last?.userName}</span>
+              {last && <ChainPill chain={last.chain} label={false} />}
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

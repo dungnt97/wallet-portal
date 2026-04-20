@@ -15,3 +15,4 @@ export * from './sweeps';
 export * from './transactions';
 export * from './audit';
 export * from './ledger';
+export * from './staff-webauthn-credentials';

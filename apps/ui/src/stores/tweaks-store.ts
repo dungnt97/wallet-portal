@@ -48,7 +48,7 @@ export const useTweaksStore = create<TweaksState>()(
       theme: 'light',
       density: 'comfortable',
       accent: 'indigo',
-      typography: 'sans',
+      typography: 'mono',
       sidebarCollapsed: false,
       showRiskFlags: true,
 
@@ -78,6 +78,7 @@ export const useTweaksStore = create<TweaksState>()(
     }),
     {
       name: 'wp-tweaks',
+      version: 2,
       onRehydrateStorage: () => (state) => {
         if (state) applyToDocument(state);
       },

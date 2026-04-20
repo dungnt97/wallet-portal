@@ -1,23 +1,46 @@
-// Auth context — fetches /auth/me on mount, exposes staff + role + login/logout
+// Auth context — fetches /auth/me on mount, exposes staff + OIDC login + logout
+// P06: initiateLogin() starts Google OIDC flow (redirects away); no more fixture auth.
 import React, { createContext, useCallback, useEffect, useState } from 'react';
-import { FIXTURE_STAFF, type RoleId } from '@/lib/constants';
+import type { RoleId } from '@/lib/constants';
+import { api, ApiError } from '@/api/client';
 
 export interface StaffUser {
   id: string;
   name: string;
   email: string;
   role: RoleId;
+  /** Computed from name — first letters of first + last word, uppercase */
   initials: string;
 }
 
 interface AuthContextValue {
   staff: StaffUser | null;
   loading: boolean;
-  login: (email: string) => Promise<void>;
-  logout: () => void;
+  /** Initiates Google OIDC flow — redirects the browser to Google consent page */
+  initiateLogin: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Compute initials from a display name: "Alice Chen" → "AC" */
+function computeInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ''}${parts[parts.length - 1]![0] ?? ''}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+type ApiStaff = Omit<StaffUser, 'initials'>;
+
+function hydrateStaff(data: ApiStaff): StaffUser {
+  return { ...data, initials: computeInitials(data.name) };
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
 
 interface Props {
   children: React.ReactNode;
@@ -27,54 +50,59 @@ export function AuthProvider({ children }: Props) {
   const [staff, setStaff] = useState<StaffUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: attempt to restore session from /auth/me.
-  // Falls back to fixture staff stored in sessionStorage for local dev
-  // (real OIDC wired in P06).
+  // On mount: attempt to restore session from /auth/me via session cookie
   useEffect(() => {
-    const stored = sessionStorage.getItem('wp_fixture_staff');
-    if (stored) {
-      try {
-        setStaff(JSON.parse(stored) as StaffUser);
-      } catch {
-        sessionStorage.removeItem('wp_fixture_staff');
-      }
-      setLoading(false);
-      return;
-    }
-
-    // Try real session cookie
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((r) => {
-        if (!r.ok) throw new Error('unauthenticated');
-        return r.json() as Promise<StaffUser>;
-      })
-      .then((data) => setStaff(data))
-      .catch(() => {
-        // 401 or network — leave staff null, router will redirect to /login
+    api
+      .get<ApiStaff>('/auth/me')
+      .then((data) => setStaff(hydrateStaff(data)))
+      .catch((err) => {
+        // 401 is expected when not logged in — leave staff null
+        if (!(err instanceof ApiError && err.status === 401)) {
+          console.error('[AuthProvider] Unexpected error fetching /auth/me', err);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // Fixture login used until P06 replaces with OIDC.
-  // Looks up staff by email from the fixture list, stores in sessionStorage.
-  const login = useCallback(async (email: string) => {
-    const match = FIXTURE_STAFF.find(
-      (s) => s.email.toLowerCase() === email.trim().toLowerCase() && s.active,
-    );
-    if (!match) throw new Error('No active staff account found for that email.');
-    sessionStorage.setItem('wp_fixture_staff', JSON.stringify(match));
-    setStaff(match);
+  /**
+   * Initiate Google OIDC login — calls /auth/session/initiate, redirects to Google.
+   * Browser lands on /auth/callback after consent (handled by AuthCallbackPage).
+   */
+  const initiateLogin = useCallback(async () => {
+    const { url } = await api.post<{ url: string }>('/auth/session/initiate');
+    window.location.href = url;
   }, []);
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem('wp_fixture_staff');
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/session/logout');
+    } catch {
+      // best-effort — clear local state regardless
+    }
     setStaff(null);
-    // Best-effort cookie clear
-    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+  }, []);
+
+  // Internal escape hatch used by AuthCallbackPage to hydrate staff after redirect
+  const refreshAuth = useCallback(async () => {
+    try {
+      const data = await api.get<ApiStaff>('/auth/me');
+      setStaff(hydrateStaff(data));
+    } catch {
+      setStaff(null);
+    }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ staff, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        staff,
+        loading,
+        initiateLogin,
+        logout,
+        // @ts-expect-error — refreshAuth is internal, not part of public AuthContextValue
+        _refreshAuth: refreshAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

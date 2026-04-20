@@ -23,7 +23,7 @@ function renderWithProviders(ui: React.ReactElement) {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ staff: STUB_STAFF, loading: false, login: vi.fn(), logout: vi.fn() }}>
+      <AuthContext.Provider value={{ staff: STUB_STAFF, loading: false, initiateLogin: vi.fn(), logout: vi.fn() }}>
         <MemoryRouter initialEntries={['/app/dashboard']}>
           <Routes>
             <Route path="/app/*" element={ui}>

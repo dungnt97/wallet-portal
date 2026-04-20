@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/shell/app-layout';
 import { LoginGate } from '@/auth/login-gate';
 import { LoginPage } from '@/features/login/login-page';
+import { AuthCallbackPage } from '@/features/auth/auth-callback-page';
+import { SecurityPage } from '@/features/auth/security-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
 import { DepositsPage } from '@/features/deposits/deposits-page';
 import { SweepPage } from '@/features/sweep/sweep-page';
@@ -22,6 +24,11 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  // OIDC callback — Google redirects here after consent
+  {
+    path: '/auth/callback',
+    element: <AuthCallbackPage />,
   },
   {
     path: '/app',
@@ -45,6 +52,7 @@ export const router = createBrowserRouter([
           { path: 'signers',           element: <SignersPage /> },
           { path: 'notifs',            element: <NotifsPage /> },
           { path: 'architecture',      element: <ArchitecturePage /> },
+          { path: 'account/security',  element: <SecurityPage /> },
           { path: '*',                 element: <Navigate to="dashboard" replace /> },
         ],
       },

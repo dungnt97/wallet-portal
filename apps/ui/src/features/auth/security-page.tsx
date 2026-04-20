@@ -1,0 +1,126 @@
+// /app/account/security — manage WebAuthn credentials
+// MVP: single "Add security key" button that runs the registration ceremony.
+import { useState } from 'react';
+import { ShieldCheck, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
+import { startRegistration } from '@simplewebauthn/browser';
+import { api } from '@/api/client';
+import { cn } from '@/lib/utils';
+
+export function SecurityPage() {
+  const [state, setState] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [deviceName, setDeviceName] = useState('My Security Key');
+
+  async function handleAddKey() {
+    setState('pending');
+    setErrorMsg('');
+    try {
+      // Step 1 — fetch attestation options from server
+      const options = await api.post<Record<string, unknown>>(
+        '/auth/webauthn/register/options',
+        { deviceName },
+      );
+
+      // Step 2 — browser registration ceremony
+      // @simplewebauthn/browser v10: startRegistration takes optionsJSON directly as first arg
+      const registrationResponse = await startRegistration(
+        options as unknown as Parameters<typeof startRegistration>[0],
+      );
+
+      // Step 3 — verify and persist credential on server
+      await api.post('/auth/webauthn/register/verify', registrationResponse);
+
+      setState('success');
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.name === 'NotAllowedError'
+            ? 'Registration was cancelled or timed out.'
+            : err.message
+          : 'Registration failed.';
+      setErrorMsg(msg);
+      setState('error');
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-lg space-y-6">
+      <div>
+        <h1 className="text-[18px] font-semibold text-[var(--text)]">Security keys</h1>
+        <p className="text-[13px] text-[var(--text-muted)] mt-1">
+          Register a hardware security key or passkey to enable WebAuthn step-up for write
+          operations.
+        </p>
+      </div>
+
+      <div className="border border-[var(--line)] rounded-xl p-5 space-y-4 bg-[var(--bg-elev)]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-[var(--accent-soft)] text-[var(--accent-text)] flex items-center justify-center flex-shrink-0">
+            <KeyRound size={16} />
+          </div>
+          <div>
+            <div className="text-[13px] font-medium text-[var(--text)]">Add a new security key</div>
+            <div className="text-[11px] text-[var(--text-muted)]">
+              Works with FIDO2 hardware keys (YubiKey, etc.) and platform passkeys.
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1">
+            Device name (optional)
+          </label>
+          <input
+            type="text"
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            maxLength={100}
+            placeholder="e.g. YubiKey 5C, MacBook Touch ID"
+            disabled={state === 'pending'}
+            className={cn(
+              'w-full px-3 py-2 rounded-md border text-[13px] bg-[var(--bg)] text-[var(--text)]',
+              'border-[var(--line)] focus:border-[var(--accent)] focus:outline-none transition-colors',
+              'placeholder:text-[var(--text-faint)] disabled:opacity-50',
+            )}
+          />
+        </div>
+
+        {errorMsg && (
+          <div className="text-[12px] text-[var(--err-text)] bg-[var(--err-soft)] px-3 py-2 rounded-md">
+            {errorMsg}
+          </div>
+        )}
+
+        {state === 'success' ? (
+          <div className="flex items-center gap-2 text-[13px] text-[var(--success-text)] bg-[var(--success-soft)] px-3 py-2 rounded-md">
+            <CheckCircle2 size={14} />
+            Security key registered successfully.
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddKey}
+            disabled={state === 'pending'}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium transition-colors',
+              'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+            )}
+          >
+            {state === 'pending' ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Follow browser prompt…
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={14} />
+                Add security key
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

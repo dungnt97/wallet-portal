@@ -1,44 +1,24 @@
-// Login page — fixture email login (P06 replaces with Google OIDC + WebAuthn)
+// Login page — Google Workspace SSO only (P06 OIDC flow)
+// Clicking the button calls POST /auth/session/initiate and redirects to Google.
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Lock, Shield } from 'lucide-react';
 import { useAuth } from '@/auth/use-auth';
-import { FIXTURE_STAFF, ROLES, MULTISIG_POLICY } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export function LoginPage() {
-  const { t } = useTranslation();
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: Location })?.from?.pathname ?? '/app/dashboard';
-
-  const [email, setEmail] = useState('mira@treasury.io');
+  const { initiateLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleGoogleLogin() {
     setError('');
     setLoading(true);
     try {
-      await login(email);
-      navigate(from, { replace: true });
+      await initiateLogin();
+      // browser will redirect away — no state update needed
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed.');
-    } finally {
+      setError(err instanceof Error ? err.message : 'Login initiation failed.');
       setLoading(false);
-    }
-  }
-
-  async function quickLogin(staffEmail: string) {
-    setError('');
-    try {
-      await login(staffEmail);
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed.');
     }
   }
 
@@ -59,96 +39,67 @@ export function LoginPage() {
           </div>
 
           <div>
-            <h1 className="text-[22px] font-semibold text-[var(--text)]">{t('login.title')}</h1>
-            <p className="text-[13px] text-[var(--text-muted)] mt-1">{t('login.subtitle')}</p>
+            <h1 className="text-[22px] font-semibold text-[var(--text)]">Sign in</h1>
+            <p className="text-[13px] text-[var(--text-muted)] mt-1">
+              Use your Google Workspace account to access the portal.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1">
-                {t('login.workEmail')}
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                placeholder="you@treasury.io"
-                className={cn(
-                  'w-full px-3 py-2 rounded-md border text-[13px] bg-[var(--bg-elev)] text-[var(--text)]',
-                  'border-[var(--line)] focus:border-[var(--accent)] focus:outline-none transition-colors',
-                  'placeholder:text-[var(--text-faint)]',
-                )}
-              />
+          {error && (
+            <div className="text-[12px] text-[var(--err-text)] bg-[var(--err-soft)] px-3 py-2 rounded-md">
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="text-[12px] text-[var(--err-text)] bg-[var(--err-soft)] px-3 py-2 rounded-md">
-                {error}
-              </div>
+          {/* Google SSO button */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className={cn(
+              'w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-md border',
+              'border-[var(--line)] bg-[var(--bg-elev)] text-[13px] font-medium text-[var(--text)]',
+              'hover:bg-[var(--bg-muted)] hover:border-[var(--accent-line)] transition-colors',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
             )}
-
-            <button
-              type="submit"
-              disabled={loading || !email}
-              className={cn(
-                'w-full py-2.5 rounded-md text-[13px] font-medium transition-colors',
-                'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
-            >
-              {loading ? t('common.loading') : t('login.continuePassword')}
-            </button>
-          </form>
+          >
+            {/* Google "G" logo SVG */}
+            {!loading && (
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+              </svg>
+            )}
+            {loading ? 'Redirecting…' : 'Continue with Google'}
+          </button>
 
           <div className="flex items-center gap-2 text-[11px] text-[var(--text-faint)]">
             <Lock size={11} />
-            {t('login.auditNote')}
+            All actions are audit-logged. Credentials verified via Google Workspace OIDC.
           </div>
         </div>
       </div>
 
-      {/* Right panel — demo accounts */}
+      {/* Right panel — security info */}
       <div className="hidden lg:flex w-80 flex-col bg-[var(--bg-muted)] border-l border-[var(--line)] p-6 gap-4">
         <div>
-          <div className="text-[13px] font-semibold text-[var(--text)]">{t('login.demoAccounts')}</div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('login.demoSubtitle')}</div>
+          <div className="text-[13px] font-semibold text-[var(--text)]">Access &amp; security</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">How authentication works</div>
         </div>
 
-        <div className="space-y-2">
-          {FIXTURE_STAFF.filter((s) => s.active).map((s) => (
-            <button
-              key={s.id}
-              onClick={() => quickLogin(s.email)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--line)]',
-                'bg-[var(--bg-elev)] hover:border-[var(--accent-line)] hover:bg-[var(--accent-soft)] transition-colors',
-                'text-left',
-              )}
-            >
-              <div className="w-7 h-7 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] flex items-center justify-center text-[11px] font-semibold flex-shrink-0">
-                {s.initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] font-medium text-[var(--text)] truncate">{s.name}</div>
-                <div className="text-[10px] text-[var(--text-muted)] truncate">{s.email}</div>
-              </div>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] flex-shrink-0">
-                {ROLES[s.role]?.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-auto border border-[var(--line)] rounded-lg p-3 space-y-1.5">
+        <div className="border border-[var(--line)] rounded-lg p-3 space-y-1.5">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text)]">
             <Shield size={11} />
-            Access &amp; approvals
+            Multi-factor access
           </div>
           <ul className="text-[11px] text-[var(--text-muted)] space-y-1 list-disc list-inside">
             <li>Identity via <strong>Google Workspace</strong> (OIDC).</li>
-            <li><strong>WebAuthn</strong> or TOTP required at sign-in.</li>
-            <li>Outbound transfers need <strong>{MULTISIG_POLICY.required}/{MULTISIG_POLICY.total}</strong> Treasurer co-signatures.</li>
+            <li><strong>WebAuthn</strong> step-up required for write operations.</li>
+            <li>Session expires after 24 hours of inactivity.</li>
+            <li>Step-up window is 5 minutes per verification.</li>
           </ul>
         </div>
       </div>

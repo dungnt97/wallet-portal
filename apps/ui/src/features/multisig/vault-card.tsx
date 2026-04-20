@@ -1,0 +1,134 @@
+// Vault card — Safe / Squads treasurer pool header for the multisig page.
+import { ChainPill } from '@/components/custody';
+import { fmtCompact } from '@/lib/format';
+import { shortHash } from '@/lib/format';
+import { TREASURERS } from '../_shared/fixtures-flows';
+import { LiveDot } from '../_shared/realtime';
+
+interface Props {
+  chain: 'bnb' | 'sol';
+  name: string;
+  address: string;
+  policy: string;
+  balance: number;
+  pending: number;
+}
+
+export function VaultCard({ chain, name, address, policy, balance, pending }: Props) {
+  return (
+    <div className="card" style={{ padding: 0 }}>
+      <div
+        style={{
+          padding: 18,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}
+      >
+        <div>
+          <div className="hstack" style={{ marginBottom: 6 }}>
+            <ChainPill chain={chain} />
+            <span className="badge muted text-xs">{policy}</span>
+          </div>
+          <div className="fw-600" style={{ fontSize: 15 }}>
+            {name}
+          </div>
+          <div
+            className="text-xs text-faint text-mono"
+            style={{ marginTop: 2, wordBreak: 'break-all' }}
+          >
+            {shortHash(address, 10, 8)}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="text-xs text-muted">Balance</div>
+          <div className="text-mono fw-600" style={{ fontSize: 18, marginTop: 2 }}>
+            ${fmtCompact(balance)}
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          borderTop: '1px solid var(--line)',
+          padding: '12px 18px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div className="hstack" style={{ gap: 6 }}>
+          <span className="text-xs text-muted">Signers</span>
+          <div className="hstack" style={{ gap: 0 }}>
+            {TREASURERS.map((t, i) => (
+              <div
+                key={t.id}
+                className="avatar"
+                style={{
+                  width: 22,
+                  height: 22,
+                  fontSize: 9,
+                  marginLeft: i ? -6 : 0,
+                  border: '2px solid var(--bg-elev)',
+                }}
+                title={t.name}
+              >
+                {t.initials}
+              </div>
+            ))}
+          </div>
+        </div>
+        <span className={`badge ${pending > 0 ? 'warn' : 'ok'}`}>
+          <span className="dot" />
+          {pending} pending op{pending === 1 ? '' : 's'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function TreasurerTeamCard() {
+  return (
+    <div className="card pro-card" style={{ marginTop: 14 }}>
+      <div className="pro-card-header">
+        <h3 className="card-title">Treasurer team</h3>
+        <span className="text-xs text-muted">2 of 3 co-signatures required per transfer</span>
+        <div className="spacer" />
+        <span className="badge-tight ok">
+          <span className="dot" />
+          policy active
+        </span>
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 1,
+          background: 'var(--line)',
+        }}
+      >
+        {TREASURERS.map((t) => (
+          <div
+            key={t.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: 12,
+              background: 'var(--bg-elev)',
+            }}
+          >
+            <div className="avatar">{t.initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="fw-500 text-sm truncate">{t.name}</div>
+              <div className="text-xs text-muted truncate text-mono">{t.email}</div>
+              <div className="text-xs text-faint" style={{ marginTop: 2 }}>
+                {t.tz} · <LiveDot variant="ok" /> online
+              </div>
+            </div>
+            <span className="role-pill role-treasurer">Treasurer</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

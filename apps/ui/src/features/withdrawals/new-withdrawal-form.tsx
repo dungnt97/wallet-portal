@@ -9,7 +9,7 @@ import { useTweaksStore } from '@/stores/tweaks-store';
 // Zod validation kept light-weight because shared-types schema is not yet in UI.
 import { useEffect, useState } from 'react';
 import { TOTAL_BALANCES } from '../_shared/fixtures';
-import type { FixWithdrawal } from '../_shared/fixtures-flows';
+import type { FixWithdrawal } from '../_shared/fixtures';
 
 interface Props {
   open: boolean;

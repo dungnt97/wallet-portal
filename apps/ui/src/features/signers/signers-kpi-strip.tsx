@@ -2,7 +2,7 @@
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { MULTISIG_POLICY } from '@/lib/constants';
-import type { SignerRow } from './signers-fixtures';
+import type { SignerRow } from '../_shared/fixtures';
 
 interface KpiProps {
   active: SignerRow[];

@@ -1,5 +1,5 @@
-// Audit log fixtures — ports prototype data.jsx AUDIT_LOG shape.
-import { minutesAgo } from '../_shared/helpers';
+// Audit log + login history fixtures.
+import { minutesAgo } from '../helpers';
 
 export type Severity = 'normal' | 'info' | 'warn';
 

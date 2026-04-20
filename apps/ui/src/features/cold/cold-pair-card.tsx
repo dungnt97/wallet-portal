@@ -3,7 +3,7 @@ import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
-import type { ColdWallet, HotWallet } from './cold-fixtures';
+import type { ColdWallet, HotWallet } from '../_shared/fixtures';
 
 interface Props {
   hot: HotWallet;

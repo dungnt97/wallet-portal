@@ -5,9 +5,9 @@ import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AUDIT_LOG, FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
-import { AUDIT_LOG, FIXTURE_LOGIN_HISTORY } from './audit-fixtures';
 import { AuditKpiStrip } from './audit-kpi-strip';
 import { AuditActionsTable, AuditLoginsTable } from './audit-tables';
 

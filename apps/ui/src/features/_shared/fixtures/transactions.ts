@@ -1,34 +1,38 @@
-import { FIX_DEPOSITS } from '../_shared/fixtures';
-import { FIX_WITHDRAWALS } from '../_shared/fixtures-flows';
-// Extended transaction fixtures — includes from/to/block/fee + sweep entries.
-// Mirrors prototype data.jsx TRANSACTIONS shape. Keeps Pass 2 _shared intact.
-import { minutesAgo } from '../_shared/helpers';
+// Transaction feed fixtures — unified deposits + withdrawals + sweep records.
+// FIX_TRANSACTIONS is the legacy slim shape; FIX_TRANSACTIONS_FULL includes
+// from/to/block/fee and powers the Transactions page.
+import { minutesAgo } from '../helpers';
+import { FIX_DEPOSITS } from './deposits';
+import { evmAddr, evmHash, mul32, solAddr, solSig } from './random';
+import { FIX_WITHDRAWALS } from './withdrawals';
 
-function mul32(seed: number) {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const rand = mul32(919191);
-const evmAddr = () =>
-  `0x${Array.from({ length: 40 }, () => '0123456789abcdef'[Math.floor(rand() * 16)]).join('')}`;
-const solAddr = () =>
-  Array.from(
-    { length: 44 },
-    () => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(rand() * 58)]
-  ).join('');
-const evmHash = () =>
-  `0x${Array.from({ length: 64 }, () => '0123456789abcdef'[Math.floor(rand() * 16)]).join('')}`;
-const solSig = () =>
-  Array.from(
-    { length: 88 },
-    () => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(rand() * 58)]
-  ).join('');
+// Legacy slim feed (dashboard recent activity).
+export const FIX_TRANSACTIONS = [
+  ...FIX_DEPOSITS.filter((d) => d.txHash)
+    .slice(0, 10)
+    .map((d, i) => ({
+      id: `tx_d_${i}`,
+      type: 'deposit' as const,
+      chain: d.chain,
+      token: d.token,
+      amount: d.amount,
+      txHash: d.txHash,
+      status: d.status === 'pending' ? 'pending' : 'confirmed',
+      timestamp: d.detectedAt,
+    })),
+  ...FIX_WITHDRAWALS.filter((w) => w.txHash).map((w, i) => ({
+    id: `tx_w_${i}`,
+    type: 'withdrawal' as const,
+    chain: w.chain,
+    token: w.token,
+    amount: w.amount,
+    txHash: w.txHash as string,
+    status: w.stage === 'failed' ? 'failed' : w.stage === 'executing' ? 'pending' : 'confirmed',
+    timestamp: w.createdAt,
+  })),
+].sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
+
+const fullRand = mul32(919191);
 
 export type TxStatus = 'confirmed' | 'pending' | 'failed';
 export type TxType = 'deposit' | 'withdrawal' | 'sweep';
@@ -69,7 +73,7 @@ export const FIX_TRANSACTIONS_FULL: FixTransaction[] = [
     chain: w.chain,
     token: w.token,
     amount: w.amount,
-    from: w.chain === 'bnb' ? evmAddr() : solAddr(),
+    from: w.chain === 'bnb' ? evmAddr(fullRand) : solAddr(fullRand),
     to: w.destination,
     txHash: w.txHash as string,
     status: (w.stage === 'failed'
@@ -88,10 +92,10 @@ export const FIX_TRANSACTIONS_FULL: FixTransaction[] = [
       type: 'sweep' as const,
       chain,
       token: (i % 2 === 0 ? 'USDT' : 'USDC') as 'USDT' | 'USDC',
-      amount: Math.round(rand() * 8000 * 100) / 100,
-      from: chain === 'bnb' ? evmAddr() : solAddr(),
-      to: chain === 'bnb' ? evmAddr() : solAddr(),
-      txHash: chain === 'bnb' ? evmHash() : solSig(),
+      amount: Math.round(fullRand() * 8000 * 100) / 100,
+      from: chain === 'bnb' ? evmAddr(fullRand) : solAddr(fullRand),
+      to: chain === 'bnb' ? evmAddr(fullRand) : solAddr(fullRand),
+      txHash: chain === 'bnb' ? evmHash(fullRand) : solSig(fullRand),
       status: (i === 2 ? 'failed' : 'confirmed') as TxStatus,
       blockNumber: 38_200_000 + i * 22,
       timestamp: minutesAgo(20 + i * 53),

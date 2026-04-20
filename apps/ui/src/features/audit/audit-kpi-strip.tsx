@@ -1,7 +1,7 @@
 // Audit KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
-import type { AuditEntry, LoginEvent } from './audit-fixtures';
+import type { AuditEntry, LoginEvent } from '../_shared/fixtures';
 
 interface Props {
   log: AuditEntry[];

@@ -2,8 +2,8 @@
 import { I } from '@/icons';
 import { ROLES, type RoleId } from '@/lib/constants';
 import { fmtDateTime } from '@/lib/format';
+import type { AuditEntry, LoginEvent } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
-import type { AuditEntry, LoginEvent } from './audit-fixtures';
 
 function actionIcon(action: string) {
   if (action.startsWith('sweep')) return <I.Sweep size={12} />;

@@ -8,8 +8,13 @@ import { FIXTURE_STAFF } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  COLD_WALLETS,
+  HOT_WALLETS,
+  REBALANCE_HISTORY,
+  type RebalanceOp,
+} from '../_shared/fixtures';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
-import { COLD_WALLETS, HOT_WALLETS, REBALANCE_HISTORY, type RebalanceOp } from './cold-fixtures';
 import { ColdPairCard } from './cold-pair-card';
 import { type ProposeConfig, ProposeRebalanceForm } from './propose-rebalance-form';
 

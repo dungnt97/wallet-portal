@@ -2,7 +2,7 @@
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
 import { useState } from 'react';
-import type { ColdWallet, HotWallet } from './cold-fixtures';
+import type { ColdWallet, HotWallet } from '../_shared/fixtures';
 
 export interface ProposeConfig {
   chain: 'bnb' | 'sol';

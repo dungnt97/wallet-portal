@@ -8,8 +8,8 @@ import { fmtUSD } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { FIX_TRANSACTIONS_FULL } from '../_shared/fixtures';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
-import { FIX_TRANSACTIONS_FULL } from '../transactions/transactions-fixtures';
 import { DashboardChart, HoldingsList } from './dashboard-chart';
 import { DashboardKpiGrid } from './dashboard-kpi-grid';
 import {

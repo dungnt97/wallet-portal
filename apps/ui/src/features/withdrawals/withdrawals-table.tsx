@@ -5,7 +5,7 @@ import { FIXTURE_STAFF, ROLES } from '@/lib/constants';
 import { fmtUSD } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
 import { useTranslation } from 'react-i18next';
-import type { FixWithdrawal } from '../_shared/fixtures-flows';
+import type { FixWithdrawal } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 
 interface Props {

@@ -7,7 +7,7 @@ import {
   SIGNER_CHANGE_REQUESTS,
   type SignerChangeRequest,
   type SignerRow,
-} from './signers-fixtures';
+} from '../_shared/fixtures';
 
 export function useSignerChanges() {
   const { staff } = useAuth();

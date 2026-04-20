@@ -2,9 +2,9 @@
 import { Address, Risk } from '@/components/custody';
 import { ROLES } from '@/lib/constants';
 import { fmtUSD } from '@/lib/format';
+import type { EnrichedUser, StaffRow } from '../_shared/fixtures';
+import { ROLE_DESCRIPTIONS } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
-import type { EnrichedUser, StaffRow } from './users-fixtures';
-import { ROLE_DESCRIPTIONS } from './users-fixtures';
 
 interface StaffTableProps {
   rows: StaffRow[];

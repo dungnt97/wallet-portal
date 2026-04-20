@@ -4,7 +4,7 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 import { useMemo, useState } from 'react';
 import { AreaChart, Sparkline, makeSeries } from '../_shared/charts';
 import { FIX_DEPOSITS, TOTAL_BALANCES } from '../_shared/fixtures';
-import { FIX_WITHDRAWALS } from '../_shared/fixtures-flows';
+import { FIX_WITHDRAWALS } from '../_shared/fixtures';
 
 type Range = '24h' | '7d' | '30d' | '90d';
 type Metric = 'aum' | 'deposits' | 'withdrawals';

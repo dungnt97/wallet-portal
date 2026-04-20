@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TOTAL_BALANCES } from '../_shared/fixtures';
-import { FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
+import { FIX_MULTISIG_OPS } from '../_shared/fixtures';
 import { BlockTicker, LiveDot, LiveTimeAgo } from '../_shared/realtime';
 import { useWithdrawalsSocketListener } from '../withdrawals/use-withdrawals';
 import { MultisigKpiStrip } from './multisig-kpi-strip';

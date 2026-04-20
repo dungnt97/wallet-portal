@@ -7,7 +7,7 @@ import { I } from '@/icons';
 import { CHAINS, ROLES } from '@/lib/constants';
 import { fmtDateTime, fmtUSD, shortHash } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
-import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures-flows';
+import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
 import { ApprovalQueue } from './approval-queue';
 
 interface Props {

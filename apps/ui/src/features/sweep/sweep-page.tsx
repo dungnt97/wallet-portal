@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 // Sweep page — prototype visual port. Uses fixtures until /sweeps endpoint lands.
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIX_DEPOSIT_ADDRESSES, type FixSweepAddr } from '../_shared/fixtures-flows';
+import { FIX_DEPOSIT_ADDRESSES, type FixSweepAddr } from '../_shared/fixtures';
 import { minutesAgo } from '../_shared/helpers';
 import { BlockTicker } from '../_shared/realtime';
 import { GasMonitor } from './gas-monitor';

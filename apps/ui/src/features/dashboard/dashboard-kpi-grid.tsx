@@ -6,7 +6,7 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 import { useMemo } from 'react';
 import { Sparkline, makeSeries } from '../_shared/charts';
 import { FIX_DEPOSITS, FIX_USERS, TOTAL_BALANCES } from '../_shared/fixtures';
-import { FIX_DEPOSIT_ADDRESSES, FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
+import { FIX_DEPOSIT_ADDRESSES, FIX_MULTISIG_OPS } from '../_shared/fixtures';
 
 interface Props {
   onNavigate: (page: 'deposits' | 'sweep' | 'multisig' | 'transactions') => void;

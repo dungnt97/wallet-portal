@@ -2,7 +2,7 @@
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import type { EnrichedUser, StaffRow } from './users-fixtures';
+import type { EnrichedUser, StaffRow } from '../_shared/fixtures';
 
 interface Props {
   users: EnrichedUser[];

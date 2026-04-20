@@ -4,7 +4,7 @@ import { connectSocket, disconnectSocket } from '@/api/socket';
 // prototype fixtures when the API is empty / disabled.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { FIX_WITHDRAWALS, type FixWithdrawal } from '../_shared/fixtures-flows';
+import { FIX_WITHDRAWALS, type FixWithdrawal } from '../_shared/fixtures';
 
 export const WITHDRAWALS_QUERY_KEY = 'withdrawals';
 

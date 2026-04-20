@@ -3,7 +3,7 @@
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import type { FixWithdrawal } from '../_shared/fixtures-flows';
+import type { FixWithdrawal } from '../_shared/fixtures';
 
 interface Props {
   list: FixWithdrawal[];

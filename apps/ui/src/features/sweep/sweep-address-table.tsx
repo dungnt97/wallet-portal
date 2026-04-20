@@ -2,7 +2,7 @@ import { Address, type Column, DataTable, Filter } from '@/components/custody';
 // Sweep address table + cart — selectable rows, per-chain filter.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
-import type { FixSweepAddr } from '../_shared/fixtures-flows';
+import type { FixSweepAddr } from '../_shared/fixtures';
 
 interface Props {
   rows: FixSweepAddr[];

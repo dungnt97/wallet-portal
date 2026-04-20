@@ -1,25 +1,45 @@
-// Users page fixtures — extended end-user + staff directory.
-// Keeps shared FIX_USERS plus adds createdAt + normalised KYC tier string.
+// Staff / Treasurer fixtures — Treasurer signing set + admin directory.
 import { FIXTURE_STAFF, type RoleId } from '@/lib/constants';
-import { FIX_USERS, type FixUser } from '../_shared/fixtures';
-import { minutesAgo } from '../_shared/helpers';
+import { evmAddr, mul32, solAddr } from './random';
 
-export interface EnrichedUser extends FixUser {
-  createdAt: string;
-  kycTierShort: 'T1' | 'T2' | 'T3';
-}
+// Dedicated seed so rewriting `users.ts` doesn't shift treasurer addresses.
+const rand = mul32(777777);
 
-function normaliseKyc(t: string): 'T1' | 'T2' | 'T3' {
-  if (t.includes('1')) return 'T1';
-  if (t.includes('3')) return 'T3';
-  return 'T2';
-}
-
-export const ENRICHED_USERS: EnrichedUser[] = FIX_USERS.map((u, i) => ({
-  ...u,
-  createdAt: minutesAgo(60 * 24 * (200 - i * 3)),
-  kycTierShort: normaliseKyc(u.kycTier),
-}));
+export const TREASURERS = [
+  {
+    id: 'stf_ben',
+    name: 'Ben Foster',
+    initials: 'BF',
+    email: 'ben@treasury.io',
+    tz: 'Europe/London',
+    role: 'treasurer' as const,
+    active: true,
+    evmAddr: evmAddr(rand),
+    solAddr: solAddr(rand),
+  },
+  {
+    id: 'stf_hana',
+    name: 'Hana Petersen',
+    initials: 'HP',
+    email: 'hana@treasury.io',
+    tz: 'Europe/Berlin',
+    role: 'treasurer' as const,
+    active: true,
+    evmAddr: evmAddr(rand),
+    solAddr: solAddr(rand),
+  },
+  {
+    id: 'stf_ana',
+    name: 'Ana Silva',
+    initials: 'AS',
+    email: 'ana@treasury.io',
+    tz: 'America/Sao_Paulo',
+    role: 'treasurer' as const,
+    active: true,
+    evmAddr: evmAddr(rand),
+    solAddr: solAddr(rand),
+  },
+];
 
 export interface StaffRow {
   id: string;

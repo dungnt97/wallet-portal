@@ -2,8 +2,8 @@
 import { I } from '@/icons';
 import { FIXTURE_STAFF } from '@/lib/constants';
 import { shortHash } from '@/lib/format';
+import type { SignerChangeRequest } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
-import type { SignerChangeRequest } from './signers-fixtures';
 
 interface Props {
   requests: SignerChangeRequest[];

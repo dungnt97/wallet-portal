@@ -2,7 +2,7 @@ import { Address, ChainPill, StatusBadge, Tabs } from '@/components/custody';
 // Multisig pending/failed ops table — approval pip row, click row to open sheet.
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
-import type { FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
+import type { FIX_MULTISIG_OPS } from '../_shared/fixtures';
 
 type Op = (typeof FIX_MULTISIG_OPS)[number];
 type Tab = 'pending' | 'failed';

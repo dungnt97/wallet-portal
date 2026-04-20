@@ -1,5 +1,6 @@
-// Signers fixtures — Treasurer directory + change requests + retired.
-import { minutesAgo } from '../_shared/helpers';
+// Signer / Treasurer governance fixtures — active set, retired set, and the
+// signer-change-request queue (add/remove/rotate).
+import { minutesAgo } from '../helpers';
 
 export interface SignerRow {
   id: string;

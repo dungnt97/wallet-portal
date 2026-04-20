@@ -1,7 +1,7 @@
 // Approval queue — renders multisig signer rows with progress bar.
 // Used inside WithdrawalSheet and can be reused on the Multisig page.
 import { I } from '@/icons';
-import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures-flows';
+import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
 import { shortAddr } from '../_shared/helpers';
 import { LiveTimeAgo } from '../_shared/realtime';
 

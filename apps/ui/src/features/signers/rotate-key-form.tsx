@@ -2,7 +2,7 @@
 import { Segmented } from '@/components/custody';
 import { I } from '@/icons';
 import { useState } from 'react';
-import type { SignerRow } from './signers-fixtures';
+import type { SignerRow } from '../_shared/fixtures';
 
 interface Props {
   signer: SignerRow;

@@ -4,7 +4,7 @@ import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
 import { useMemo } from 'react';
 import { Sparkline, makeSeries } from '../_shared/charts';
-import type { FixTransaction } from './transactions-fixtures';
+import type { FixTransaction } from '../_shared/fixtures';
 
 interface Props {
   rows: FixTransaction[];

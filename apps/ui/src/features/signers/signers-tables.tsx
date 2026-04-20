@@ -2,9 +2,9 @@
 import { I } from '@/icons';
 import { FIXTURE_STAFF } from '@/lib/constants';
 import { shortHash } from '@/lib/format';
+import type { RetiredSigner, SignerChangeRequest, SignerRow } from '../_shared/fixtures';
 import { minutesAgo } from '../_shared/helpers';
 import { LiveTimeAgo } from '../_shared/realtime';
-import type { RetiredSigner, SignerChangeRequest, SignerRow } from './signers-fixtures';
 
 interface ActiveProps {
   rows: SignerRow[];

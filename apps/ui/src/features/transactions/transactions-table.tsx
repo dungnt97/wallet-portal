@@ -2,8 +2,8 @@
 import { Address, ChainPill, Hash, StatusBadge, TokenPill } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
+import type { FixTransaction } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
-import type { FixTransaction } from './transactions-fixtures';
 
 interface Props {
   rows: FixTransaction[];

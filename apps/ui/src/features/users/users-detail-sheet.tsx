@@ -3,8 +3,8 @@ import { Risk } from '@/components/custody';
 import { Sheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtDateTime, fmtUSD } from '@/lib/format';
+import type { EnrichedUser } from '../_shared/fixtures';
 import { addressExplorerUrl } from '../_shared/helpers';
-import type { EnrichedUser } from './users-fixtures';
 
 interface Props {
   user: EnrichedUser | null;

@@ -7,7 +7,7 @@ import { MULTISIG_POLICY, ROLES } from '@/lib/constants';
 // (toast-only) until Pass 4 ports the full signing modals.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FixWithdrawal } from '../_shared/fixtures-flows';
+import type { FixWithdrawal } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { SigningFlowHost, useSigningFlow, withdrawalToOp } from '../signing';

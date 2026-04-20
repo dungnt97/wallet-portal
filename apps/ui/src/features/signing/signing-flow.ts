@@ -3,7 +3,7 @@
 // Branches: policy-block (if policy fails at review), reject (any stage),
 // otp (fallback from step-up). All chain calls are mocked by default.
 import { useCallback, useState } from 'react';
-import type { FixWithdrawal } from '../_shared/fixtures-flows';
+import type { FixWithdrawal } from '../_shared/fixtures';
 import { mockBroadcast, mockSign } from './mock-adapters';
 import { evaluatePolicy } from './policy-preview';
 import type {

@@ -2,7 +2,7 @@
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import { type FIX_MULTISIG_OPS, TREASURERS } from '../_shared/fixtures-flows';
+import { type FIX_MULTISIG_OPS, TREASURERS } from '../_shared/fixtures';
 
 type Op = (typeof FIX_MULTISIG_OPS)[number];
 

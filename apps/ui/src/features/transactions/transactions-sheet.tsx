@@ -4,8 +4,8 @@ import { Sheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtDateTime } from '@/lib/format';
+import type { FixTransaction } from '../_shared/fixtures';
 import { explorerUrl } from '../_shared/helpers';
-import type { FixTransaction } from './transactions-fixtures';
 
 interface Props {
   tx: FixTransaction | null;

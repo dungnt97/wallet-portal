@@ -1,6 +1,5 @@
-// Cold storage fixtures — cold/hot wallets and rebalance history.
-// Ports prototype page_cold.jsx in-file constants.
-import { minutesAgo } from '../_shared/helpers';
+// Cold storage fixtures — cold/hot vaults and rebalance history.
+import { minutesAgo } from '../helpers';
 
 export interface ColdWallet {
   id: string;

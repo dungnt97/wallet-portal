@@ -2,7 +2,7 @@
 import { ChainPill } from '@/components/custody';
 import { fmtCompact } from '@/lib/format';
 import { shortHash } from '@/lib/format';
-import { TREASURERS } from '../_shared/fixtures-flows';
+import { TREASURERS } from '../_shared/fixtures';
 import { LiveDot } from '../_shared/realtime';
 
 interface Props {

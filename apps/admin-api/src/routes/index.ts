@@ -14,12 +14,12 @@ import walletsRoutes from './wallets.routes.js';
 import auditRoutes from './audit.routes.js';
 import internalRoutes from './internal.routes.js';
 
-const routes: FastifyPluginAsync<Pick<Config, 'SVC_BEARER_TOKEN'>> = async (app, opts) => {
+const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   // Public / liveness
   await app.register(healthRoutes);
 
-  // Auth (session + webauthn stubs) — paths already include /auth prefix
-  await app.register(authRoutes);
+  // Auth — Google Workspace OIDC + WebAuthn step-up (P06)
+  await app.register(authRoutes, { cfg: opts.cfg });
 
   // Admin routes (session-protected via per-route preHandler)
   await app.register(dashboardRoutes);
@@ -34,7 +34,7 @@ const routes: FastifyPluginAsync<Pick<Config, 'SVC_BEARER_TOKEN'>> = async (app,
 
   // Internal service-to-service routes (bearer token, D4) — paths include /internal prefix
   await app.register(internalRoutes, {
-    bearerToken: opts.SVC_BEARER_TOKEN,
+    bearerToken: opts.cfg.SVC_BEARER_TOKEN,
   });
 };
 

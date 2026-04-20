@@ -13,11 +13,23 @@ declare module 'fastify' {
   }
 
   interface Session {
+    /** Authenticated staff member — set on OIDC callback */
     staff?: {
       id: string;
       email: string;
       name: string;
       role: 'admin' | 'treasurer' | 'operator' | 'viewer';
     };
+    /** Step-up expiry timestamp (ISO string) — set after WebAuthn assertion */
+    steppedUpAt?: string;
+    /** Pending OAuth state/verifier for CSRF validation */
+    oauthState?: {
+      state: string;
+      verifier: string;
+    };
+    /** Pending WebAuthn challenge for registration or authentication */
+    webauthnChallenge?: string;
+    /** When webauthnChallenge expires (epoch ms) */
+    webauthnChallengeExpiresAt?: number;
   }
 }

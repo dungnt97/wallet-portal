@@ -84,8 +84,8 @@ export async function buildApp(cfg: Config) {
   // Global error handler (must be registered before routes)
   await app.register(errorHandlerPlugin);
 
-  // All routes
-  await app.register(routes, { SVC_BEARER_TOKEN: cfg.SVC_BEARER_TOKEN });
+  // All routes — pass full cfg so auth routes can access OIDC + WebAuthn vars
+  await app.register(routes, { cfg });
 
   return app;
 }

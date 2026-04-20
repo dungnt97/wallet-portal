@@ -10,7 +10,21 @@ const EnvSchema = z.object({
   SVC_BEARER_TOKEN: z.string().min(16),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  GOOGLE_WORKSPACE_DOMAIN: z.string().default('company.com'),
+  // Google Workspace OIDC (D3 — empty string = no domain enforcement)
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+  GOOGLE_REDIRECT_URI: z.string().default('http://localhost:5173/auth/callback'),
+  // Empty = any workspace domain allowed; set to enforce hd claim (D3)
+  GOOGLE_WORKSPACE_DOMAIN: z.string().default(''),
+  // Session cookie name + TTL
+  SESSION_COOKIE_NAME: z.string().default('wp_session'),
+  SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
+  // WebAuthn relying party config
+  WEBAUTHN_RP_ID: z.string().default('localhost'),
+  WEBAUTHN_RP_NAME: z.string().default('Wallet Portal'),
+  WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173'),
+  // Dev bypass — skip Google ID token verification (never set in prod)
+  AUTH_DEV_MODE: z.string().default('false'),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

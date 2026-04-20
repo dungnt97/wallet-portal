@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import type { FixWithdrawal } from '../_shared/fixtures-flows';
 import { downloadCSV } from '../_shared/helpers';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
+import { SigningFlowHost, useSigningFlow, withdrawalToOp } from '../signing';
 import { NewWithdrawalForm } from './new-withdrawal-form';
 import { useWithdrawals, useWithdrawalsSocketListener } from './use-withdrawals';
 import { WithdrawalsKpiStrip } from './withdrawals-kpi-strip';
@@ -25,6 +26,10 @@ export function WithdrawalsPage() {
 
   useWithdrawalsSocketListener();
   const { data } = useWithdrawals();
+  const signingFlow = useSigningFlow();
+  // Track the withdrawal whose signing is in progress so we can update
+  // local overrides once the broadcast lands.
+  const [pendingSignWithdrawal, setPendingSignWithdrawal] = useState<FixWithdrawal | null>(null);
 
   const [tab, setTab] = useState<Tab>('all');
   const [createOpen, setCreateOpen] = useState(false);
@@ -58,22 +63,54 @@ export function WithdrawalsPage() {
 
   const onApprove = (w: FixWithdrawal) => {
     if (!staff) return;
-    toast('Signing flow not yet wired — stub approval recorded.', 'success');
+    setPendingSignWithdrawal(w);
+    signingFlow.start(withdrawalToOp(w));
+  };
+
+  // Called once signing flow reaches "done" (post-broadcast).
+  const onSigningComplete = () => {
+    const w = pendingSignWithdrawal;
+    if (!w || !staff) return;
     const nextCount = w.multisig.collected + 1;
+    const threshold = nextCount >= w.multisig.required;
     const updated: FixWithdrawal = {
       ...w,
-      stage: nextCount >= w.multisig.required ? 'executing' : 'awaiting_signatures',
+      stage: threshold ? 'completed' : 'awaiting_signatures',
       multisig: {
         ...w.multisig,
         collected: nextCount,
         approvers: [
           ...w.multisig.approvers,
-          { staffId: staff.id, at: new Date().toISOString(), txSig: 'stub…' },
+          {
+            staffId: staff.id,
+            at: new Date().toISOString(),
+            txSig: signingFlow.state.signature?.signature.slice(0, 12) ?? 'sig…',
+          },
         ],
       },
+      txHash: threshold ? (signingFlow.state.broadcast?.hash ?? w.txHash) : w.txHash,
     };
     addOverride(updated);
     setSelected(updated);
+    setPendingSignWithdrawal(null);
+    toast(
+      threshold ? `${w.id} signed and broadcast on-chain.` : `${w.id} co-signature recorded.`,
+      'success'
+    );
+  };
+
+  const onSigningRejected = () => {
+    const w = pendingSignWithdrawal;
+    setPendingSignWithdrawal(null);
+    if (!w || !staff) return;
+    const updated: FixWithdrawal = {
+      ...w,
+      stage: 'failed',
+      multisig: { ...w.multisig, rejectedBy: staff.id },
+    };
+    addOverride(updated);
+    setSelected(updated);
+    toast(`Rejected ${w.id}.`, 'success');
   };
 
   const onReject = (w: FixWithdrawal) => {
@@ -237,6 +274,12 @@ export function WithdrawalsPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={onNewSubmit}
+      />
+
+      <SigningFlowHost
+        flow={signingFlow}
+        onComplete={onSigningComplete}
+        onRejected={onSigningRejected}
       />
     </div>
   );

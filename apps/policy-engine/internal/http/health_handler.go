@@ -2,24 +2,46 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// healthResponse is the JSON body for both live and ready endpoints.
+type healthResponse struct {
+	Status string `json:"status"`
+	DB     string `json:"db,omitempty"`
+}
 
 // LiveHandler responds to GET /health/live — confirms the process is running.
 func LiveHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(healthResponse{Status: "ok"})
 }
 
-// ReadyHandler responds to GET /health/ready — confirms DB connectivity.
-// The DB ping is done via the context passed from the server startup; a
-// lightweight approach for MVP (no pool.Ping injected here — always 200).
-//
-// TODO(phase-10): inject pgxpool and call pool.Ping(ctx) for a real readiness check.
-func ReadyHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+// ReadyHandler returns an http.HandlerFunc that pings the DB pool and returns
+// 200 when healthy or 503 when the database is unreachable.
+// Fixes the TODO from Phase 08 — real pgxpool.Ping injected here.
+func ReadyHandler(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		defer cancel()
+
+		dbStatus := "ok"
+		if err := pool.Ping(ctx); err != nil {
+			dbStatus = "error"
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if dbStatus == "error" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+		_ = json.NewEncoder(w).Encode(healthResponse{Status: dbStatus, DB: dbStatus})
+	}
 }

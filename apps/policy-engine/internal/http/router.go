@@ -6,8 +6,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	internalauth "github.com/wallet-portal/policy-engine/internal/auth"
 	"github.com/wallet-portal/policy-engine/internal/service"
 )
@@ -17,9 +20,11 @@ import (
 // Middleware stack (outermost → innermost):
 //   - Recoverer    — catches panics, returns 500
 //   - RequestID    — attaches X-Request-Id to every request
-//   - zerolog      — structured per-request log line
+//   - zerolog      — structured per-request log line (includes trace_id/span_id)
 //   - BearerAuth   — D4 shared-secret gate (all non-health routes)
-func NewRouter(eval *service.Evaluator, bearerToken string) http.Handler {
+//
+// pool is injected so ReadyHandler can perform a real DB ping.
+func NewRouter(eval *service.Evaluator, bearerToken string, pool *pgxpool.Pool) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware.
@@ -29,7 +34,7 @@ func NewRouter(eval *service.Evaluator, bearerToken string) http.Handler {
 
 	// Health probes — no auth required (used by docker-compose / k8s probes).
 	r.Get("/health/live", LiveHandler)
-	r.Get("/health/ready", ReadyHandler)
+	r.Get("/health/ready", ReadyHandler(pool))
 
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
@@ -45,21 +50,33 @@ func NewRouter(eval *service.Evaluator, bearerToken string) http.Handler {
 }
 
 // zerologMiddleware returns a chi-compatible middleware that logs each request
-// with method, path, status, and latency via zerolog.
+// with method, path, status, latency, and OTel trace_id/span_id via zerolog.
 func zerologMiddleware() func(http.Handler) http.Handler {
+	tracer := otel.Tracer("policy-engine/http")
+	_ = tracer // tracer available for future manual spans; span IDs come from otelhttp wrapper
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 			defer func() {
-				log.Logger.WithLevel(logLevel(ww.Status())).
+				event := log.Logger.WithLevel(logLevel(ww.Status())).
 					Str("method", r.Method).
 					Str("path", r.URL.Path).
 					Str("request_id", middleware.GetReqID(r.Context())).
 					Int("status", ww.Status()).
-					Dur("duration_ms", time.Since(start)).
-					Msg("request")
+					Dur("duration_ms", time.Since(start))
+
+				// Inject OTel trace/span IDs if a span is active in the context
+				if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() {
+					sc := span.SpanContext()
+					event = event.
+						Str("trace_id", sc.TraceID().String()).
+						Str("span_id", sc.SpanID().String())
+				}
+
+				event.Msg("request")
 			}()
 
 			next.ServeHTTP(ww, r)

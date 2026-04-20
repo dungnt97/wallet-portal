@@ -57,6 +57,22 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
+  packages/config: {}
+
+  packages/contracts: {}
+
+  packages/shared-types:
+    dependencies:
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+
+  packages/ui-kit:
+    dependencies:
+      react:
+        specifier: '>=18'
+        version: 19.2.5
+
 packages:
 
   '@babel/code-frame@7.29.0':
@@ -1471,6 +1487,10 @@ packages:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
     hasBin: true
 
+  react@19.2.5:
+    resolution: {integrity: sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==}
+    engines: {node: '>=0.10.0'}
+
   read-pkg-up@11.0.0:
     resolution: {integrity: sha512-LOVbvF1Q0SZdjClSefZ0Nz5z8u+tIE7mV5NibzmE9VYmDe9CaBbAVtz1veOSZbofrdsilxuDAYnFenukZVp8/Q==}
     engines: {node: '>=18'}
@@ -1836,6 +1856,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
 
@@ -3129,6 +3152,8 @@ snapshots:
       minimist: 1.2.8
       strip-json-comments: 2.0.1
 
+  react@19.2.5: {}
+
   read-pkg-up@11.0.0:
     dependencies:
       find-up-simple: 1.0.1
@@ -3488,3 +3513,5 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
+
+  zod@3.25.76: {}

@@ -1,17 +1,17 @@
 import { useAuth } from '@/auth/use-auth';
-import { Address, ChainPill, StatusBadge, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { MULTISIG_POLICY } from '@/lib/constants';
-import { fmtCompact, fmtUSD } from '@/lib/format';
 import { useQueryClient } from '@tanstack/react-query';
-// Multisig queue page — prototype visual port. Covers Safe/Squads vault
-// headers, treasurer pool, pending/failed tabs, op detail sheet.
+// Multisig queue page — prototype visual port.
+// Composed of split sub-components (kpi strip, vault cards, ops table, sheet).
 import { useMemo, useState } from 'react';
 import { TOTAL_BALANCES } from '../_shared/fixtures';
-import { FIX_MULTISIG_OPS, TREASURERS } from '../_shared/fixtures-flows';
+import { FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
 import { BlockTicker, LiveDot, LiveTimeAgo } from '../_shared/realtime';
 import { useWithdrawalsSocketListener } from '../withdrawals/use-withdrawals';
+import { MultisigKpiStrip } from './multisig-kpi-strip';
+import { MultisigOpsTable } from './multisig-ops-table';
 import { MultisigSheet } from './multisig-sheet';
 import { TreasurerTeamCard, VaultCard } from './vault-card';
 
@@ -124,69 +124,7 @@ export function MultisigPage() {
         </div>
       </div>
 
-      <div className="kpi-strip">
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Clock size={10} />
-            Collecting
-          </div>
-          <div className="kpi-mini-value">
-            {ops.filter((o) => o.status === 'collecting').length}
-          </div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted text-mono">
-              $
-              {fmtCompact(
-                ops.filter((o) => o.status === 'collecting').reduce((s, o) => s + o.amount, 0)
-              )}
-            </span>
-            <span className="badge-tight warn">
-              <span className="dot" />
-              signing
-            </span>
-          </div>
-        </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Check size={10} />
-            Ready to execute
-          </div>
-          <div className="kpi-mini-value">{ops.filter((o) => o.status === 'ready').length}</div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted text-mono">threshold met</span>
-            <span className="badge-tight ok">
-              <span className="dot" />
-              ready
-            </span>
-          </div>
-        </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Users size={10} />
-            Treasurers
-          </div>
-          <div className="kpi-mini-value">{TREASURERS.length}</div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted">all active</span>
-            <span className="badge-tight ok">
-              <span className="dot" />
-              online
-            </span>
-          </div>
-        </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.UserX size={10} />
-            Rejected · 30d
-          </div>
-          <div className="kpi-mini-value">{failed.length}</div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted">
-              {failed.length === 0 ? 'no rejections' : 'review required'}
-            </span>
-          </div>
-        </div>
-      </div>
+      <MultisigKpiStrip ops={ops} failedCount={failed.length} />
 
       <div className="dash-grid-2" style={{ marginTop: 14 }}>
         <VaultCard
@@ -209,85 +147,14 @@ export function MultisigPage() {
 
       <TreasurerTeamCard />
 
-      <div className="card pro-card" style={{ marginTop: 14 }}>
-        <div className="pro-card-header">
-          <Tabs
-            value={tab}
-            onChange={(v) => setTab(v as Tab)}
-            embedded
-            tabs={[
-              { value: 'pending', label: 'Pending', count: pending.length },
-              { value: 'failed', label: 'Failed', count: failed.length },
-            ]}
-          />
-          <div className="spacer" />
-          <span className="text-xs text-muted text-mono">{list.length} ops</span>
-        </div>
-        <table className="table table-tight">
-          <thead>
-            <tr>
-              <th>Operation</th>
-              <th>Vault</th>
-              <th className="num">Amount</th>
-              <th>Destination</th>
-              <th>Approvals</th>
-              <th>Status</th>
-              <th className="num">Nonce</th>
-              <th className="num">Expires</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.length === 0 ? (
-              <tr>
-                <td colSpan={8}>
-                  <div className="table-empty">
-                    <div className="table-empty-title">No operations</div>
-                    <div className="text-sm">New co-signing operations appear here.</div>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              list.map((op) => (
-                <tr key={op.id} onClick={() => setSelected(op)} style={{ cursor: 'pointer' }}>
-                  <td className="text-mono fw-500">{op.id}</td>
-                  <td>
-                    <div className="hstack">
-                      <ChainPill chain={op.chain} />
-                      <span className="text-sm">{op.safeName}</span>
-                    </div>
-                  </td>
-                  <td className="num text-mono fw-500">
-                    {fmtUSD(op.amount)} <span className="text-faint text-xs">{op.token}</span>
-                  </td>
-                  <td>
-                    <Address value={op.destination} chain={op.chain} />
-                  </td>
-                  <td>
-                    <div className="approval-row">
-                      {Array.from({ length: op.total }, (_, j) => (
-                        <div
-                          key={j}
-                          className={`approval-pip ${j < op.collected ? 'approved' : 'pending'}`}
-                        >
-                          {j < op.collected ? <I.Check size={9} /> : ''}
-                        </div>
-                      ))}
-                      <span className="approval-text">
-                        {op.collected}/{op.required}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <StatusBadge status={op.status} />
-                  </td>
-                  <td className="num text-mono">{op.nonce}</td>
-                  <td className="num text-xs text-muted text-mono">in 5h 42m</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <MultisigOpsTable
+        tab={tab}
+        onTabChange={setTab}
+        pendingCount={pending.length}
+        failedCount={failed.length}
+        list={list}
+        onSelect={setSelected}
+      />
 
       <MultisigSheet
         op={selected}

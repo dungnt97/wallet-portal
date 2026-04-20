@@ -1,0 +1,108 @@
+import { Address, ChainPill, StatusBadge, Tabs } from '@/components/custody';
+// Multisig pending/failed ops table — approval pip row, click row to open sheet.
+import { I } from '@/icons';
+import { fmtUSD } from '@/lib/format';
+import type { FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
+
+type Op = (typeof FIX_MULTISIG_OPS)[number];
+type Tab = 'pending' | 'failed';
+
+interface Props {
+  tab: Tab;
+  onTabChange: (t: Tab) => void;
+  pendingCount: number;
+  failedCount: number;
+  list: Op[];
+  onSelect: (o: Op) => void;
+}
+
+export function MultisigOpsTable({
+  tab,
+  onTabChange,
+  pendingCount,
+  failedCount,
+  list,
+  onSelect,
+}: Props) {
+  return (
+    <div className="card pro-card" style={{ marginTop: 14 }}>
+      <div className="pro-card-header">
+        <Tabs
+          value={tab}
+          onChange={(v) => onTabChange(v as Tab)}
+          embedded
+          tabs={[
+            { value: 'pending', label: 'Pending', count: pendingCount },
+            { value: 'failed', label: 'Failed', count: failedCount },
+          ]}
+        />
+        <div className="spacer" />
+        <span className="text-xs text-muted text-mono">{list.length} ops</span>
+      </div>
+      <table className="table table-tight">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Vault</th>
+            <th className="num">Amount</th>
+            <th>Destination</th>
+            <th>Approvals</th>
+            <th>Status</th>
+            <th className="num">Nonce</th>
+            <th className="num">Expires</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.length === 0 ? (
+            <tr>
+              <td colSpan={8}>
+                <div className="table-empty">
+                  <div className="table-empty-title">No operations</div>
+                  <div className="text-sm">New co-signing operations appear here.</div>
+                </div>
+              </td>
+            </tr>
+          ) : (
+            list.map((op) => (
+              <tr key={op.id} onClick={() => onSelect(op)} style={{ cursor: 'pointer' }}>
+                <td className="text-mono fw-500">{op.id}</td>
+                <td>
+                  <div className="hstack">
+                    <ChainPill chain={op.chain} />
+                    <span className="text-sm">{op.safeName}</span>
+                  </div>
+                </td>
+                <td className="num text-mono fw-500">
+                  {fmtUSD(op.amount)} <span className="text-faint text-xs">{op.token}</span>
+                </td>
+                <td>
+                  <Address value={op.destination} chain={op.chain} />
+                </td>
+                <td>
+                  <div className="approval-row">
+                    {Array.from({ length: op.total }, (_, j) => (
+                      <div
+                        key={j}
+                        className={`approval-pip ${j < op.collected ? 'approved' : 'pending'}`}
+                      >
+                        {j < op.collected ? <I.Check size={9} /> : ''}
+                      </div>
+                    ))}
+                    <span className="approval-text">
+                      {op.collected}/{op.required}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <StatusBadge status={op.status} />
+                </td>
+                <td className="num text-mono">{op.nonce}</td>
+                <td className="num text-xs text-muted text-mono">in 5h 42m</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}

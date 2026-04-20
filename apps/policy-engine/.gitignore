@@ -1,0 +1,8 @@
+# Build output
+bin/
+
+# Local environment
+.env
+
+# Go test cache
+*.test

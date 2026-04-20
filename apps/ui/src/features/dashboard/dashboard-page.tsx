@@ -1,73 +1,46 @@
-// Dashboard page stub — summary cards + placeholder table
-// Real data wired in Phase 09
+// Dashboard page — real metrics from GET /dashboard/metrics, refreshed via Socket.io
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, ArrowDownToLine, ArrowUpFromLine, AlertTriangle } from 'lucide-react';
-
-const STAT_CARDS = [
-  { label: 'Total Deposits (24h)', value: '$0.00', icon: ArrowDownToLine, color: 'ok' },
-  { label: 'Pending Withdrawals', value: '0',     icon: ArrowUpFromLine,  color: 'warn' },
-  { label: 'Active Users',        value: '0',     icon: TrendingUp,       color: 'info' },
-  { label: 'TX Errors',           value: '0',     icon: AlertTriangle,    color: 'err' },
-] as const;
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
+import { KpiCards, type DashboardMetrics } from './kpi-cards';
 
 export function DashboardPage() {
   const { t } = useTranslation();
+
+  const { data, isLoading, isError } = useQuery<DashboardMetrics>({
+    queryKey: ['dashboard', 'metrics'],
+    queryFn: () => api.get<DashboardMetrics>('/dashboard/metrics'),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
 
   return (
     <div className="space-y-6">
       <h1 className="text-[20px] font-semibold text-[var(--text)]">{t('pageTitles.dashboard')}</h1>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {STAT_CARDS.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-4 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-[var(--text-muted)]">{card.label}</span>
-                <Icon size={14} className={`text-[var(--${card.color})]`} />
-              </div>
-              <div className="text-[22px] font-semibold text-[var(--text)]">{card.value}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Recent activity placeholder */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] overflow-hidden">
-        <div className="px-4 py-3 border-b border-[var(--line)]">
-          <span className="text-[13px] font-medium text-[var(--text)]">Recent Activity</span>
+      {isError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-[12px] text-red-700 dark:text-red-400">
+          Failed to load metrics. Retrying…
         </div>
-        <PlaceholderTable columns={['Time', 'Type', 'Chain', 'Amount', 'Status']} rows={5} />
-      </div>
-    </div>
-  );
-}
+      )}
 
-function PlaceholderTable({ columns, rows }: { columns: string[]; rows: number }) {
-  return (
-    <table className="w-full text-[12px]">
-      <thead>
-        <tr className="border-b border-[var(--line)]">
-          {columns.map((col) => (
-            <th key={col} className="px-4 py-2 text-left font-medium text-[var(--text-muted)]">{col}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {Array.from({ length: rows }).map((_, i) => (
-          <tr key={i} className="border-b border-[var(--line)] last:border-0">
-            {columns.map((col) => (
-              <td key={col} className="px-4 py-2.5">
-                <div className="h-3 rounded bg-[var(--bg-muted)] animate-pulse" style={{ width: `${40 + Math.random() * 40}%` }} />
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      <KpiCards
+        metrics={data ?? {
+          aumUsdt: '0', aumUsdc: '0',
+          pendingDeposits: 0, pendingDepositsValue: '0',
+          pendingWithdrawals: 0, pendingMultisigOps: 0,
+          blockSyncBnb: null, blockSyncSol: null,
+        }}
+        isLoading={isLoading}
+      />
+
+      {/* Block sync status footer */}
+      {data && (
+        <div className="flex gap-4 text-[11px] text-[var(--text-faint)]">
+          <span>BNB block: {data.blockSyncBnb ?? '—'}</span>
+          <span>SOL slot: {data.blockSyncSol ?? '—'}</span>
+        </div>
+      )}
+    </div>
   );
 }

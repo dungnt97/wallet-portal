@@ -5,6 +5,7 @@ import { Tabs } from '@/components/custody';
 import { Sheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BlockTicker } from '../_shared/realtime';
 import { AddSignerForm } from './add-signer-form';
 import { RemoveSignerForm } from './remove-signer-form';
@@ -18,6 +19,7 @@ import { useSignerChanges } from './use-signer-changes';
 type Tab = 'active' | 'retired' | 'history';
 
 export function SignersPage() {
+  const { t } = useTranslation();
   const { staff } = useAuth();
   const canManage = staff?.role === 'admin';
   const [tab, setTab] = useState<Tab>('active');
@@ -55,9 +57,9 @@ export function SignersPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Governance · <span className="env-inline">Treasurer set</span>
+            Governance · <span className="env-inline">{t('signers.subtitle')}</span>
           </div>
-          <h1 className="page-title">Signers</h1>
+          <h1 className="page-title">{t('signers.title')}</h1>
         </div>
         <div className="page-actions">
           <button

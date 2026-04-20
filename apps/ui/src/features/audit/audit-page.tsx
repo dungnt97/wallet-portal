@@ -4,6 +4,7 @@ import { Filter, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
 import { AUDIT_LOG, FIXTURE_LOGIN_HISTORY } from './audit-fixtures';
@@ -14,6 +15,7 @@ const PAGE_SIZE = 30;
 type Tab = 'actions' | 'logins';
 
 export function AuditPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('actions');
   const [actor, setActor] = useState<string | null>(null);
@@ -97,13 +99,13 @@ export function AuditPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Compliance · <span className="env-inline">Audit trail</span>
+            Compliance · <span className="env-inline">{t('audit.subtitle')}</span>
           </div>
-          <h1 className="page-title">Audit log</h1>
+          <h1 className="page-title">{t('audit.title')}</h1>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> Export
+            <I.External size={13} /> {t('common.export')}
           </button>
         </div>
       </div>

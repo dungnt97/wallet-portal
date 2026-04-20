@@ -6,6 +6,7 @@ import { MULTISIG_POLICY, ROLES } from '@/lib/constants';
 // Withdrawals page — prototype visual + RBAC gating. Signing flow is stubbed
 // (toast-only) until Pass 4 ports the full signing modals.
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FixWithdrawal } from '../_shared/fixtures-flows';
 import { downloadCSV } from '../_shared/helpers';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
@@ -19,6 +20,7 @@ import { WithdrawalsTable } from './withdrawals-table';
 type Tab = 'all' | 'pending' | 'completed' | 'failed';
 
 export function WithdrawalsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const rt = useRealtime();
   const { staff, hasPerm } = useAuth();
@@ -174,7 +176,7 @@ export function WithdrawalsPage() {
         'hash',
       ]
     );
-    toast(`Exported ${filtered.length} rows.`, 'success');
+    toast(t('withdrawals.exportedRows', { n: filtered.length }), 'success');
   };
 
   return (
@@ -182,23 +184,23 @@ export function WithdrawalsPage() {
       <div className="policy-strip">
         <div className="policy-strip-item">
           <I.Shield size={11} />
-          <span className="text-muted">Policy:</span>
+          <span className="text-muted">{t('withdrawals.policy')}</span>
           <span className="fw-600">
-            {MULTISIG_POLICY.required} of {MULTISIG_POLICY.total} treasurers
+            {t('withdrawals.treasurers', { n: MULTISIG_POLICY.required, m: MULTISIG_POLICY.total })}
           </span>
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Database size={11} />
-          <span className="text-muted">Signer:</span>
-          <span className="fw-600">HSM co-sign</span>
+          <span className="text-muted">{t('withdrawals.signer')}</span>
+          <span className="fw-600">{t('withdrawals.hsmCosign')}</span>
           <LiveDot />
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Activity size={11} />
-          <span className="text-muted">Broadcast queue:</span>
-          <span className="fw-600 text-mono">0 pending</span>
+          <span className="text-muted">{t('withdrawals.broadcastQueue')}</span>
+          <span className="fw-600 text-mono">{t('withdrawals.pendingCount', { n: 0 })}</span>
         </div>
         <div className="spacer" />
         <BlockTicker chain="bnb" />
@@ -208,28 +210,32 @@ export function WithdrawalsPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Custody · <span className="env-inline">approved withdrawals</span>
+            {t('withdrawals.eyebrow')} ·{' '}
+            <span className="env-inline">{t('withdrawals.subEyebrow')}</span>
           </div>
-          <h1 className="page-title">Withdrawals</h1>
+          <h1 className="page-title">{t('withdrawals.title')}</h1>
         </div>
         <div className="page-actions">
           <span className="meta-hint text-xs text-muted">
-            <LiveDot /> live · updated <LiveTimeAgo at={new Date(rt.now - 2400).toISOString()} />
+            <LiveDot /> {t('withdrawals.live')} · {t('withdrawals.updated')}{' '}
+            <LiveTimeAgo at={new Date(rt.now - 2400).toISOString()} />
           </span>
           <button className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> Export CSV
+            <I.External size={13} /> {t('withdrawals.exportCsv')}
           </button>
           {canCreate ? (
             <button className="btn btn-accent" onClick={() => setCreateOpen(true)}>
-              <I.Plus size={13} /> New withdrawal
+              <I.Plus size={13} /> {t('withdrawals.newWithdrawal')}
             </button>
           ) : (
             <button
               className="btn btn-accent"
               disabled
-              title={`Cannot create as ${ROLES[staff?.role ?? 'viewer']?.label}`}
+              title={t('withdrawals.cannotCreate', {
+                role: ROLES[staff?.role ?? 'viewer']?.label ?? '',
+              })}
             >
-              <I.Lock size={13} /> New withdrawal
+              <I.Lock size={13} /> {t('withdrawals.newWithdrawal')}
             </button>
           )}
         </div>
@@ -244,17 +250,17 @@ export function WithdrawalsPage() {
             onChange={(v) => setTab(v as Tab)}
             embedded
             tabs={[
-              { value: 'all', label: 'All', count: counts.all },
-              { value: 'pending', label: 'Pending', count: counts.pending },
-              { value: 'completed', label: 'Completed', count: counts.completed },
-              { value: 'failed', label: 'Failed', count: counts.failed },
+              { value: 'all', label: t('withdrawals.tabAll'), count: counts.all },
+              { value: 'pending', label: t('withdrawals.tabPending'), count: counts.pending },
+              { value: 'completed', label: t('withdrawals.tabCompleted'), count: counts.completed },
+              { value: 'failed', label: t('withdrawals.tabFailed'), count: counts.failed },
             ]}
           />
           <div className="spacer" />
-          <Filter label="Chain" />
-          <Filter label="Token" />
-          <Filter label="Requester" />
-          <Filter label="Date" />
+          <Filter label={t('withdrawals.fChain')} />
+          <Filter label={t('withdrawals.fToken')} />
+          <Filter label={t('withdrawals.fRequester')} />
+          <Filter label={t('withdrawals.fDate')} />
           <span className="text-xs text-muted text-mono">
             {filtered.length}/{list.length}
           </span>

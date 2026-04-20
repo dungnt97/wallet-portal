@@ -5,6 +5,7 @@ import { fmtUSD, shortHash } from '@/lib/format';
 // Failed-tx recovery page — stuck/failed transactions with retry/bump/cancel.
 // Ports prototype page_ops_extras.jsx PageRecovery.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { minutesAgo } from '../_shared/helpers';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
 
@@ -80,6 +81,7 @@ const FAILED_TXS: FailedTx[] = [
 ];
 
 export function RecoveryPage() {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<FailedTx[]>(FAILED_TXS);
   const toast = useToast();
 
@@ -112,9 +114,9 @@ export function RecoveryPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Ops · <span className="env-inline">Broadcast queue</span>
+            Ops · <span className="env-inline">{t('recovery.subtitle')}</span>
           </div>
-          <h1 className="page-title">Failed transactions</h1>
+          <h1 className="page-title">{t('recovery.title')}</h1>
         </div>
       </div>
 

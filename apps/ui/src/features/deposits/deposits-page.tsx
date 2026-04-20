@@ -5,6 +5,7 @@ import { CHAINS } from '@/lib/constants';
 // Deposits page — prototype visual port. Real data via existing useDeposits
 // hook (falls back to fixtures when API empty). Keeps socket listener.
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FIX_DEPOSITS, type FixDeposit } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
@@ -41,6 +42,7 @@ function toFix(d: Deposit): FixDeposit {
 }
 
 export function DepositsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const rt = useRealtime();
   const [tab, setTab] = useState<StatusTab>('all');
@@ -89,7 +91,7 @@ export function DepositsPage() {
     setRefreshing(true);
     void refetch().finally(() => {
       setRefreshing(false);
-      toast('Deposits refreshed.', 'success');
+      toast(t('deposits.refreshed'), 'success');
     });
   };
 
@@ -109,7 +111,7 @@ export function DepositsPage() {
       ]),
       ['id', 'user', 'chain', 'token', 'amount', 'address', 'hash', 'status', 'detected']
     );
-    toast(`Exported ${filtered.length} rows.`, 'success');
+    toast(t('deposits.exportedRows', { n: filtered.length }), 'success');
   };
 
   const counts = {
@@ -124,21 +126,23 @@ export function DepositsPage() {
       <div className="policy-strip">
         <div className="policy-strip-item">
           <I.ArrowDown size={11} />
-          <span className="text-muted">Confirmations required:</span>
+          <span className="text-muted">{t('deposits.confirmsRequired')}</span>
           <span className="fw-600">BNB 12 · SOL 32</span>
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Activity size={11} />
-          <span className="text-muted">Watcher:</span>
+          <span className="text-muted">{t('deposits.watcher')}</span>
           <LiveDot />
-          <span className="fw-600">online</span>
-          <span className="text-faint text-mono">· lag {rt.rpc.bnb.lagBlocks} blk</span>
+          <span className="fw-600">{t('deposits.online')}</span>
+          <span className="text-faint text-mono">
+            · {t('deposits.lag')} {rt.rpc.bnb.lagBlocks} {t('deposits.blk')}
+          </span>
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Database size={11} />
-          <span className="text-muted">HD derivation:</span>
+          <span className="text-muted">{t('deposits.hdDeriv')}</span>
           <span className="fw-600">BIP-44</span>
         </div>
         <div className="spacer" />
@@ -149,13 +153,14 @@ export function DepositsPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            On-chain · <span className="env-inline">monitored</span>
+            {t('deposits.eyebrow')} · <span className="env-inline">{t('deposits.subEyebrow')}</span>
           </div>
-          <h1 className="page-title">Deposits</h1>
+          <h1 className="page-title">{t('deposits.title')}</h1>
         </div>
         <div className="page-actions">
           <span className="meta-hint text-xs text-muted">
-            <LiveDot /> live · updated <LiveTimeAgo at={new Date(rt.now - 1800).toISOString()} />
+            <LiveDot /> {t('deposits.live')} · {t('deposits.updated')}{' '}
+            <LiveTimeAgo at={new Date(rt.now - 1800).toISOString()} />
           </span>
           <button
             className="btn btn-secondary"
@@ -166,10 +171,10 @@ export function DepositsPage() {
               size={13}
               style={refreshing ? { animation: 'spin 700ms linear infinite' } : undefined}
             />
-            Refresh
+            {t('deposits.refresh')}
           </button>
           <button className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> Export CSV
+            <I.External size={13} /> {t('deposits.exportCsv')}
           </button>
         </div>
       </div>
@@ -183,15 +188,15 @@ export function DepositsPage() {
             onChange={(v) => setTab(v as StatusTab)}
             embedded
             tabs={[
-              { value: 'all', label: 'All', count: counts.all },
-              { value: 'pending', label: 'Pending', count: counts.pending },
-              { value: 'credited', label: 'Credited', count: counts.credited },
-              { value: 'swept', label: 'Swept', count: counts.swept },
+              { value: 'all', label: t('deposits.tabAll'), count: counts.all },
+              { value: 'pending', label: t('deposits.tabPending'), count: counts.pending },
+              { value: 'credited', label: t('deposits.tabCredited'), count: counts.credited },
+              { value: 'swept', label: t('deposits.tabSwept'), count: counts.swept },
             ]}
           />
           <div className="spacer" />
           <Filter
-            label="Chain"
+            label={t('deposits.fChain')}
             value={chainFilter ? CHAINS[chainFilter].short : undefined}
             active={!!chainFilter}
             onClick={() =>
@@ -200,7 +205,7 @@ export function DepositsPage() {
             onClear={() => setChainFilter(null)}
           />
           <Filter
-            label="Token"
+            label={t('deposits.fToken')}
             value={tokenFilter ?? undefined}
             active={!!tokenFilter}
             onClick={() =>
@@ -210,8 +215,8 @@ export function DepositsPage() {
             }
             onClear={() => setTokenFilter(null)}
           />
-          <Filter label="Amount" />
-          <Filter label="Date" />
+          <Filter label={t('deposits.fAmount')} />
+          <Filter label={t('deposits.fDate')} />
           <span className="text-xs text-muted text-mono">
             {filtered.length}/{deposits.length}
           </span>
@@ -221,22 +226,22 @@ export function DepositsPage() {
 
         <div className="pagination">
           <span>
-            Showing {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
-            {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            {t('deposits.showing')} {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
+            {Math.min(page * PAGE_SIZE, filtered.length)} {t('deposits.of')} {filtered.length}
           </span>
           <div className="spacer" />
           <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            <I.ChevronLeft size={12} /> Prev
+            <I.ChevronLeft size={12} /> {t('deposits.prev')}
           </button>
           <span>
-            page <span className="text-mono">{page}</span> of{' '}
+            {t('deposits.page')} <span className="text-mono">{page}</span> {t('deposits.of')}{' '}
             <span className="text-mono">{totalPages}</span>
           </span>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            Next <I.ChevronRight size={12} />
+            {t('deposits.next')} <I.ChevronRight size={12} />
           </button>
         </div>
       </div>

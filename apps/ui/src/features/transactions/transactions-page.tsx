@@ -5,6 +5,7 @@ import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { downloadCSV } from '../_shared/helpers';
 import { BlockTicker, LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { FIX_TRANSACTIONS_FULL, type FixTransaction } from './transactions-fixtures';
@@ -16,6 +17,7 @@ type TxTab = 'all' | 'deposit' | 'sweep' | 'withdrawal';
 const PAGE_SIZE = 25;
 
 export function TransactionsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const rt = useRealtime();
   const [type, setType] = useState<TxTab>('all');
@@ -118,16 +120,16 @@ export function TransactionsPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Ledger · <span className="env-inline">Unified</span>
+            Ledger · <span className="env-inline">{t('transactions.subtitle')}</span>
           </div>
-          <h1 className="page-title">Transactions</h1>
+          <h1 className="page-title">{t('transactions.title')}</h1>
         </div>
         <div className="page-actions">
           <span className="meta-hint text-xs text-muted">
             <LiveDot /> Live · updated <LiveTimeAgo at={new Date(rt.now - 1500).toISOString()} />
           </span>
           <button className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> Export CSV
+            <I.External size={13} /> {t('common.exportCsv')}
           </button>
           <button className="btn btn-secondary" onClick={doRefresh} disabled={refreshing}>
             <I.Refresh

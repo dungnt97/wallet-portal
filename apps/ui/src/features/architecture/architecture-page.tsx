@@ -2,6 +2,7 @@ import { Tabs } from '@/components/custody';
 // Architecture page — tabbed viewer: service map, flows, sequence, data,
 // API, jobs, security, MVP plan. Ports prototype page_architecture.jsx.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TabApi } from './tab-api';
 import { TabDomain } from './tab-domain';
 import { TabJobs } from './tab-jobs';
@@ -14,17 +15,15 @@ import { TabServiceMap } from './tab-service-map';
 type Tab = 'overview' | 'flows' | 'sequence' | 'data' | 'api' | 'jobs' | 'security' | 'mvp';
 
 export function ArchitecturePage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('overview');
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">System architecture</h1>
-          <p className="page-subtitle">
-            Services, data flow, domain model and operational lifecycles for the custodial wallet
-            system.
-          </p>
+          <h1 className="page-title">{t('architecture.title')}</h1>
+          <p className="page-subtitle">{t('architecture.subtitle')}</p>
         </div>
         <div className="page-actions">
           <span className="badge muted text-mono">v0.4.2 · 18 Apr 2026</span>

@@ -5,6 +5,7 @@ import { I } from '@/icons';
 import { useQueryClient } from '@tanstack/react-query';
 // Sweep page — prototype visual port. Uses fixtures until /sweeps endpoint lands.
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FIX_DEPOSIT_ADDRESSES, type FixSweepAddr } from '../_shared/fixtures-flows';
 import { minutesAgo } from '../_shared/helpers';
 import { BlockTicker } from '../_shared/realtime';
@@ -48,6 +49,7 @@ const INITIAL_BATCHES: Batch[] = [
 ];
 
 export function SweepPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const qc = useQueryClient();
   const [chain, setChain] = useState<'bnb' | 'sol'>('bnb');
@@ -102,7 +104,7 @@ export function SweepPage() {
       setSelected([]);
       setConfirmOpen(false);
       setExecuting(false);
-      toast(`Broadcast ${newBatch.id} sent.`, 'success');
+      toast(t('sweep.toastBroadcast', { id: newBatch.id }), 'success');
     }, 1800);
   };
 
@@ -111,20 +113,20 @@ export function SweepPage() {
       <div className="policy-strip">
         <div className="policy-strip-item">
           <I.Sweep size={11} />
-          <span className="text-muted">Threshold:</span>
-          <span className="fw-600">500 USDT / addr</span>
+          <span className="text-muted">{t('sweep.policyLabel')}</span>
+          <span className="fw-600">{t('sweep.policyValue')}</span>
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Lightning size={11} />
-          <span className="text-muted">Gas top-up:</span>
-          <span className="fw-600">automatic</span>
+          <span className="text-muted">{t('sweep.gasTopupLabel')}</span>
+          <span className="fw-600">{t('sweep.gasTopupValue')}</span>
         </div>
         <div className="policy-strip-sep" />
         <div className="policy-strip-item">
           <I.Database size={11} />
-          <span className="text-muted">Idempotency:</span>
-          <span className="fw-600">per-batch key</span>
+          <span className="text-muted">{t('sweep.idempotencyLabel')}</span>
+          <span className="fw-600">{t('sweep.idempotencyValue')}</span>
         </div>
         <div className="spacer" />
         <BlockTicker chain="bnb" />
@@ -134,9 +136,9 @@ export function SweepPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Operations · <span className="env-inline">low-touch consolidation</span>
+            {t('sweep.eyebrow')} · <span className="env-inline">{t('sweep.subEyebrow')}</span>
           </div>
-          <h1 className="page-title">Sweep</h1>
+          <h1 className="page-title">{t('sweep.title')}</h1>
         </div>
         <div className="page-actions">
           <Segmented
@@ -168,11 +170,9 @@ export function SweepPage() {
       <div className="alert info" style={{ margin: '14px 0' }}>
         <I.Info size={14} className="alert-icon" />
         <div className="alert-body">
-          <div className="alert-title">Sweep policy</div>
+          <div className="alert-title">{t('sweep.policyAlertTitle')}</div>
           <div className="alert-text">
-            {chain === 'bnb'
-              ? 'Sweeps gather deposits into the BSC hot wallet. Gas topped up automatically from ops wallet.'
-              : 'Sweeps gather deposits into the Solana hot wallet. Priority fees adjust with network load.'}
+            {chain === 'bnb' ? t('sweep.policyAlertBnb') : t('sweep.policyAlertSol')}
           </div>
         </div>
       </div>

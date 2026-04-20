@@ -32,6 +32,8 @@ export function Topbar({
   const { t } = useTranslation();
   const theme = useTweaksStore((s) => s.theme);
   const toggleTheme = useTweaksStore((s) => s.toggleTheme);
+  const lang = useTweaksStore((s) => s.lang);
+  const toggleLang = useTweaksStore((s) => s.toggleLang);
 
   // Derive current page title from URL (falls back to dashboard).
   const match = useMatch('/app/:page/*');
@@ -105,8 +107,35 @@ export function Topbar({
             {theme === 'light' ? <I.Moon size={15} /> : <I.Sun size={15} />}
           </button>
         )}
+        {!isXs && (
+          <button
+            className="icon-btn lang-toggle"
+            onClick={toggleLang}
+            title={t('topbar.language')}
+            aria-label={t('topbar.language')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              minWidth: 'auto',
+            }}
+          >
+            <I.Globe size={15} />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {lang === 'vi' ? 'VI' : 'EN'}
+            </span>
+          </button>
+        )}
         {!isNarrow && (
-          <button className="icon-btn" onClick={onOpenTweaks} title="Tweaks">
+          <button className="icon-btn" onClick={onOpenTweaks} title={t('topbar.tweaks')}>
             <I.Sliders size={15} />
           </button>
         )}

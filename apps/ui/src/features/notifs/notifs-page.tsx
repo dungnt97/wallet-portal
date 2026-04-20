@@ -4,6 +4,7 @@ import { I, type IconKey } from '@/icons';
 // Notifications routing page — channels + event→channel matrix.
 // Ports prototype page_ops_extras.jsx PageNotifs.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Severity = 'info' | 'warn' | 'err';
 type ChannelKind = 'email' | 'slack' | 'pagerduty' | 'webhook';
@@ -98,6 +99,7 @@ const CHANNEL_ICON: Record<ChannelKind, IconKey> = {
 };
 
 export function NotifsPage() {
+  const { t } = useTranslation();
   const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
   const [testOpen, setTestOpen] = useState(false);
   const toast = useToast();
@@ -133,9 +135,9 @@ export function NotifsPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            System · <span className="env-inline">Alert routing</span>
+            System · <span className="env-inline">{t('notifs.subtitle')}</span>
           </div>
-          <h1 className="page-title">Notifications</h1>
+          <h1 className="page-title">{t('notifs.title')}</h1>
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary" onClick={() => setTestOpen(true)}>

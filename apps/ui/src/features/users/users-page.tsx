@@ -5,6 +5,7 @@ import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useTweaksStore } from '@/stores/tweaks-store';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
 import { UserDetailSheet } from './users-detail-sheet';
@@ -16,6 +17,7 @@ import { EndUsersTable, StaffTable } from './users-tables';
 type Tab = 'staff' | 'endusers';
 
 export function UsersPage() {
+  const { t } = useTranslation();
   const { staff } = useAuth();
   const toast = useToast();
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
@@ -98,13 +100,15 @@ export function UsersPage() {
         <div>
           <div className="page-eyebrow">
             Identity ·{' '}
-            <span className="env-inline">{tab === 'staff' ? 'Staff & roles' : 'End users'}</span>
+            <span className="env-inline">
+              {tab === 'staff' ? t('users.tabStaff') : t('users.tabUsers')}
+            </span>
           </div>
-          <h1 className="page-title">Users</h1>
+          <h1 className="page-title">{t('users.title')}</h1>
         </div>
         <div className="page-actions">
           <button type="button" className="btn btn-secondary" onClick={doExport}>
-            <I.External size={13} /> Export
+            <I.External size={13} /> {t('common.export')}
           </button>
           {tab === 'staff' ? (
             <button

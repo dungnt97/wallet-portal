@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 // Multisig queue page — prototype visual port.
 // Composed of split sub-components (kpi strip, vault cards, ops table, sheet).
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TOTAL_BALANCES } from '../_shared/fixtures';
 import { FIX_MULTISIG_OPS } from '../_shared/fixtures-flows';
 import { BlockTicker, LiveDot, LiveTimeAgo } from '../_shared/realtime';
@@ -19,6 +20,7 @@ type Op = (typeof FIX_MULTISIG_OPS)[number];
 type Tab = 'pending' | 'failed';
 
 export function MultisigPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const qc = useQueryClient();
   const { staff } = useAuth();
@@ -106,9 +108,9 @@ export function MultisigPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Governance · <span className="env-inline">co-signing</span>
+            {t('multisig.eyebrow')} · <span className="env-inline">{t('multisig.subtitle')}</span>
           </div>
-          <h1 className="page-title">Multisig</h1>
+          <h1 className="page-title">{t('multisig.title')}</h1>
         </div>
         <div className="page-actions">
           <span className="meta-hint text-xs text-muted">
@@ -119,7 +121,7 @@ export function MultisigPage() {
               size={13}
               style={syncing ? { animation: 'spin 700ms linear infinite' } : undefined}
             />
-            Sync now
+            {t('common.retry')}
           </button>
         </div>
       </div>

@@ -7,12 +7,14 @@ import { I } from '@/icons';
 import { FIXTURE_STAFF } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
 import { COLD_WALLETS, HOT_WALLETS, REBALANCE_HISTORY, type RebalanceOp } from './cold-fixtures';
 import { ColdPairCard } from './cold-pair-card';
 import { type ProposeConfig, ProposeRebalanceForm } from './propose-rebalance-form';
 
 export function ColdPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const { staff } = useAuth();
   const canPropose = staff?.role === 'admin' || staff?.role === 'operator';
@@ -69,9 +71,9 @@ export function ColdPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Treasury · <span className="env-inline">Custody tiers</span>
+            {t('cold.eyebrow')} · <span className="env-inline">{t('cold.subtitle')}</span>
           </div>
-          <h1 className="page-title">Cold wallet rebalance</h1>
+          <h1 className="page-title">{t('cold.title')}</h1>
         </div>
         <div className="page-actions">
           <button

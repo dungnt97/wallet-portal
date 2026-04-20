@@ -7,10 +7,12 @@ import { I } from '@/icons';
 import {
   type Accent,
   type Density,
+  type Lang,
   type Theme,
   type Typography,
   useTweaksStore,
 } from '@/stores/tweaks-store';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onClose: () => void;
@@ -28,18 +30,31 @@ const ACCENTS: Array<{ id: Accent; preview: string }> = [
 ];
 
 export function TweaksPanel({ onClose }: Props) {
+  const { t } = useTranslation();
   const tweaks = useTweaksStore();
 
   return (
     <div className="tweaks-panel">
       <div className="tweaks-header">
-        <span className="tweaks-title">Tweaks</span>
-        <button className="icon-btn" onClick={onClose} aria-label="Close">
+        <span className="tweaks-title">{t('topbar.tweaks')}</span>
+        <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>
           <I.X size={13} />
         </button>
       </div>
 
       <div className="tweaks-body">
+        <div className="tweak-row">
+          <span className="tweak-label">{t('topbar.language')}</span>
+          <Segmented<Lang>
+            options={[
+              { value: 'en', label: 'EN' },
+              { value: 'vi', label: 'VI' },
+            ]}
+            value={tweaks.lang}
+            onChange={tweaks.setLang}
+          />
+        </div>
+
         <div className="tweak-row">
           <span className="tweak-label">Theme</span>
           <Segmented<Theme>

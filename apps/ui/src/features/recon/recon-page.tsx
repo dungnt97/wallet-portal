@@ -5,6 +5,7 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 // Reconciliation page — internal ledger vs on-chain truth. Prove-of-reserves view.
 // Ports prototype page_ops_extras.jsx PageRecon.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BlockTicker } from '../_shared/realtime';
 
 interface ReconRow {
@@ -87,6 +88,7 @@ const RECON_ROWS: ReconRow[] = [
 ];
 
 export function ReconPage() {
+  const { t } = useTranslation();
   const [rows] = useState<ReconRow[]>(RECON_ROWS);
   const [running, setRunning] = useState(false);
   const toast = useToast();
@@ -129,9 +131,9 @@ export function ReconPage() {
       <div className="page-header">
         <div>
           <div className="page-eyebrow">
-            Compliance · <span className="env-inline">Proof of reserves</span>
+            Compliance · <span className="env-inline">{t('recon.subtitle')}</span>
           </div>
-          <h1 className="page-title">Reconciliation</h1>
+          <h1 className="page-title">{t('recon.title')}</h1>
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary" onClick={runScan} disabled={running}>

@@ -1,0 +1,14 @@
+# .dockerignore for apps/admin-api
+# These are relative to the per-app build context if used standalone.
+# When building from repo root, the root .dockerignore applies instead.
+node_modules
+dist
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+vitest.config.*
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

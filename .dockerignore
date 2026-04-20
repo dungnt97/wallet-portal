@@ -1,0 +1,66 @@
+# Root .dockerignore — applies when Docker context is repo root
+# ────────────────────────────────────────────────────────────────────
+# Node dependencies — rebuilt inside container
+**/node_modules
+**/.pnp
+**/.pnp.*
+
+# Build outputs — produced by the Dockerfile build stage
+**/dist
+**/build
+**/.next
+**/out
+**/*.tsbuildinfo
+
+# Go build artifacts
+**/bin
+**/*.exe
+
+# Git metadata
+.git
+.gitignore
+.gitattributes
+
+# Environment files — NEVER bake secrets into images
+.env
+.env.*
+!.env.example
+!.env.compose.example
+infra/.env.compose
+
+# Dev tooling and local configs
+.claude
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Docs and plans (not needed at runtime)
+plans/
+docs/
+guide/
+CONTRIBUTING.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+README.md
+LICENSE
+
+# Test files (not needed at runtime)
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.go
+**/*_test.go
+**/vitest.config.*
+**/coverage
+
+# Logs and temp
+*.log
+*.tmp
+logs.txt
+repomix-output.xml
+
+# CI/CD config
+.github/

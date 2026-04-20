@@ -1,0 +1,9 @@
+# .dockerignore for apps/policy-engine (Go)
+# Applied when building with per-app context (not repo-root context).
+bin/
+*_test.go
+vendor/
+.env
+.env.*
+!.env.example
+coverage.out

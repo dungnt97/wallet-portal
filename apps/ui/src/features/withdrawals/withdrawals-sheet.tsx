@@ -1,6 +1,6 @@
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
-import { Sheet, useToast } from '@/components/overlays';
+import { DetailSheet, useToast } from '@/components/overlays';
 // Withdrawal detail sheet — amount header, approval queue, details list, action footer.
 // Signing modals are stubbed here (toast only); full flow ships in Pass 4.
 import { I } from '@/icons';
@@ -87,7 +87,7 @@ export function WithdrawalSheet({
   );
 
   return (
-    <Sheet
+    <DetailSheet
       open={!!withdrawal}
       onClose={onClose}
       wide
@@ -176,6 +176,6 @@ export function WithdrawalSheet({
           </>
         )}
       </dl>
-    </Sheet>
+    </DetailSheet>
   );
 }

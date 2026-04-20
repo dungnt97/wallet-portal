@@ -1,5 +1,5 @@
 import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
-import { Sheet, useToast } from '@/components/overlays';
+import { DetailSheet, useToast } from '@/components/overlays';
 // Deposit detail side-sheet — lifecycle timeline + details definition list.
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
@@ -20,7 +20,7 @@ export function DepositSheet({ deposit, onClose }: Props) {
   const d = deposit;
 
   return (
-    <Sheet
+    <DetailSheet
       open={!!deposit}
       onClose={onClose}
       title={`Deposit ${d.id}`}
@@ -36,11 +36,12 @@ export function DepositSheet({ deposit, onClose }: Props) {
             <I.External size={13} /> View explorer
           </a>
           <div className="spacer" />
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             Close
           </button>
           {d.status === 'credited' && (
             <button
+              type="button"
               className="btn btn-accent"
               onClick={() => {
                 toast('Added to sweep queue.', 'success');
@@ -150,6 +151,6 @@ export function DepositSheet({ deposit, onClose }: Props) {
           </>
         )}
       </dl>
-    </Sheet>
+    </DetailSheet>
   );
 }

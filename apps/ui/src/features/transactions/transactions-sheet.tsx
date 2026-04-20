@@ -1,6 +1,6 @@
 // Transaction detail sheet — slides in with full tx info + explorer link.
 import { ChainPill, StatusBadge, TokenPill } from '@/components/custody';
-import { Sheet } from '@/components/overlays';
+import { DetailSheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtDateTime } from '@/lib/format';
@@ -15,11 +15,12 @@ interface Props {
 export function TransactionSheet({ tx, onClose }: Props) {
   if (!tx) return null;
   return (
-    <Sheet
+    <DetailSheet
       open={!!tx}
       onClose={onClose}
       title={`Transaction ${tx.id}`}
       subtitle={`${tx.type} · ${CHAINS[tx.chain].short}`}
+      badges={<StatusBadge status={tx.status} />}
       footer={
         <>
           <a
@@ -31,7 +32,7 @@ export function TransactionSheet({ tx, onClose }: Props) {
             <I.External size={13} /> View on explorer
           </a>
           <div className="spacer" />
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             Close
           </button>
         </>
@@ -73,6 +74,6 @@ export function TransactionSheet({ tx, onClose }: Props) {
         <dt>Time</dt>
         <dd>{fmtDateTime(tx.timestamp)}</dd>
       </dl>
-    </Sheet>
+    </DetailSheet>
   );
 }

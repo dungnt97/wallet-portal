@@ -1,6 +1,6 @@
 // End-user detail sheet — balances + addresses + explorer links.
 import { Risk } from '@/components/custody';
-import { Sheet } from '@/components/overlays';
+import { DetailSheet } from '@/components/overlays';
 import { I } from '@/icons';
 import { fmtDateTime, fmtUSD } from '@/lib/format';
 import type { EnrichedUser } from '../_shared/fixtures';
@@ -15,7 +15,7 @@ interface Props {
 export function UserDetailSheet({ user, showRiskFlags, onClose }: Props) {
   if (!user) return null;
   return (
-    <Sheet
+    <DetailSheet
       open={!!user}
       onClose={onClose}
       title={user.name}
@@ -121,6 +121,6 @@ export function UserDetailSheet({ user, showRiskFlags, onClose }: Props) {
           </>
         )}
       </dl>
-    </Sheet>
+    </DetailSheet>
   );
 }

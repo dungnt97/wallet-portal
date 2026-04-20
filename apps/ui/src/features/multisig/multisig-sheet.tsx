@@ -1,5 +1,5 @@
 import { useAuth } from '@/auth/use-auth';
-import { Sheet, useToast } from '@/components/overlays';
+import { DetailSheet, useToast } from '@/components/overlays';
 // Multisig op detail sheet — reuses ApprovalQueue + shows calldata preview.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
@@ -78,7 +78,7 @@ export function MultisigSheet({ op, onClose, onApprove, onReject, onExecute }: P
 }`;
 
   return (
-    <Sheet
+    <DetailSheet
       open={!!op}
       onClose={onClose}
       wide
@@ -132,6 +132,6 @@ export function MultisigSheet({ op, onClose, onApprove, onReject, onExecute }: P
       <pre className="code" style={{ maxHeight: 180, overflow: 'auto' }}>
         {calldata}
       </pre>
-    </Sheet>
+    </DetailSheet>
   );
 }

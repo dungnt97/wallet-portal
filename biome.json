@@ -1,0 +1,41 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
+  "organizeImports": {
+    "enabled": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "es5"
+    }
+  },
+  "files": {
+    "ignore": [
+      "**/dist/**",
+      "apps/policy-engine/**",
+      ".claude/**",
+      ".opencode/**",
+      "claude/**",
+      "scripts/**",
+      "guide/**",
+      "node_modules/**",
+      "portable-manifest.json",
+      "release-manifest.json",
+      ".releaserc.cjs",
+      ".commitlintrc.json"
+    ]
+  }
+}

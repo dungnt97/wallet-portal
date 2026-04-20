@@ -91,3 +91,9 @@ worktrees/
 
 # Generated OpenCode backup from scripts/generate-opencode.py --force
 .opencode.backup/
+
+# Turborepo
+.turbo/
+
+# Local env overrides
+.env*.local

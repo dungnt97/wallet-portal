@@ -1,31 +1,59 @@
-// Architecture page stub — system diagram placeholder
-import { useTranslation } from 'react-i18next';
-import { Network } from 'lucide-react';
+import { Tabs } from '@/components/custody';
+// Architecture page — tabbed viewer: service map, flows, sequence, data,
+// API, jobs, security, MVP plan. Ports prototype page_architecture.jsx.
+import { useState } from 'react';
+import { TabApi } from './tab-api';
+import { TabDomain } from './tab-domain';
+import { TabJobs } from './tab-jobs';
+import { TabLifecycle } from './tab-lifecycle';
+import { TabMvp } from './tab-mvp';
+import { TabSecurity } from './tab-security';
+import { TabSequence } from './tab-sequence';
+import { TabServiceMap } from './tab-service-map';
+
+type Tab = 'overview' | 'flows' | 'sequence' | 'data' | 'api' | 'jobs' | 'security' | 'mvp';
 
 export function ArchitecturePage() {
-  const { t } = useTranslation();
+  const [tab, setTab] = useState<Tab>('overview');
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-[20px] font-semibold text-[var(--text)]">{t('pageTitles.architecture')}</h1>
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-12 flex flex-col items-center justify-center gap-4 text-center min-h-[360px]">
-        <Network size={40} className="text-[var(--text-faint)]" />
+    <div className="page">
+      <div className="page-header">
         <div>
-          <div className="text-[14px] font-medium text-[var(--text-muted)]">System Architecture Diagram</div>
-          <div className="text-[12px] text-[var(--text-faint)] mt-1">
-            Interactive service map — wired in Phase 10 observability milestone.
-          </div>
+          <h1 className="page-title">System architecture</h1>
+          <p className="page-subtitle">
+            Services, data flow, domain model and operational lifecycles for the custodial wallet
+            system.
+          </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          {['UI :5173', 'Admin API :3001', 'Wallet Engine :3002', 'Policy Engine :3003'].map((svc) => (
-            <div
-              key={svc}
-              className="px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--bg-muted)] text-[11px] text-[var(--text-muted)]"
-            >
-              {svc}
-            </div>
-          ))}
+        <div className="page-actions">
+          <span className="badge muted text-mono">v0.4.2 · 18 Apr 2026</span>
         </div>
       </div>
+
+      <Tabs
+        value={tab}
+        onChange={(v) => setTab(v as Tab)}
+        tabs={[
+          { value: 'overview', label: 'Service map' },
+          { value: 'flows', label: 'Lifecycle flows' },
+          { value: 'sequence', label: 'Sequence diagrams' },
+          { value: 'data', label: 'Domain model' },
+          { value: 'api', label: 'API surface' },
+          { value: 'jobs', label: 'Background jobs' },
+          { value: 'security', label: 'Security' },
+          { value: 'mvp', label: 'MVP plan' },
+        ]}
+      />
+
+      {tab === 'overview' && <TabServiceMap />}
+      {tab === 'flows' && <TabLifecycle />}
+      {tab === 'sequence' && <TabSequence />}
+      {tab === 'data' && <TabDomain />}
+      {tab === 'api' && <TabApi />}
+      {tab === 'jobs' && <TabJobs />}
+      {tab === 'security' && <TabSecurity />}
+      {tab === 'mvp' && <TabMvp />}
     </div>
   );
 }

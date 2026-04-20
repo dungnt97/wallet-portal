@@ -1,8 +1,9 @@
 {
-  "name": "claudekit-engineer",
-  "version": "2.16.0",
-  "description": "A comprehensive boilerplate template for building professional software projects with CLI Coding Agents (Claude Code and Open Code).",
+  "name": "wallet-portal",
+  "version": "0.1.0",
+  "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "test": "echo \"Warning: no test specified\" && exit 0",
     "lint": "echo \"Linting passed\"",
@@ -13,24 +14,8 @@
     "test:eval:judge": "bun scripts/eval/run.ts 3 --diff",
     "test:eval:all": "bun scripts/eval/run.ts all"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/claudekit/claudekit-engineer.git"
-  },
-  "keywords": [
-    "claude-code",
-    "ai-agents",
-    "development-template",
-    "boilerplate",
-    "automation",
-    "cli-tools"
-  ],
   "author": "Duy Nguyen",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/claudekit/claudekit-engineer/issues"
-  },
-  "homepage": "https://github.com/claudekit/claudekit-engineer#readme",
+  "license": "UNLICENSED",
   "claudekit": {
     "sourceDir": "claude",
     "runtimeDir": ".claude"
@@ -61,8 +46,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

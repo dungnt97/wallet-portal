@@ -1,103 +1,90 @@
-// App layout shell — sidebar + topbar + main content area
-// Responsive: sidebar overlay on xs (<720px), collapsed/expanded on desktop
-import { useState, useEffect, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { ToastHost } from '@/components/overlays';
+import { useTweaksStore } from '@/stores/tweaks-store';
+// App layout — .app grid shell. Composes sidebar + topbar + main + overlays.
+// Ports prototype app.jsx `AppShell`, wiring it into react-router-dom.
+// Responsive rules mirror the prototype: xs/sm always keep the desktop
+// sidebar collapsed and use a mobile overlay when toggled.
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Outlet, useLocation } from 'react-router-dom';
+import { CommandPalette } from './command-palette';
+import { MobileNav } from './mobile-nav';
+import { NAV, pageTitleKey } from './nav-structure';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
-import { CommandPalette } from './command-palette';
-import { useNavStore } from '@/stores/nav-store';
-import { BREAKPOINTS, type ViewportBucket } from '@/lib/constants';
-import { cn } from '@/lib/utils';
-
-function useViewportBucket(): ViewportBucket {
-  const [bucket, setBucket] = useState<ViewportBucket>(() => {
-    const w = window.innerWidth;
-    if (w < BREAKPOINTS.xs) return 'xs';
-    if (w < BREAKPOINTS.sm) return 'sm';
-    if (w < BREAKPOINTS.md) return 'md';
-    return 'wide';
-  });
-
-  useEffect(() => {
-    const calc = () => {
-      const w = window.innerWidth;
-      if (w < BREAKPOINTS.xs) setBucket('xs');
-      else if (w < BREAKPOINTS.sm) setBucket('sm');
-      else if (w < BREAKPOINTS.md) setBucket('md');
-      else setBucket('wide');
-    };
-    window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
-  }, []);
-
-  return bucket;
-}
-
-// Register Cmd+K global shortcut
-function useCommandPaletteShortcut(onOpen: () => void) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        onOpen();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onOpen]);
-}
+import { TweaksPanel } from './tweaks-panel';
+import { useEffectiveSidebarCollapsed, useViewportBucket } from './viewport-hooks';
 
 export function AppLayout() {
-  const [cmdOpen, setCmdOpen] = useState(false);
-  const { mobileOpen, setMobileOpen, collapsed } = useNavStore();
+  const { t } = useTranslation();
+  const location = useLocation();
+  const sidebarPref = useTweaksStore((s) => s.sidebarCollapsed);
+  const toggleSidebarPref = useTweaksStore((s) => s.toggleSidebarCollapsed);
+
   const bucket = useViewportBucket();
-  const isMobile = bucket === 'xs';
+  const isNarrow = bucket === 'xs' || bucket === 'sm';
+  const effectiveCollapsed = useEffectiveSidebarCollapsed(bucket, sidebarPref);
 
-  const openCmd = useCallback(() => setCmdOpen(true), []);
-  useCommandPaletteShortcut(openCmd);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
 
-  // Auto-close mobile overlay on resize to desktop
+  // Cmd+K / Ctrl+K opens the command palette.
   useEffect(() => {
-    if (!isMobile && mobileOpen) setMobileOpen(false);
-  }, [isMobile, mobileOpen, setMobileOpen]);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCmdOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Auto-close mobile overlay on viewport change back to desktop.
+  useEffect(() => {
+    if (!isNarrow && mobileNavOpen) setMobileNavOpen(false);
+  }, [isNarrow, mobileNavOpen]);
+
+  // Ported behaviour — on xs/sm the toggle opens the overlay; on md/wide it
+  // toggles the persisted collapse preference.
+  const onToggleSidebar = useCallback(() => {
+    if (isNarrow) setMobileNavOpen((o) => !o);
+    else toggleSidebarPref();
+  }, [isNarrow, toggleSidebarPref]);
+
+  // Dashboard index of current page for `data-screen-label` attr (prototype
+  // exposes this for debugging overlays).
+  const segment = location.pathname.split('/')[2] ?? 'dashboard';
+  const idx = NAV.flatMap((g) => g.items).findIndex((i) => i.id === segment);
+  const screenLabel = `${String(idx + 1).padStart(2, '0')} ${t(pageTitleKey(segment))}`;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg)]" data-viewport={bucket}>
-      {/* Desktop sidebar */}
-      {!isMobile && (
-        <Sidebar />
-      )}
+    <ToastHost>
+      <div
+        className="app"
+        data-sidebar={effectiveCollapsed ? 'collapsed' : 'expanded'}
+        data-viewport={bucket}
+        data-mobile-nav={mobileNavOpen ? 'open' : 'closed'}
+        data-screen-label={screenLabel}
+      >
+        <Sidebar collapsed={effectiveCollapsed && !mobileNavOpen} />
+        <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
-      {/* Mobile sidebar overlay */}
-      {isMobile && mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/40"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden
-          />
-          <div className="fixed inset-y-0 left-0 z-50 w-56">
-            <Sidebar isMobile />
-          </div>
-        </>
-      )}
+        <Topbar
+          viewport={bucket}
+          onToggleSidebar={onToggleSidebar}
+          onOpenCommandPalette={() => setCmdOpen(true)}
+          onOpenTweaks={() => setTweaksOpen((o) => !o)}
+        />
 
-      {/* Main area */}
-      <div className={cn('flex flex-col flex-1 min-w-0 overflow-hidden')}>
-        <Topbar onOpenCommandPalette={openCmd} />
-
-        <main
-          className={cn(
-            'flex-1 overflow-y-auto p-4',
-            bucket === 'wide' && 'p-6',
-          )}
-        >
+        <main className="main">
           <Outlet />
         </main>
-      </div>
 
-      {/* Command palette */}
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-    </div>
+        {tweaksOpen && <TweaksPanel onClose={() => setTweaksOpen(false)} />}
+        <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      </div>
+    </ToastHost>
   );
 }

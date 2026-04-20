@@ -1,94 +1,118 @@
-// Topbar — breadcrumb, search trigger, theme toggle, user menu
-import { useTranslation } from 'react-i18next';
-import { Search, Moon, Sun, Menu } from 'lucide-react';
-import { useMatch } from 'react-router-dom';
-import { UserMenu } from './user-menu';
+import { NotificationsPanel } from '@/components/overlays';
+import { I } from '@/icons';
+import type { ViewportBucket } from '@/lib/constants';
 import { useTweaksStore } from '@/stores/tweaks-store';
-import { useNavStore } from '@/stores/nav-store';
-import { cn } from '@/lib/utils';
+// Topbar — sidebar toggle + breadcrumb + search button + utility actions.
+// Ports prototype shell.jsx `TopBar`. Uses prototype `.topbar`, `.icon-btn`,
+// `.topbar-search` classes verbatim from base.css.
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useMatch } from 'react-router-dom';
+import { EnvPicker } from './env-picker';
+import { pageTitleKey } from './nav-structure';
+import { UserMenu } from './user-menu';
 
-// Map route segments to page title i18n keys
-const ROUTE_TITLE_KEYS: Record<string, string> = {
-  dashboard:    'pageTitles.dashboard',
-  deposits:     'pageTitles.deposits',
-  sweep:        'pageTitles.sweep',
-  withdrawals:  'pageTitles.withdrawals',
-  cold:         'pageTitles.cold',
-  multisig:     'pageTitles.multisig',
-  recovery:     'pageTitles.recovery',
-  users:        'pageTitles.users',
-  transactions: 'pageTitles.transactions',
-  recon:        'pageTitles.recon',
-  audit:        'pageTitles.audit',
-  signers:      'pageTitles.signers',
-  notifs:       'pageTitles.notifs',
-  architecture: 'pageTitles.architecture',
-};
-
-interface TopbarProps {
+interface Props {
+  viewport: ViewportBucket;
+  onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
+  onOpenTweaks: () => void;
+  onOpenAccount?: () => void;
+  onOpenSecurity?: () => void;
 }
 
-export function Topbar({ onOpenCommandPalette }: TopbarProps) {
+export function Topbar({
+  viewport,
+  onToggleSidebar,
+  onOpenCommandPalette,
+  onOpenTweaks,
+  onOpenAccount,
+  onOpenSecurity,
+}: Props) {
   const { t } = useTranslation();
-  const { theme, toggleTheme } = useTweaksStore();
-  const { toggleCollapsed, toggleMobileOpen } = useNavStore();
+  const theme = useTweaksStore((s) => s.theme);
+  const toggleTheme = useTweaksStore((s) => s.toggleTheme);
 
-  // Derive current page title from URL
+  // Derive current page title from URL (falls back to dashboard).
   const match = useMatch('/app/:page/*');
   const segment = match?.params.page ?? 'dashboard';
-  const titleKey = ROUTE_TITLE_KEYS[segment] ?? 'pageTitles.dashboard';
-  const pageTitle = t(titleKey);
+  const pageTitle = t(pageTitleKey(segment));
+
+  // Notifications dropdown — local to topbar since anchor is the bell.
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    if (notifOpen) window.addEventListener('mousedown', onClick);
+    return () => window.removeEventListener('mousedown', onClick);
+  }, [notifOpen]);
+
+  const isNarrow = viewport === 'xs' || viewport === 'sm';
+  const isXs = viewport === 'xs';
 
   return (
-    <header className="h-11 flex items-center gap-2 px-3 border-b border-[var(--line)] bg-[var(--bg-elev)] flex-shrink-0">
-      {/* Sidebar toggle */}
-      <button
-        className="p-1.5 rounded-md text-[var(--text-faint)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
-        onClick={() => {
-          // On mobile (<720px) toggle overlay; on desktop toggle collapse
-          if (window.innerWidth < 720) toggleMobileOpen();
-          else toggleCollapsed();
-        }}
-        aria-label="Toggle sidebar"
-      >
-        <Menu size={15} />
+    <div className="topbar" data-viewport={viewport}>
+      <button className="icon-btn" onClick={onToggleSidebar} title="Toggle sidebar">
+        <I.Sidebar size={15} />
       </button>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span className="hidden sm:block text-[12px] text-[var(--text-faint)]">Treasury</span>
-        <span className="hidden sm:block text-[var(--line-strong)]">/</span>
-        <span className="text-[13px] font-medium text-[var(--text)] truncate">{pageTitle}</span>
+      <div className="topbar-breadcrumb">
+        {!isNarrow && <span>Treasury</span>}
+        {!isNarrow && <I.ChevronRight size={12} className="text-faint" />}
+        <span className="crumb-current">{pageTitle}</span>
       </div>
 
-      {/* Search button */}
-      <button
-        className={cn(
-          'flex items-center gap-2 px-2.5 py-1 rounded-md border border-[var(--line)]',
-          'text-[var(--text-faint)] hover:text-[var(--text)] hover:border-[var(--line-strong)]',
-          'transition-colors text-[12px]',
+      {isXs ? (
+        <button
+          className="icon-btn"
+          onClick={onOpenCommandPalette}
+          title={`${t('common.search')} (⌘K)`}
+          style={{ marginLeft: 'auto' }}
+        >
+          <I.Search size={15} />
+        </button>
+      ) : (
+        <button className="topbar-search" onClick={onOpenCommandPalette}>
+          <I.Search size={13} />
+          {!isNarrow && <span className="topbar-search-placeholder">{t('topbar.searchLong')}</span>}
+          {isNarrow && <span className="topbar-search-placeholder">{t('topbar.searchShort')}</span>}
+          <kbd>⌘K</kbd>
+        </button>
+      )}
+
+      <div className="topbar-actions">
+        {!isNarrow && <EnvPicker />}
+
+        <div ref={notifRef} style={{ position: 'relative' }}>
+          <button
+            className="icon-btn has-dot"
+            title={t('topbar.notifications')}
+            onClick={() => setNotifOpen((o) => !o)}
+          >
+            <I.Bell size={15} />
+          </button>
+          <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+        </div>
+
+        {!isXs && (
+          <button
+            className="icon-btn"
+            onClick={toggleTheme}
+            title={theme === 'light' ? t('topbar.darkMode') : t('topbar.lightMode')}
+          >
+            {theme === 'light' ? <I.Moon size={15} /> : <I.Sun size={15} />}
+          </button>
         )}
-        onClick={onOpenCommandPalette}
-        aria-label={`${t('common.search')} (⌘K)`}
-      >
-        <Search size={13} />
-        <span className="hidden md:block">{t('topbar.searchLong')}</span>
-        <span className="md:hidden">{t('common.search')}</span>
-        <kbd className="hidden md:block text-[10px] px-1 py-0.5 rounded border border-[var(--line)] bg-[var(--bg-muted)]">⌘K</kbd>
-      </button>
+        {!isNarrow && (
+          <button className="icon-btn" onClick={onOpenTweaks} title="Tweaks">
+            <I.Sliders size={15} />
+          </button>
+        )}
 
-      {/* Theme toggle */}
-      <button
-        className="p-1.5 rounded-md text-[var(--text-faint)] hover:text-[var(--text)] hover:bg-[var(--bg-hover)] transition-colors"
-        onClick={toggleTheme}
-        aria-label={theme === 'light' ? t('topbar.darkMode') : t('topbar.lightMode')}
-      >
-        {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
-      </button>
-
-      {/* User menu */}
-      <UserMenu />
-    </header>
+        <UserMenu compact={isXs} onOpenAccount={onOpenAccount} onOpenSecurity={onOpenSecurity} />
+      </div>
+    </div>
   );
 }

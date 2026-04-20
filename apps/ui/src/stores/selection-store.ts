@@ -18,17 +18,13 @@ export const useSelectionStore = create<SelectionState>()((set, get) => ({
   selected: {},
   modals: {},
 
-  setSelected: (tableId, rowId) =>
-    set((s) => ({ selected: { ...s.selected, [tableId]: rowId } })),
+  setSelected: (tableId, rowId) => set((s) => ({ selected: { ...s.selected, [tableId]: rowId } })),
 
-  clearSelected: (tableId) =>
-    set((s) => ({ selected: { ...s.selected, [tableId]: null } })),
+  clearSelected: (tableId) => set((s) => ({ selected: { ...s.selected, [tableId]: null } })),
 
-  openModal: (modalId) =>
-    set((s) => ({ modals: { ...s.modals, [modalId]: true } })),
+  openModal: (modalId) => set((s) => ({ modals: { ...s.modals, [modalId]: true } })),
 
-  closeModal: (modalId) =>
-    set((s) => ({ modals: { ...s.modals, [modalId]: false } })),
+  closeModal: (modalId) => set((s) => ({ modals: { ...s.modals, [modalId]: false } })),
 
   isModalOpen: (modalId) => get().modals[modalId] ?? false,
 }));

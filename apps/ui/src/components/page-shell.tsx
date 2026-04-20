@@ -19,10 +19,10 @@ export function PageShell({ title, badge, badgeKind, columns, rows = 8 }: PageSh
           <span
             className={cn(
               'text-[11px] font-semibold px-2 py-0.5 rounded-full',
-              badgeKind === 'err'  && 'bg-[var(--err-soft)] text-[var(--err-text)]',
+              badgeKind === 'err' && 'bg-[var(--err-soft)] text-[var(--err-text)]',
               badgeKind === 'warn' && 'bg-[var(--warn-soft)] text-[var(--warn-text)]',
               badgeKind === 'info' && 'bg-[var(--info-soft)] text-[var(--info-text)]',
-              !badgeKind           && 'bg-[var(--accent-soft)] text-[var(--accent-text)]',
+              !badgeKind && 'bg-[var(--accent-soft)] text-[var(--accent-text)]'
             )}
           >
             {badge}

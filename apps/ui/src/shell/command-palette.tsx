@@ -1,106 +1,101 @@
-// Command palette stub — opens on Cmd+K, lists pages for navigation
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { I, type IconKey } from '@/icons';
+// Command palette (⌘K) — navigate + search. Ports prototype overlays.jsx
+// `CommandPalette` using base.css classes (.cmd-palette, .cmd-search, …).
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface CommandEntry {
-  id: string;
-  label: string;
-  to: string;
-}
-
-const PAGES: CommandEntry[] = [
-  { id: 'dashboard',    label: 'Dashboard',      to: '/app/dashboard' },
-  { id: 'deposits',     label: 'Deposits',       to: '/app/deposits' },
-  { id: 'sweep',        label: 'Sweep',          to: '/app/sweep' },
-  { id: 'withdrawals',  label: 'Withdrawals',    to: '/app/withdrawals' },
-  { id: 'cold',         label: 'Cold Storage',   to: '/app/cold' },
-  { id: 'multisig',     label: 'Multisig Queue', to: '/app/multisig' },
-  { id: 'recovery',     label: 'TX Errors',      to: '/app/recovery' },
-  { id: 'users',        label: 'Users',          to: '/app/users' },
-  { id: 'transactions', label: 'Transactions',   to: '/app/transactions' },
-  { id: 'recon',        label: 'Reconciliation', to: '/app/recon' },
-  { id: 'audit',        label: 'Audit Trail',    to: '/app/audit' },
-  { id: 'signers',      label: 'Signers',        to: '/app/signers' },
-  { id: 'notifs',       label: 'Notifications',  to: '/app/notifs' },
-  { id: 'architecture', label: 'Architecture',   to: '/app/architecture' },
-];
+import { useNavigate } from 'react-router-dom';
+import { NAV } from './nav-structure';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+interface PageAction {
+  id: string;
+  label: string;
+  iconKey: IconKey;
+  kind: 'Navigate';
+  to: string;
+}
+
+function buildPageActions(t: (k: string) => string): PageAction[] {
+  return NAV.flatMap((g) =>
+    g.items.map((it) => ({
+      id: `g-${it.id}`,
+      label: `Go to ${t(it.labelKey)}`,
+      iconKey: it.iconKey,
+      kind: 'Navigate' as const,
+      to: it.to,
+    }))
+  );
+}
+
 export function CommandPalette({ open, onClose }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const [q, setQ] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = query.trim()
-    ? PAGES.filter((p) => p.label.toLowerCase().includes(query.toLowerCase()))
-    : PAGES;
+  const pageActions = useMemo(() => buildPageActions(t), [t]);
+  const filteredPages = useMemo(() => {
+    if (!q.trim()) return pageActions;
+    const needle = q.toLowerCase();
+    return pageActions.filter((p) => p.label.toLowerCase().includes(needle));
+  }, [pageActions, q]);
 
   useEffect(() => {
-    if (open) {
-      setQuery('');
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
+    if (open) setTimeout(() => inputRef.current?.focus(), 20);
+    else setQ('');
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
+  const go = (to: string) => {
+    navigate(to);
+    onClose();
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/30 backdrop-blur-sm"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="w-full max-w-lg rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] shadow-xl overflow-hidden">
-        {/* Search input */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--line)]">
-          <Search size={15} className="text-[var(--text-faint)] flex-shrink-0" />
+    <>
+      <div className="scrim cmd-scrim" onClick={onClose} />
+      <div className="cmd-palette">
+        <div className="cmd-search">
+          <I.Search size={14} />
           <input
             ref={inputRef}
-            className="flex-1 bg-transparent text-[14px] text-[var(--text)] placeholder:text-[var(--text-faint)] outline-none"
-            placeholder={t('topbar.searchLong')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Jump to page, search users, addresses, hashes…"
           />
-          <button onClick={onClose} className="text-[var(--text-faint)] hover:text-[var(--text)]">
-            <X size={14} />
-          </button>
+          <kbd>ESC</kbd>
         </div>
-
-        {/* Results */}
-        <ul className="max-h-72 overflow-y-auto py-1">
-          {filtered.length === 0 && (
-            <li className="px-4 py-3 text-[13px] text-[var(--text-muted)]">{t('common.empty')}</li>
-          )}
-          {filtered.map((entry) => (
-            <li key={entry.id}>
-              <button
-                className={cn(
-                  'w-full text-left px-4 py-2.5 text-[13px] text-[var(--text-muted)]',
-                  'hover:bg-[var(--bg-hover)] hover:text-[var(--text)] transition-colors',
-                )}
-                onClick={() => { navigate(entry.to); onClose(); }}
-              >
-                {entry.label}
+        <div className="cmd-body">
+          {filteredPages.length > 0 && <div className="cmd-section">Navigate</div>}
+          {filteredPages.map((p) => {
+            const Icon = I[p.iconKey];
+            return (
+              <button key={p.id} className="cmd-row" onClick={() => go(p.to)}>
+                <Icon size={14} />
+                <span>{p.label}</span>
+                <span className="cmd-kind">{p.kind}</span>
               </button>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+          {q && filteredPages.length === 0 && (
+            <div className="cmd-empty">No results for &ldquo;{q}&rdquo;</div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

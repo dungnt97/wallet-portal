@@ -1,10 +1,14 @@
 // Server entry point — load config, build app, listen, graceful shutdown
+// OTel MUST be imported first — instruments pg, ioredis, HTTP before any other require
+import './telemetry/otel.js';
 import 'dotenv/config';
+import { initSentry } from './telemetry/sentry.js';
 import { loadConfig } from './config/env.js';
 import { buildApp } from './app.js';
 
 async function start(): Promise<void> {
   const cfg = loadConfig();
+  initSentry();
   const app = await buildApp(cfg);
 
   try {

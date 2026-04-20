@@ -1,7 +1,16 @@
 // Wallet Engine entry point — starts Fastify health server, RPC pools, block watchers
+// OTel MUST be imported first — instruments pg, ioredis, HTTP before any other require
+import './telemetry/otel.js';
 import 'dotenv/config';
+import { initSentry } from './telemetry/sentry.js';
 import Fastify from 'fastify';
 import pino from 'pino';
+import { trace } from '@opentelemetry/api';
+import {
+  registry as metricsRegistry,
+  httpRequestsTotal,
+  httpRequestDurationSeconds,
+} from './telemetry/metrics.js';
 import { loadConfig, bnbRpcUrls, solanaRpcUrls } from './config/env.js';
 import { makeDb } from './db/client.js';
 import { makeBnbPool, destroyBnbPool } from './rpc/bnb-pool.js';
@@ -14,24 +23,99 @@ import { getRedisConnection, closeRedisConnection } from './queue/connection.js'
 import { makeDepositConfirmQueue } from './queue/deposit-confirm.js';
 import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
 
-const logger = pino({ name: 'wallet-engine' });
+// Pino logger with OTel trace context injection
+function makeLogger(level: string) {
+  const isDev = (process.env.NODE_ENV ?? 'development') !== 'production';
+  return pino(
+    {
+      name: 'wallet-engine',
+      level,
+      // Inject active OTel span IDs into every log record
+      formatters: {
+        log(obj: Record<string, unknown>) {
+          const span = trace.getActiveSpan();
+          if (span) {
+            const ctx = span.spanContext();
+            return { ...obj, trace_id: ctx.traceId, span_id: ctx.spanId };
+          }
+          return obj;
+        },
+      },
+      ...(isDev && {
+        transport: { target: 'pino-pretty', options: { colorize: true } },
+      }),
+    },
+  );
+}
 
 async function start(): Promise<void> {
   const cfg = loadConfig();
+  initSentry();
+
+  const logger = makeLogger(cfg.LOG_LEVEL);
 
   // --- Fastify health server ---
   const fastify = Fastify({
-    logger: { level: cfg.LOG_LEVEL },
+    logger: {
+      level: cfg.LOG_LEVEL,
+      ...((process.env.NODE_ENV ?? 'development') !== 'production' && {
+        transport: { target: 'pino-pretty', options: { colorize: true } },
+      }),
+    },
   });
-
-  fastify.get('/health', async () => ({ status: 'ok' }));
-  fastify.get('/health/live', async () => ({ status: 'ok' }));
-  fastify.get('/health/ready', async () => ({ status: 'ok' }));
 
   // --- Infrastructure ---
   const db = makeDb(cfg.DATABASE_URL);
   const redis = getRedisConnection(cfg.REDIS_URL);
   const depositQueue = makeDepositConfirmQueue(redis);
+
+  // ── Health endpoints ──────────────────────────────────────────────────────
+  fastify.get('/health', async () => ({ status: 'ok' }));
+  fastify.get('/health/live', async () => ({ status: 'ok' }));
+  fastify.get('/health/ready', async (_req, reply) => {
+    let dbStatus: 'ok' | 'error' = 'ok';
+    let redisStatus: 'ok' | 'error' = 'ok';
+
+    try {
+      // Lightweight DB ping — select 1
+      await db.execute('select 1' as unknown as Parameters<typeof db.execute>[0]);
+    } catch {
+      dbStatus = 'error';
+    }
+
+    try {
+      await redis.ping();
+    } catch {
+      redisStatus = 'error';
+    }
+
+    const degraded = dbStatus === 'error' || redisStatus === 'error';
+    return reply.code(degraded ? 503 : 200).send({
+      status: degraded ? 'degraded' : 'ok',
+      db: dbStatus,
+      redis: redisStatus,
+    });
+  });
+
+  // ── Prometheus /metrics endpoint ──────────────────────────────────────────
+  fastify.get('/metrics', async (_req, reply) => {
+    const body = await metricsRegistry.metrics();
+    return reply.code(200).header('Content-Type', metricsRegistry.contentType).send(body);
+  });
+
+  // ── HTTP instrumentation hooks ────────────────────────────────────────────
+  fastify.addHook('onRequest', async (request) => {
+    (request as typeof request & { _startTime: number })._startTime = Date.now();
+  });
+
+  fastify.addHook('onResponse', async (request, reply) => {
+    const start = (request as typeof request & { _startTime: number })._startTime ?? Date.now();
+    const durationSec = (Date.now() - start) / 1000;
+    const route = request.routeOptions?.url ?? request.url;
+    const labels = { method: request.method, route, status_code: String(reply.statusCode) };
+    httpRequestsTotal.inc(labels);
+    httpRequestDurationSeconds.observe(labels, durationSec);
+  });
 
   // --- RPC pools ---
   const bnbPool = makeBnbPool(bnbRpcUrls(cfg));
@@ -110,6 +194,7 @@ async function start(): Promise<void> {
 }
 
 void start().catch((err) => {
-  logger.error({ err }, 'Fatal startup error');
+  // Use pino directly here since logger is scoped inside start()
+  pino({ name: 'wallet-engine' }).error({ err }, 'Fatal startup error');
   process.exit(1);
 });

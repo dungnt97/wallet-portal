@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { trace } from '@opentelemetry/api';
 import type { Config } from './config/env.js';
 import dbPlugin from './plugins/db.plugin.js';
 import redisPlugin from './plugins/redis.plugin.js';
@@ -20,6 +21,17 @@ export async function buildApp(cfg: Config) {
   const app = Fastify({
     logger: {
       level: cfg.LOG_LEVEL,
+      // Inject OTel trace_id + span_id into every Pino log record
+      formatters: {
+        log(obj: Record<string, unknown>) {
+          const span = trace.getActiveSpan();
+          if (span) {
+            const ctx = span.spanContext();
+            return { ...obj, trace_id: ctx.traceId, span_id: ctx.spanId };
+          }
+          return obj;
+        },
+      },
       ...(cfg.NODE_ENV === 'development' && {
         transport: { target: 'pino-pretty', options: { colorize: true } },
       }),

@@ -25,6 +25,11 @@ const EnvSchema = z.object({
   WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173'),
   // Dev bypass — skip Google ID token verification (never set in prod)
   AUTH_DEV_MODE: z.string().default('false'),
+  // OpenTelemetry
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
+  OTEL_SERVICE_NAME: z.string().default('admin-api'),
+  // Sentry (optional — empty string = disabled)
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

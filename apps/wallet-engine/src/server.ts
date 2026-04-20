@@ -12,6 +12,7 @@ import { startAddressRegistry } from './watcher/address-registry.js';
 import { detectBnbDeposits } from './watcher/deposit-detector.js';
 import { getRedisConnection, closeRedisConnection } from './queue/connection.js';
 import { makeDepositConfirmQueue } from './queue/deposit-confirm.js';
+import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
 
 const logger = pino({ name: 'wallet-engine' });
 
@@ -84,12 +85,17 @@ async function start(): Promise<void> {
   await fastify.listen({ port: cfg.PORT, host: '0.0.0.0' });
   logger.info(`listening :${cfg.PORT}`);
 
+  // --- Start BullMQ deposit confirm worker ---
+  const depositWorker = startDepositConfirmWorker(redis, cfg);
+  logger.info('deposit_confirm worker started');
+
   // --- Graceful shutdown ---
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal — closing wallet-engine');
     bnbWatcher.stop();
     await solWatcher.stop();
     stopRegistry();
+    await depositWorker.close();
     await depositQueue.close();
     await closeRedisConnection();
     await destroyBnbPool(bnbPool);

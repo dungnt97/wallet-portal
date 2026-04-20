@@ -12,7 +12,9 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "simulate-deposit": "tsx scripts/simulate-deposit.ts",
+    "test:vertical-slice": "tsx scripts/test-vertical-slice.ts"
   },
   "dependencies": {
     "@wp/admin-api": "workspace:*",

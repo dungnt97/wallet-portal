@@ -18,3 +18,4 @@ export * from './ledger';
 export * from './staff-webauthn-credentials';
 export * from './watcher-checkpoints';
 export * from './kill-switch';
+export * from './notifications';

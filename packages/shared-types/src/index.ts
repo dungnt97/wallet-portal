@@ -8,3 +8,4 @@ export * from './staff.js';
 export * from './user.js';
 export * from './wallet.js';
 export * from './withdrawal.js';
+export * from './notification.js';

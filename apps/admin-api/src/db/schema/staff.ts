@@ -1,6 +1,8 @@
 // staff_members + staff_signing_keys tables
-import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { chainEnum, roleEnum, staffStatusEnum, tierEnum, walletTypeEnum } from './enums';
+import type { NotificationPrefs } from './notifications.js';
+import { DEFAULT_NOTIFICATION_PREFS } from './notifications.js';
 
 /** Staff members who operate the custody portal */
 export const staffMembers = pgTable('staff_members', {
@@ -10,6 +12,11 @@ export const staffMembers = pgTable('staff_members', {
   role: roleEnum('role').notNull(),
   status: staffStatusEnum('status').notNull().default('active'),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  /** Per-staff notification delivery preferences — channels + per-event-type opt-ins */
+  notificationPrefs: jsonb('notification_prefs')
+    .$type<NotificationPrefs>()
+    .notNull()
+    .default(DEFAULT_NOTIFICATION_PREFS),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

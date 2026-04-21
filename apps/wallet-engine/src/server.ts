@@ -16,6 +16,7 @@ import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worke
 import { startSweepExecuteWorker } from './queue/workers/sweep-execute-worker.js';
 import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
 import internalDerivePlugin from './routes/internal-derive.js';
+import internalRecoveryPlugin from './routes/internal-recovery.js';
 import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
 import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
 import {
@@ -134,6 +135,13 @@ async function start(): Promise<void> {
   // --- RPC pools ---
   const bnbPool = makeBnbPool(bnbRpcUrls(cfg));
   const solPool = makeSolanaPool(solanaRpcUrls(cfg));
+
+  // ── Internal recovery routes (bearer-protected, registered after pool init) ─
+  await fastify.register(internalRecoveryPlugin, {
+    bearerToken: cfg.SVC_BEARER_TOKEN,
+    bnbProvider: bnbPool.provider,
+    solanaConnection: solPool.primary,
+  });
 
   // Verify connectivity
   try {

@@ -78,6 +78,9 @@ const EnvSchema = z.object({
   RECOVERY_MAX_BUMP_GWEI: z.coerce.number().positive().default(50),
   // Cancel fee multiplier (1.20 = 20% above current gas)
   RECOVERY_CANCEL_FEE_MULT: z.coerce.number().positive().default(1.2),
+  // Hot-safe address on BNB Chain — destination of 0-value cancel self-send.
+  // If unset, the cancel route returns 503 (fail-closed) to prevent blind self-sends.
+  HOT_SAFE_ADDRESS_BNB: z.string().optional(),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

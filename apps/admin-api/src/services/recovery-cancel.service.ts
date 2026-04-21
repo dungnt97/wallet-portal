@@ -155,9 +155,12 @@ export async function cancelTx(
   // 8. Call wallet-engine cancel
   const cancelFeeMultiplier = Number(process.env.RECOVERY_CANCEL_FEE_MULT ?? '1.2');
   const chainId = process.env.BNB_CHAIN_ID ?? '56';
-  // Hot-safe address = destination of the 0-value cancel tx (self-send from hot-safe)
-  const hotSafeAddress =
-    process.env.HOT_SAFE_ADDRESS ?? '0x0000000000000000000000000000000000000001';
+  // Hot-safe address = destination of the 0-value cancel tx (self-send from hot-safe).
+  // Fail-closed: if HOT_SAFE_ADDRESS_BNB is not configured, refuse to cancel.
+  const hotSafeAddress = process.env.HOT_SAFE_ADDRESS_BNB;
+  if (!hotSafeAddress) {
+    throw new Error('HOT_SAFE_ADDRESS_NOT_CONFIGURED: set HOT_SAFE_ADDRESS_BNB env var');
+  }
 
   const walletResult = await callWalletEngineCancel({
     entityType,

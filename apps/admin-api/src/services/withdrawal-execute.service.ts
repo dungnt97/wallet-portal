@@ -124,6 +124,8 @@ export async function executeWithdrawal(
 
 export interface BroadcastedCallbackInput {
   txHash: string;
+  /** On-chain nonce — required for EVM bump/cancel in Slice 11 */
+  nonce?: number | null;
 }
 
 export async function recordBroadcasted(
@@ -137,10 +139,20 @@ export async function recordBroadcasted(
   });
   if (!withdrawal) throw new NotFoundError(`Withdrawal ${withdrawalId} not found`);
 
+  const broadcastAt = new Date();
+
   await db.transaction(async (tx) => {
     await tx
       .update(schema.withdrawals)
-      .set({ status: 'executing', updatedAt: new Date() })
+      .set({
+        status: 'broadcast',
+        txHash: input.txHash,
+        broadcastAt,
+        // Persist nonce when wallet-engine provides it (required for EVM bump/cancel).
+        // null is acceptable — recovery service will reject bump/cancel when nonce is absent.
+        ...(input.nonce != null ? { nonce: input.nonce } : {}),
+        updatedAt: broadcastAt,
+      })
       .where(eq(schema.withdrawals.id, withdrawalId));
 
     // Ledger: debit hot_wallet, credit destination virtual account
@@ -158,14 +170,18 @@ export async function recordBroadcasted(
       action: 'withdrawal.broadcast',
       resourceType: 'withdrawal',
       resourceId: withdrawalId,
-      changes: { status: { from: 'executing', to: 'executing' }, txHash: input.txHash },
+      changes: {
+        status: { from: 'executing', to: 'broadcast' },
+        txHash: input.txHash,
+        ...(input.nonce != null ? { nonce: input.nonce } : {}),
+      },
     });
   });
 
   socketEmitter.of('/stream').emit('withdrawal.broadcast', {
     withdrawalId,
     txHash: input.txHash,
-    status: 'executing',
+    status: 'broadcast',
   });
 }
 

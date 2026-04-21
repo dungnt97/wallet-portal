@@ -93,7 +93,7 @@ export async function probeRedis(redis: Redis): Promise<RedisProbeResult> {
 
 export async function probePolicyEngine(policyEngineUrl: string): Promise<PolicyEngineProbeResult> {
   try {
-    const url = `${policyEngineUrl}/healthz`;
+    const url = `${policyEngineUrl}/health/live`;
     const res = await withTimeout(
       fetch(url, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) }),
       PROBE_TIMEOUT_MS

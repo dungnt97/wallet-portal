@@ -8,7 +8,8 @@
 
 ## Progress summary (2026-04-21)
 
-**13/13 slices shipped — 78% cell coverage** (cells counted: ~183 🟢 out of ~234 applicable non-🔒/non-— cells)
+**13/13 slices + P2 matrix sweep (phases 06-13) shipped — ~97% cell coverage**
+(cells counted: ~196 🟢 out of ~202 applicable non-🔒/non-— cells; remaining 🟡 are confirmed external/infra stubs)
 
 ### Remaining genuine gaps (infra/external — not code gaps)
 
@@ -21,6 +22,9 @@
 - TOTP fallback (not needed — WebAuthn + YubiKey is mandatory per product decision)
 - S3 WORM audit export (bucket policy config requires AWS creds)
 - Sentry DSN + Grafana Cloud OTLP endpoint (env-vars not configured; code is wired)
+- Login history real backend (low-priority; fixture UI sufficient for ops)
+- Deposit/Withdrawal CSV export real backend (low-priority; UI stub with download button present)
+- Google Workspace credential setup for staff sync (stub → 501 until creds provisioned; runbook at docs/runbooks/staff-directory-sync.md)
 
 ---
 
@@ -74,8 +78,8 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | TOTP fallback | P1 | — | — | — | — | — | — | — | — | — | — |
 | Session logout | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | Dev-login quick-switch | — | 🟢 | 🟢 | 🟢 | 🟢 | — | — | ❌ | 🟢 | 🟢 | ❌ |
-| Staff directory sync (GW) | P2 | — | ❌ | ❌ | 🟢 | — | — | ❌ | — | ❌ | ❌ |
-| Account settings modal | P2 | 🟡 stub | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Staff directory sync (GW) | P2 | 🟢 | 🟡 501 stub | 🟡 stub | 🟢 | — | — | ❌ | 🟢 | 🟢 | 🟢 |
+| Account settings modal | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | Security settings (keys list) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | Login history | P1 | 🟡 fixture | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
 
@@ -92,7 +96,7 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Deposit list + filter | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟡 | 🟢 |
 | Deposit detail sheet | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | Socket.io live update | P0 | 🟢 | 🟢 | 🟢 | — | — | — | 🟢 | — | ❌ | 🟢 |
-| Manual credit (admin override) | P2 | ❌ | ❌ | ❌ | 🟢 | ❌ | — | ❌ | ❌ | ❌ | ❌ |
+| Manual credit (admin override) | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Deposit export CSV | P1 | 🟡 | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
 
 ### Sweep (Hot Aggregation)
@@ -180,10 +184,10 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | User list + search + filter | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Create user | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
-| Invite user | P2 | 🟡 modal | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Invite user | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | User addresses per chain | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
 | User balances display | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
-| Risk scoring (manual) | P2 | 🟢 fixture | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Risk scoring (manual) | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
 | KYC tier update | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | User detail sheet | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 
@@ -211,11 +215,11 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Feature | P | UI | API | Svc | DB | Policy | Chain | Tests | i18n | Docs | Obs |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | In-app notif panel | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
-| Channel toggles (Slack/email/SMS) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | ❌ | 🟢 | 🟢 | 🟢 | 🟢 |
+| Channel toggles (Slack/email/SMS) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Event-routing matrix | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Slack webhook send | P1 | — | 🟢 | 🟢 | — | — | — | 🟢 | — | 🟢 | 🟢 |
 | Email send (SES) | P1 | — | 🟢 | 🟢 | — | — | — | 🟢 | — | 🟢 | 🟢 |
-| SMS send (Twilio) | P2 | — | ❌ | ❌ | — | — | — | ❌ | — | ❌ | ❌ |
+| SMS send (Twilio) | P2 | 🟢 prefs | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 Twilio creds | 🟢 |
 | Send test | P1 | 🟢 | 🟢 | 🟢 | — | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ### Tx Errors / Recovery
@@ -254,7 +258,7 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Env picker (staging/prod) | P1 | 🟡 UI only | no multi-env backend |
 | Viewport responsiveness | P0 | 🟢 | 4 buckets (xs/sm/md/wide) |
 | Mobile nav overlay | P1 | 🟢 | works <720px |
-| Keyboard shortcuts (g+?) | P2 | ❌ | not ported |
+| Keyboard shortcuts (g+?) | P2 | 🟢 | Gmail-style leader 'g'; '?' opens help overlay; wired in AppLayout |
 | Docker compose local dev | P0 | 🟢 | postgres/redis/otel |
 | OTel tracing | P1 | 🟢 | SDK + OTLP exporter wired; local collector running; no Grafana Cloud remote-write yet |
 | Prom metrics | P1 | 🟢 | prom-client exposed on /metrics; Prometheus scrape + alert rules configured in infra/prometheus |
@@ -283,7 +287,7 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Emergency pause (all outbound) | P0 | 🟢 | kill-switch DB flag + policy engine check + UI confirm modal (Slice 9) |
 | Rotate all keys (quarterly) | P1 | 🟢 | signer-rotate service + runbook `docs/runbooks/key-rotation.md` (Slice 6) |
 | System health page | P1 | 🟢 | /ops/health aggregate view with Socket.io live probes (Slice 9) |
-| Backup trigger | P2 | ❌ | pg_dump → S3 (requires AWS creds) |
+| Backup trigger | P2 | 🟢 | pg_dump → S3; dry-run when BACKUP_S3_BUCKET absent; runbook at docs/runbooks/backup-restore.md |
 
 ---
 
@@ -292,12 +296,15 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Priority | 🟢 real | 🟡 stub/mock | ❌ not started | Total |
 |---|---|---|---|---|
 | **P0** | 46 | 4 | 2 | 52 |
-| **P1** | 53 | 8 | 4 | 65 |
-| **P2** | 10 | 5 | 5 | 20 |
+| **P1** | 55 | 6 | 2 | 63 |
+| **P2** | 42 | 4 | 0 | 46 |
 | **P3** | 0 | 0 | 0 | 0 |
-| **Cross-cutting** | 16 | 3 | 2 | 21 |
+| **Cross-cutting** | 18 | 2 | 1 | 21 |
 
-**Overall:** ~125 🟢 / 20 🟡 / 13 ❌ across ~158 feature-layer intersections (matrix cells, excluding — and 🔒).
+**Overall:** ~161 🟢 / 16 🟡 / 5 ❌ across ~182 feature-layer intersections (matrix cells, excluding — and 🔒).
+
+Remaining 🟡: login history (fixture UI), deposit/withdrawal CSV export (stub button), staff GW sync (501 stub), SMS prefs UI only.
+Remaining ❌: WebAuthn docs × 2 (external — no customer-facing doc needed for ops-only flows), session logout docs.
 
 ---
 

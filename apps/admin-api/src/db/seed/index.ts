@@ -2,7 +2,6 @@
 import 'dotenv/config';
 import { createDbFromEnv } from '../index.js';
 import { seedStaff } from './staff-seed.js';
-import { seedUsers } from './users-seed.js';
 import { seedWallets } from './wallets-seed.js';
 
 async function main(): Promise<void> {
@@ -10,9 +9,8 @@ async function main(): Promise<void> {
 
   console.log('Running seed fixtures…');
 
-  // Order matters: staff first (users + wallets have no FK to staff)
+  // Staff + wallets only — end users created via UI / API (no seed)
   await seedStaff(db);
-  await seedUsers(db);
   await seedWallets(db);
 
   console.log('Seed complete.');

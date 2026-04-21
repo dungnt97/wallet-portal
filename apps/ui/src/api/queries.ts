@@ -15,6 +15,8 @@ export const queryKeys = {
   multisigQueue: () => ['multisig'] as const,
   signers: () => ['signers'] as const,
   dashboardStats: () => ['dashboard', 'stats'] as const,
+  killSwitch: () => ['ops', 'killSwitch'] as const,
+  opsHealth: () => ['ops', 'health'] as const,
 };
 
 // ---- Query types ----
@@ -105,6 +107,84 @@ export function useApproveWithdrawal(withdrawalId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['withdrawals'] });
       void qc.invalidateQueries({ queryKey: ['multisig'] });
+    },
+  });
+}
+
+// ---- Ops types ----
+
+export interface KillSwitchState {
+  enabled: boolean;
+  reason: string | null;
+  updatedAt: string | null;
+}
+
+export interface KillSwitchToggleBody {
+  enabled: boolean;
+  reason?: string;
+}
+
+export type ProbeStatus = 'ok' | 'error';
+
+export interface ChainHealth {
+  id: string;
+  rpc: string;
+  latestBlock: number | null;
+  checkpointBlock: number | null;
+  lagBlocks: number | null;
+  status: ProbeStatus;
+  error?: string;
+}
+
+export interface QueueHealth {
+  name: string;
+  depth: number;
+  status: ProbeStatus;
+  error?: string;
+}
+
+export interface WorkerHealth {
+  name: string;
+  lastHeartbeatAgoSec: number | null;
+  status: ProbeStatus;
+  error?: string;
+}
+
+export interface OpsHealth {
+  db: { status: ProbeStatus; error?: string };
+  redis: { status: ProbeStatus; error?: string };
+  policyEngine: { status: ProbeStatus; error?: string };
+  chains: ChainHealth[];
+  queues: QueueHealth[];
+  workers: WorkerHealth[];
+}
+
+// ---- Ops hooks ----
+
+export function useKillSwitch() {
+  return useQuery({
+    queryKey: queryKeys.killSwitch(),
+    queryFn: () => api.get<KillSwitchState>('/ops/kill-switch'),
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useOpsHealth() {
+  return useQuery({
+    queryKey: queryKeys.opsHealth(),
+    queryFn: () => api.get<OpsHealth>('/ops/health'),
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useToggleKillSwitch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: KillSwitchToggleBody) => api.post<KillSwitchState>('/ops/kill-switch', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ops'] });
     },
   });
 }

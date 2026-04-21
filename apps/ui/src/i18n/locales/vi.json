@@ -679,5 +679,48 @@
     "treasurer": "Treasurer",
     "operator": "Operator",
     "viewer": "Viewer"
+  },
+  "ops": {
+    "eyebrow": "Vận hành",
+    "subEyebrow": "Kiểm soát hệ thống",
+    "title": "Ops",
+    "subtitle": "Kill-switch và trạng thái hệ thống thời gian thực",
+    "killSwitch": {
+      "sectionLabel": "Kiểm soát khẩn cấp",
+      "cardTitle": "Kill-Switch giao dịch ra",
+      "descEnabled": "Tạm dừng giao dịch ra — lý do: {{reason}}",
+      "descDisabled": "Tất cả giao dịch ra đang hoạt động bình thường.",
+      "statusOn": "ĐANG BẬT",
+      "statusOff": "ĐANG TẮT",
+      "banner": "TẠM DỪNG GIAO DỊCH RA — tất cả rút tiền và sweep bị chặn",
+      "lastUpdated": "Cập nhật lúc: {{ts}}",
+      "confirmEnableTitle": "Bật Kill-Switch",
+      "confirmDisableTitle": "Tắt Kill-Switch",
+      "confirmEnableBody": "Thao tác này sẽ chặn ngay tất cả rút tiền và sweep mới. Các job đang trong hàng đợi sẽ bị trì hoãn 30 giây và thử lại. Nhập lý do để tiếp tục.",
+      "confirmDisableBody": "Thao tác này sẽ tiếp tục các giao dịch ra bình thường. Các job trong hàng đợi sẽ được xử lý khi thử lại.",
+      "reasonLabel": "Lý do",
+      "reasonPlaceholder": "VD: Nghi ngờ rò rỉ khóa — đang điều tra",
+      "confirmEnableBtn": "Bật Kill-Switch",
+      "confirmDisableBtn": "Tắt Kill-Switch",
+      "cancelBtn": "Hủy",
+      "toggleError": "Thao tác thất bại: {{msg}}",
+      "toastEnabled": "Kill-switch ĐÃ BẬT — giao dịch ra bị tạm dừng",
+      "toastDisabled": "Kill-switch đã tắt — giao dịch ra tiếp tục"
+    },
+    "health": {
+      "sectionLabel": "Trạng thái hệ thống",
+      "fetchError": "Không thể tải dữ liệu health — kiểm tra kết nối",
+      "sectionInfra": "Hạ tầng",
+      "sectionChains": "Blockchain",
+      "sectionQueues": "Hàng đợi",
+      "sectionWorkers": "Worker",
+      "db": "Cơ sở dữ liệu",
+      "redis": "Redis",
+      "policyEngine": "Policy Engine",
+      "chainSub": "block {{block}} · lag {{lag}}",
+      "queueDepth": "độ sâu: {{depth}}",
+      "workerHeartbeat": "heartbeat {{sec}}s trước",
+      "workerNoHeartbeat": "không có heartbeat"
+    }
   }
 }

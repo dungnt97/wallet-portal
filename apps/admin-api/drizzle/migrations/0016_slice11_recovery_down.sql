@@ -8,6 +8,8 @@ DROP TABLE IF EXISTS recovery_actions;
 
 -- 2. Remove recovery columns from withdrawals
 ALTER TABLE withdrawals
+  DROP COLUMN IF EXISTS tx_hash,
+  DROP COLUMN IF EXISTS broadcast_at,
   DROP COLUMN IF EXISTS bump_count,
   DROP COLUMN IF EXISTS last_bump_at,
   DROP COLUMN IF EXISTS cancelled_nonce_tx_hash,

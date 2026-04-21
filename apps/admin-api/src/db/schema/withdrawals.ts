@@ -33,6 +33,12 @@ export const withdrawals = pgTable('withdrawals', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 
+  // ── Broadcast tracking (added in migration 0016) ─────────────────────────
+  /** On-chain tx hash once broadcast — populated when status → 'broadcast' */
+  txHash: text('tx_hash'),
+  /** When this tx was first submitted to the network */
+  broadcastAt: timestamp('broadcast_at', { withTimezone: true }),
+
   // ── Recovery columns (Slice 11 — migration 0016) ─────────────────────────
   /** On-chain nonce at broadcast time; required for EVM bump/cancel */
   nonce: bigint('nonce', { mode: 'number' }),

@@ -65,6 +65,19 @@ const EnvSchema = z.object({
   RECON_CRITICAL_THRESHOLD_CENTS: z.coerce.number().int().nonnegative().default(10000),
   // Snapshot retention in days — snapshots older than this are hard-deleted by GC job
   RECON_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+
+  // Recovery (Slice 11)
+  // Kill-switch: RECOVERY_ENABLED=false → all write routes return 503
+  RECOVERY_ENABLED: z.string().default('true'),
+  // Stuck-tx age thresholds (env-overridable, matching ops defaults)
+  RECOVERY_EVM_STUCK_MINUTES: z.coerce.number().int().positive().default(10),
+  RECOVERY_SOL_STUCK_SECONDS: z.coerce.number().int().positive().default(60),
+  // Maximum gas bumps per tx before rejection
+  RECOVERY_MAX_BUMPS: z.coerce.number().int().positive().default(3),
+  // Hard cap on EVM bump gas price (gwei) — rejects if estimated fee exceeds this
+  RECOVERY_MAX_BUMP_GWEI: z.coerce.number().positive().default(50),
+  // Cancel fee multiplier (1.20 = 20% above current gas)
+  RECOVERY_CANCEL_FEE_MULT: z.coerce.number().positive().default(1.2),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

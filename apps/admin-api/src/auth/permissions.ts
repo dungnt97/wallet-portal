@@ -28,7 +28,10 @@ export type Permission =
   | 'ops.read'
   | 'ops.killswitch.toggle'
   | 'signers.read'
-  | 'signers.manage';
+  | 'signers.manage'
+  // Recovery (Slice 11) — read: admin+treasurer+operator; write: admin-only (1-of-1 override)
+  | 'recovery.read'
+  | 'recovery.write';
 
 /** Roles permitted for each action — check with PERMS[perm].includes(role) */
 export const PERMS: Record<Permission, Role[]> = {
@@ -58,4 +61,7 @@ export const PERMS: Record<Permission, Role[]> = {
   // Reconciliation (Slice 10) — read: ops+admin; run: admin-only
   'reconciliation.read': ['admin', 'treasurer', 'operator'],
   'reconciliation.run': ['admin'],
+  // Recovery (Slice 11) — read: admin+treasurer+operator; write: admin-only (1-of-1 emergency override)
+  'recovery.read': ['admin', 'treasurer', 'operator'],
+  'recovery.write': ['admin'],
 };

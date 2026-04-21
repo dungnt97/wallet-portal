@@ -9,6 +9,8 @@ ALTER TYPE withdrawal_status ADD VALUE IF NOT EXISTS 'broadcast';
 
 -- 2. Add recovery columns to withdrawals
 ALTER TABLE withdrawals
+  ADD COLUMN IF NOT EXISTS tx_hash        text        NULL,
+  ADD COLUMN IF NOT EXISTS broadcast_at   timestamptz NULL,
   ADD COLUMN IF NOT EXISTS bump_count     int         NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS last_bump_at   timestamptz NULL,
   ADD COLUMN IF NOT EXISTS cancelled_nonce_tx_hash text NULL,

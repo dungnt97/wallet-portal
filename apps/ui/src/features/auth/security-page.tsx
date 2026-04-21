@@ -1,10 +1,11 @@
-// /app/account/security — manage WebAuthn credentials
+import { api } from '@/api/client';
+import { LoginHistory } from '@/features/security/login-history';
+import { cn } from '@/lib/utils';
+import { startRegistration } from '@simplewebauthn/browser';
+import { CheckCircle2, KeyRound, Loader2, ShieldCheck } from 'lucide-react';
+// /app/account/security — manage WebAuthn credentials + login history
 // MVP: single "Add security key" button that runs the registration ceremony.
 import { useState } from 'react';
-import { ShieldCheck, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
-import { startRegistration } from '@simplewebauthn/browser';
-import { api } from '@/api/client';
-import { cn } from '@/lib/utils';
 
 export function SecurityPage() {
   const [state, setState] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
@@ -16,15 +17,14 @@ export function SecurityPage() {
     setErrorMsg('');
     try {
       // Step 1 — fetch attestation options from server
-      const options = await api.post<Record<string, unknown>>(
-        '/auth/webauthn/register/options',
-        { deviceName },
-      );
+      const options = await api.post<Record<string, unknown>>('/auth/webauthn/register/options', {
+        deviceName,
+      });
 
       // Step 2 — browser registration ceremony
       // @simplewebauthn/browser v10: startRegistration takes optionsJSON directly as first arg
       const registrationResponse = await startRegistration(
-        options as unknown as Parameters<typeof startRegistration>[0],
+        options as unknown as Parameters<typeof startRegistration>[0]
       );
 
       // Step 3 — verify and persist credential on server
@@ -44,7 +44,7 @@ export function SecurityPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg space-y-6">
+    <div className="p-6 max-w-2xl space-y-6">
       <div>
         <h1 className="text-[18px] font-semibold text-[var(--text)]">Security keys</h1>
         <p className="text-[13px] text-[var(--text-muted)] mt-1">
@@ -67,10 +67,14 @@ export function SecurityPage() {
         </div>
 
         <div>
-          <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1">
+          <label
+            htmlFor="device-name"
+            className="block text-[12px] font-medium text-[var(--text-muted)] mb-1"
+          >
             Device name (optional)
           </label>
           <input
+            id="device-name"
             type="text"
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value)}
@@ -80,7 +84,7 @@ export function SecurityPage() {
             className={cn(
               'w-full px-3 py-2 rounded-md border text-[13px] bg-[var(--bg)] text-[var(--text)]',
               'border-[var(--line)] focus:border-[var(--accent)] focus:outline-none transition-colors',
-              'placeholder:text-[var(--text-faint)] disabled:opacity-50',
+              'placeholder:text-[var(--text-faint)] disabled:opacity-50'
             )}
           />
         </div>
@@ -104,7 +108,7 @@ export function SecurityPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium transition-colors',
               'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
             {state === 'pending' ? (
@@ -121,6 +125,9 @@ export function SecurityPage() {
           </button>
         )}
       </div>
+
+      {/* Login history — real data from /staff/me/sessions */}
+      <LoginHistory />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { Config } from '../config/env.js';
 import { staffMembers } from '../db/schema/index.js';
+import { recordLogin } from '../services/login-history.service.js';
 import {
   buildAuthUrlWithDomain,
   exchangeCodeForIdToken,
@@ -73,6 +74,11 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
     async (req, reply) => {
       const { code, state } = req.query as { code: string; state: string };
       const saved = req.session.oauthState;
+      const ip =
+        (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
+        req.socket.remoteAddress ??
+        null;
+      const ua = (req.headers['user-agent'] as string | undefined) ?? null;
 
       // CSRF state check
       if (!saved || saved.state !== state) {
@@ -91,6 +97,12 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
         idPayload = await verifyIdToken(idToken, cfg.GOOGLE_CLIENT_ID);
       } catch (err) {
         app.log.warn({ err }, 'OIDC token verification failed');
+        // fire-and-forget — record failure before returning
+        recordLogin(
+          app.db,
+          { staffId: null, success: false, ip, ua, failureReason: 'TOKEN_INVALID' },
+          app.log
+        );
         return reply
           .code(401)
           .send({ code: 'TOKEN_INVALID', message: 'ID token verification failed' });
@@ -101,6 +113,11 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
         app.log.warn(
           { email: idPayload.email, hd: idPayload.hd },
           'Login rejected: workspace domain mismatch'
+        );
+        recordLogin(
+          app.db,
+          { staffId: null, success: false, ip, ua, failureReason: 'DOMAIN_NOT_ALLOWED' },
+          app.log
         );
         return reply
           .code(403)
@@ -122,6 +139,17 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
 
       const staff = rows[0];
       if (!staff || staff.status !== 'active') {
+        recordLogin(
+          app.db,
+          {
+            staffId: staff?.id ?? null,
+            success: false,
+            ip,
+            ua,
+            failureReason: 'UNAUTHORIZED_STAFF',
+          },
+          app.log
+        );
         return reply
           .code(403)
           .send({ code: 'UNAUTHORIZED_STAFF', message: 'Staff not found or inactive' });
@@ -143,6 +171,9 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
         name: staff.name,
         role: staff.role,
       };
+
+      // Record successful login — fire-and-forget
+      recordLogin(app.db, { staffId: staff.id, success: true, ip, ua }, app.log);
 
       return reply.redirect(`${cfg.CORS_ORIGIN}/auth/callback?ok=1`);
     }
@@ -205,12 +236,22 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
           .code(403)
           .send({ code: 'DEV_MODE_DISABLED', message: 'AUTH_DEV_MODE is not enabled' });
       }
+      const ip =
+        (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
+        req.socket.remoteAddress ??
+        null;
+      const ua = (req.headers['user-agent'] as string | undefined) ?? null;
       const [staff] = await app.db
         .select()
         .from(staffMembers)
         .where(eq(staffMembers.email, req.body.email))
         .limit(1);
       if (!staff) {
+        recordLogin(
+          app.db,
+          { staffId: null, success: false, ip, ua, failureReason: 'STAFF_NOT_FOUND' },
+          app.log
+        );
         return reply
           .code(404)
           .send({ code: 'STAFF_NOT_FOUND', message: 'No staff for that email' });
@@ -222,6 +263,7 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
         .catch((err) => app.log.error({ err }, 'Failed to update last_login_at'));
       await req.session.regenerate();
       req.session.staff = { id: staff.id, email: staff.email, name: staff.name, role: staff.role };
+      recordLogin(app.db, { staffId: staff.id, success: true, ip, ua }, app.log);
       return reply.code(200).send(req.session.staff);
     }
   );

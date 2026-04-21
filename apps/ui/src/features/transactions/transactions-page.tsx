@@ -24,18 +24,31 @@ export function TransactionsPage() {
   const qc = useQueryClient();
   const rt = useRealtime();
 
+  const DATE_PRESETS = [
+    { label: t('common.today'), days: 1 },
+    { label: t('common.last7d'), days: 7 },
+    { label: t('common.last30d'), days: 30 },
+  ] as const;
+
   const [tab, setTab] = useState<TxTab>('all');
   const [chain, setChain] = useState<'bnb' | 'sol' | null>(null);
   const [status, setStatus] = useState<'confirmed' | 'pending' | 'failed' | null>(null);
+  const [token, setToken] = useState<'USDT' | 'USDC' | null>(null);
+  const [datePreset, setDatePreset] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<TxRow | null>(null);
+
+  const dateFrom =
+    datePreset !== null
+      ? new Date(Date.now() - DATE_PRESETS[datePreset].days * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
 
   // Reset to page 1 whenever filters change
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter signature only
   useEffect(() => {
     setPage(1);
-  }, [tab, chain, status]);
+  }, [tab, chain, status, token, datePreset]);
 
   const { data, isLoading } = useTransactions({
     page,
@@ -43,6 +56,8 @@ export function TransactionsPage() {
     type: tab !== 'all' ? tab : undefined,
     chain: chain ?? undefined,
     status: status ?? undefined,
+    token: token ?? undefined,
+    dateFrom,
   });
 
   const rows: TxRow[] = data?.data ?? [];
@@ -186,8 +201,22 @@ export function TransactionsPage() {
             }
             onClear={() => setStatus(null)}
           />
-          <Filter label="Date" />
-          <Filter label="Asset" />
+          <Filter
+            label="Date"
+            value={datePreset !== null ? DATE_PRESETS[datePreset].label : undefined}
+            active={datePreset !== null}
+            onClick={() =>
+              setDatePreset((p) => (p === null ? 0 : p < DATE_PRESETS.length - 1 ? p + 1 : null))
+            }
+            onClear={() => setDatePreset(null)}
+          />
+          <Filter
+            label="Asset"
+            value={token ?? undefined}
+            active={!!token}
+            onClick={() => setToken(token === 'USDT' ? 'USDC' : token === 'USDC' ? null : 'USDT')}
+            onClear={() => setToken(null)}
+          />
           <span className="text-xs text-muted text-mono">{isLoading ? '…' : total}</span>
         </div>
         <TransactionsTable

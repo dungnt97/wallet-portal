@@ -2,7 +2,7 @@
 // Unified on-chain ledger: queries the `transactions` table which stores canonical
 // on-chain records written by deposit/withdrawal/sweep flows. Type is inferred from
 // fromAddr/toAddr pattern (external→user = deposit, user→hot_safe = withdrawal, etc.)
-import { and, asc, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -48,6 +48,12 @@ const transactionsRoutes: FastifyPluginAsync = async (app) => {
           chain: z.enum(['bnb', 'sol']).optional(),
           status: z.enum(['pending', 'confirmed', 'failed']).optional(),
           type: z.enum(['deposit', 'withdrawal', 'sweep']).optional(),
+          /** Filter by token (asset) */
+          token: z.enum(['USDT', 'USDC']).optional(),
+          /** ISO datetime — only transactions on or after this date */
+          dateFrom: z.string().datetime({ offset: true }).optional(),
+          /** ISO datetime — only transactions on or before this date */
+          dateTo: z.string().datetime({ offset: true }).optional(),
         }),
         response: {
           200: z.object({
@@ -59,15 +65,18 @@ const transactionsRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (req, reply) => {
-      const { page, limit, chain, status } = req.query;
+      const { page, limit, chain, status, token, dateFrom, dateTo } = req.query;
       const offset = (page - 1) * limit;
 
       const conditions = [];
       if (chain) conditions.push(eq(schema.transactions.chain, chain));
+      if (token) conditions.push(eq(schema.transactions.token, token));
       // tx_status enum: pending | confirmed | failed | dropped — map UI 'failed' to both
       if (status === 'confirmed') conditions.push(eq(schema.transactions.status, 'confirmed'));
       if (status === 'pending') conditions.push(eq(schema.transactions.status, 'pending'));
       if (status === 'failed') conditions.push(eq(schema.transactions.status, 'failed'));
+      if (dateFrom) conditions.push(gte(schema.transactions.createdAt, new Date(dateFrom)));
+      if (dateTo) conditions.push(lte(schema.transactions.createdAt, new Date(dateTo)));
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 

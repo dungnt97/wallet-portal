@@ -29,20 +29,26 @@ export function UsersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [kycFilter, setKycFilter] = useState<KycTier | ''>('');
+  const [roleFilter, setRoleFilter] = useState<
+    'admin' | 'treasurer' | 'operator' | 'viewer' | null
+  >(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addUserOpen, setAddUserOpen] = useState(false);
 
   const canManageStaff = staff?.role === 'admin';
   const canCreateUser = staff?.role === 'admin' || staff?.role === 'operator';
 
+  const ROLE_CYCLE = ['admin', 'treasurer', 'operator', 'viewer'] as const;
+
   // Real staff list from /staff API
   const staffQuery = useStaffList({ limit: 100 });
   const staffAll = staffQuery.data?.data ?? [];
   const staffFiltered = staffAll.filter(
     (s) =>
-      !search ||
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase())
+      (!search ||
+        s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.email.toLowerCase().includes(search.toLowerCase())) &&
+      (!roleFilter || s.role === roleFilter)
   );
 
   // Server-side filtered + paginated user list
@@ -166,7 +172,19 @@ export function UsersPage() {
             />
           </div>
           {tab === 'staff' ? (
-            <Filter label="Role" />
+            <Filter
+              label="Role"
+              value={roleFilter ?? undefined}
+              active={!!roleFilter}
+              onClick={() =>
+                setRoleFilter((r) => {
+                  if (!r) return ROLE_CYCLE[0];
+                  const idx = ROLE_CYCLE.indexOf(r);
+                  return idx < ROLE_CYCLE.length - 1 ? ROLE_CYCLE[idx + 1] : null;
+                })
+              }
+              onClear={() => setRoleFilter(null)}
+            />
           ) : (
             <select
               className="input"

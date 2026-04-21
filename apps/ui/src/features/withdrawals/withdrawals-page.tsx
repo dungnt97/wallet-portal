@@ -31,7 +31,16 @@ export function WithdrawalsPage() {
   const signingFlow = useSigningFlow();
 
   const [tab, setTab] = useState<Tab>('all');
+  const [chainFilter, setChainFilter] = useState<'bnb' | 'sol' | null>(null);
+  const [tokenFilter, setTokenFilter] = useState<'USDT' | 'USDC' | null>(null);
+  const [datePreset, setDatePreset] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const DATE_PRESETS = [
+    { label: t('common.today'), days: 1 },
+    { label: t('common.last7d'), days: 7 },
+    { label: t('common.last30d'), days: 30 },
+  ] as const;
 
   const {
     list,
@@ -46,13 +55,22 @@ export function WithdrawalsPage() {
     onSigningRejected,
   } = useWithdrawalActions(signingFlow, () => setCreateOpen(false));
 
-  const filtered = list.filter((w) =>
-    tab === 'all'
-      ? true
-      : tab === 'pending'
-        ? w.stage === 'awaiting_signatures' || w.stage === 'executing' || w.stage === 'draft'
-        : w.stage === tab
-  );
+  const filtered = list.filter((w) => {
+    const tabMatch =
+      tab === 'all'
+        ? true
+        : tab === 'pending'
+          ? w.stage === 'awaiting_signatures' || w.stage === 'executing' || w.stage === 'draft'
+          : w.stage === tab;
+    if (!tabMatch) return false;
+    if (chainFilter && w.chain !== chainFilter) return false;
+    if (tokenFilter && w.token !== tokenFilter) return false;
+    if (datePreset !== null) {
+      const since = Date.now() - DATE_PRESETS[datePreset].days * 24 * 60 * 60 * 1000;
+      if (new Date(w.createdAt).getTime() < since) return false;
+    }
+    return true;
+  });
   const counts = {
     all: list.length,
     pending: list.filter(
@@ -124,10 +142,35 @@ export function WithdrawalsPage() {
             ]}
           />
           <div className="spacer" />
-          <Filter label={t('withdrawals.fChain')} />
-          <Filter label={t('withdrawals.fToken')} />
-          <Filter label={t('withdrawals.fRequester')} />
-          <Filter label={t('withdrawals.fDate')} />
+          <Filter
+            label={t('withdrawals.fChain')}
+            value={chainFilter ?? undefined}
+            active={!!chainFilter}
+            onClick={() =>
+              setChainFilter(chainFilter === 'bnb' ? 'sol' : chainFilter === 'sol' ? null : 'bnb')
+            }
+            onClear={() => setChainFilter(null)}
+          />
+          <Filter
+            label={t('withdrawals.fToken')}
+            value={tokenFilter ?? undefined}
+            active={!!tokenFilter}
+            onClick={() =>
+              setTokenFilter(
+                tokenFilter === 'USDT' ? 'USDC' : tokenFilter === 'USDC' ? null : 'USDT'
+              )
+            }
+            onClear={() => setTokenFilter(null)}
+          />
+          <Filter
+            label={t('withdrawals.fDate')}
+            value={datePreset !== null ? DATE_PRESETS[datePreset].label : undefined}
+            active={datePreset !== null}
+            onClick={() =>
+              setDatePreset((p) => (p === null ? 0 : p < DATE_PRESETS.length - 1 ? p + 1 : null))
+            }
+            onClear={() => setDatePreset(null)}
+          />
           <span className="text-xs text-muted text-mono">
             {filtered.length}/{list.length}
           </span>

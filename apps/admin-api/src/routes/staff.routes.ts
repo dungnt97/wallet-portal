@@ -1,8 +1,9 @@
 import { StaffMember, StaffSigningKey } from '@wp/shared-types';
 // Staff routes — GET /staff, POST /staff/signing-keys, sessions, account settings, invite
-// PATCH /staff/me            — update own name + locale_pref
-// POST  /staff/me/logout-all — revoke all own sessions
-// POST  /staff/invite        — admin creates signed invite link for new staff
+// PATCH /staff/me                       — update own name + locale_pref
+// POST  /staff/me/logout-all            — revoke all own sessions
+// POST  /staff/invite                   — admin creates signed invite link for new staff
+// POST  /staff/sync-google-workspace    — trigger GW directory sync (admin-only)
 import { count, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -11,6 +12,7 @@ import { requireAuth, requirePerm } from '../auth/rbac.middleware.js';
 import { staffLoginHistory } from '../db/schema/index.js';
 import { updateProfile } from '../services/account-settings.service.js';
 import { inviteStaff } from '../services/staff-invite.service.js';
+import { StubError, syncGoogleWorkspace } from '../services/staff-sync-google.service.js';
 
 const NOT_IMPL = z.object({ code: z.string(), message: z.string() });
 
@@ -156,6 +158,41 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(201).send(result);
       } catch (err) {
         return reply.code(400).send({ code: 'INVITE_ERROR', message: (err as Error).message });
+      }
+    }
+  );
+
+  // ── POST /staff/sync-google-workspace — trigger GW directory sync ─────────
+  r.post(
+    '/staff/sync-google-workspace',
+    {
+      preHandler: requirePerm('staff.manage'),
+      schema: {
+        tags: ['staff'],
+        response: {
+          200: z.object({
+            synced: z.number().int(),
+            created: z.number().int(),
+            updated: z.number().int(),
+            offboarded: z.number().int(),
+            durationMs: z.number().int(),
+            note: z.string().optional(),
+          }),
+          501: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: requirePerm ensures session.staff exists
+      const staffId = req.session.staff!.id;
+      try {
+        const result = await syncGoogleWorkspace(app.db, staffId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        if (err instanceof StubError) {
+          return reply.code(501).send({ code: err.code, message: err.message });
+        }
+        throw err;
       }
     }
   );

@@ -1,10 +1,11 @@
-// Ops page — kill-switch toggle + system health grid.
+// Ops page — kill-switch toggle + system health grid + staff sync card.
 // Requires ops.read permission; kill-switch toggle further requires ops.killswitch.toggle.
 import { useAuth } from '@/auth/use-auth';
 import { PageFrame } from '@/components/custody';
 import { useTranslation } from 'react-i18next';
 import { HealthStatusGrid } from './health-status-grid';
 import { KillSwitchCard } from './kill-switch-card';
+import { StaffSyncCard } from './staff-sync-card';
 import { useOpsSocket } from './use-ops-socket';
 
 export function OpsPage() {
@@ -73,6 +74,25 @@ export function OpsPage() {
           </div>
           <HealthStatusGrid />
         </section>
+
+        {/* Staff directory sync — admin-only (staff.manage perm) */}
+        {hasPerm('staff.manage') && (
+          <section>
+            <div
+              className="text-muted"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 10,
+              }}
+            >
+              {t('ops.staffSync.sectionLabel')}
+            </div>
+            <StaffSyncCard />
+          </section>
+        )}
       </div>
     </PageFrame>
   );

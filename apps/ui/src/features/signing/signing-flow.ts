@@ -1,12 +1,15 @@
 // Signing flow orchestrator — 7-stage state machine mirroring prototype
 // signing_modals.jsx. Stages: review → wallet-sign → step-up → execute → done.
 // Branches: policy-block (if policy fails at review), reject (any stage),
-// otp (fallback from step-up). All chain calls are mocked by default.
+// otp (fallback from step-up).
+// Real adapters used unless VITE_AUTH_DEV_MODE=true (CI / offline demo).
 import { useCallback, useState } from 'react';
 import type { FixWithdrawal } from '../_shared/fixtures';
-import { mockBroadcast, mockSign } from './mock-adapters';
+import { mockSign } from './mock-adapters';
 import { evaluatePolicy } from './policy-preview';
+import { IS_DEV_MODE, broadcastDevMode, makeBroadcastResult } from './signing-flow-broadcast';
 import type {
+  BroadcastResult,
   SignedSignature,
   SigningFlowState,
   SigningOp,
@@ -65,6 +68,13 @@ export interface SigningFlow {
   useOtpFallback: () => void;
   /** OTP verified — same effect as stepUpPassed. */
   otpVerified: (r: StepUpResult) => Promise<void>;
+  /**
+   * Called by wallet-sign-popup after a real broadcast completes.
+   * Transitions execute → done with the real tx hash.
+   */
+  broadcastComplete: (result: BroadcastResult) => void;
+  /** Transitions execute → error with a message. */
+  broadcastFailed: (error: string) => void;
   cancel: () => void;
   reject: (reason?: string) => void;
   reset: () => void;
@@ -95,18 +105,23 @@ export function useSigningFlow(): SigningFlow {
   }, []);
 
   // Broadcast happens during 'execute' → transitions to 'done' or 'error'.
+  // In dev-mode: uses mock. In real-mode: caller (wallet-sign-popup) performs
+  // the real broadcast and calls broadcastComplete() directly.
   const broadcastAndFinish = useCallback((op: SigningOp) => {
-    void mockBroadcast(op)
-      .then((result) =>
-        setState((p) => (p.step === 'execute' ? { ...p, step: 'done', broadcast: result } : p))
-      )
-      .catch((e) =>
-        setState((p) =>
-          p.step === 'execute'
-            ? { ...p, step: 'error', error: String((e as Error).message ?? 'Broadcast failed') }
-            : p
+    if (IS_DEV_MODE) {
+      void broadcastDevMode(op)
+        .then((result) =>
+          setState((p) => (p.step === 'execute' ? { ...p, step: 'done', broadcast: result } : p))
         )
-      );
+        .catch((e) =>
+          setState((p) =>
+            p.step === 'execute'
+              ? { ...p, step: 'error', error: String((e as Error).message ?? 'Broadcast failed') }
+              : p
+          )
+        );
+    }
+    // Real-mode: wallet-sign-popup drives broadcast and calls broadcastComplete().
   }, []);
 
   const stepUpPassed = useCallback(
@@ -135,6 +150,14 @@ export function useSigningFlow(): SigningFlow {
     [broadcastAndFinish]
   );
 
+  const broadcastComplete = useCallback((result: BroadcastResult) => {
+    setState((p) => (p.step === 'execute' ? { ...p, step: 'done', broadcast: result } : p));
+  }, []);
+
+  const broadcastFailed = useCallback((error: string) => {
+    setState((p) => (p.step === 'execute' ? { ...p, step: 'error', error } : p));
+  }, []);
+
   const cancel = useCallback(() => setState(INITIAL), []);
 
   const reject = useCallback((reason?: string) => {
@@ -155,10 +178,13 @@ export function useSigningFlow(): SigningFlow {
     stepUpPassed,
     useOtpFallback,
     otpVerified,
+    broadcastComplete,
+    broadcastFailed,
     cancel,
     reject,
     reset,
   };
 }
 
-export { mockSign, mockBroadcast };
+export { mockSign };
+export { IS_DEV_MODE, makeBroadcastResult } from './signing-flow-broadcast';

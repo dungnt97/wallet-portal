@@ -1,8 +1,12 @@
 // Mock chain adapters — stand in for real wagmi/viem / @solana/web3.js calls.
-// Swap these for real adapters once wallet integration lands.
+// @deprecated — used only when VITE_AUTH_DEV_MODE=true (CI / offline demo).
+// Real adapters: evm-adapter.ts and solana-adapter.ts.
 import type { BroadcastResult, SignedSignature, SigningOp } from './signing-flow-types';
 
-/** Mock EIP-712 / Ed25519 sign — resolves after a short delay. */
+/**
+ * Mock EIP-712 / Ed25519 sign — resolves after a short delay.
+ * @deprecated Use evmSign / solanaSign when VITE_AUTH_DEV_MODE !== 'true'.
+ */
 export function mockSign(op: SigningOp): Promise<SignedSignature> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -28,7 +32,10 @@ export function mockSign(op: SigningOp): Promise<SignedSignature> {
   });
 }
 
-/** Mock on-chain broadcast — resolves after simulated "confirmation". */
+/**
+ * Mock on-chain broadcast — resolves after simulated "confirmation".
+ * @deprecated Use evmBroadcastViaSafe / solanaProposeSquads when VITE_AUTH_DEV_MODE !== 'true'.
+ */
 export function mockBroadcast(op: SigningOp): Promise<BroadcastResult> {
   return new Promise((resolve) => {
     setTimeout(() => {

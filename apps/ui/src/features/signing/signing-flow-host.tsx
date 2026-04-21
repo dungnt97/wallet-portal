@@ -1,6 +1,9 @@
+import { ConnectWalletModal } from '@/shell/connect-wallet-modal';
 // Signing flow host — renders the correct modal for the current flow step.
 // 7-modal chain: review → (policy-block | wallet-sign) → step-up → (otp fallback)
 //               → execute → done, plus reject branch from any stage.
+// Phase 06: passes real-adapter callbacks + ConnectWalletModal trigger.
+import { useState } from 'react';
 import { useEffect } from 'react';
 import { ExecuteTxModal } from './execute-tx-modal';
 import { OtpModal } from './otp-modal';
@@ -29,7 +32,11 @@ export function SigningFlowHost({ flow, onComplete, onRejected }: Props) {
     otpVerified,
     cancel,
     reset,
+    broadcastComplete,
+    broadcastFailed,
   } = flow;
+
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
 
   // When the broadcast lands, notify parent once.
   useEffect(() => {
@@ -54,7 +61,13 @@ export function SigningFlowHost({ flow, onComplete, onRejected }: Props) {
         onSigned={walletSigned}
         onRejected={() => flow.reject('User rejected in wallet popup')}
         onClose={cancel}
+        onBroadcastComplete={broadcastComplete}
+        onBroadcastFailed={broadcastFailed}
+        onNeedConnect={() => setConnectModalOpen(true)}
       />
+
+      {/* ConnectWalletModal triggered when wallet missing for the tx chain */}
+      <ConnectWalletModal open={connectModalOpen} onClose={() => setConnectModalOpen(false)} />
 
       <StepUpModal
         open={state.step === 'step-up'}
@@ -74,12 +87,7 @@ export function SigningFlowHost({ flow, onComplete, onRejected }: Props) {
           void otpVerified(r);
         }}
         onBackToStepUp={() => {
-          // Return to step-up — reset the flow to that stage
-          // (cheapest: call confirmReview again from wallet-sign would be wrong;
-          // simplest is to go back through the state machine:)
-          // We want: otp → step-up. Call the flow to reset to step-up.
-          // Note: no explicit API, so we use cancel + would need restart.
-          // For simplicity, cancel the flow when returning back.
+          // Return to step-up: simplest path is to cancel and let user re-initiate.
           cancel();
         }}
       />

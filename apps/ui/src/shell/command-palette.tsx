@@ -65,7 +65,8 @@ export function CommandPalette({ open, onClose }: Props) {
     onClose();
   };
 
-  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  const stopClick = (e: React.MouseEvent) => e.stopPropagation();
+  const stopKey = (e: React.KeyboardEvent) => e.stopPropagation();
 
   return (
     <div
@@ -77,7 +78,7 @@ export function CommandPalette({ open, onClose }: Props) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="cmd-palette" onClick={stop} onKeyDown={stop} role="presentation">
+      <div className="cmd-palette" onClick={stopClick} onKeyDown={stopKey} role="presentation">
         <div className="cmd-search">
           <I.Search size={14} />
           <input

@@ -27,6 +27,15 @@ const EnvSchema = z.object({
   AUTH_DEV_MODE: z.string().default('false'),
   // Policy Engine
   POLICY_ENGINE_URL: z.string().url().default('http://localhost:3003'),
+  // RPC endpoints for cold balance probes (Slice 7)
+  RPC_BNB_PRIMARY: z.string().url().default('https://bsc-dataseed.binance.org'),
+  RPC_SOLANA_PRIMARY: z.string().url().default('https://api.mainnet-beta.solana.com'),
+  // Token contract addresses (BNB Chain)
+  USDT_BNB_ADDRESS: z.string().default('0x55d398326f99059fF775485246999027B3197955'),
+  USDC_BNB_ADDRESS: z.string().default('0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'),
+  // SPL token mints (Solana)
+  USDT_SOL_MINT: z.string().default('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'),
+  USDC_SOL_MINT: z.string().default('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('admin-api'),

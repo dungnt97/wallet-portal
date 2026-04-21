@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../config/env.js';
 import auditRoutes from './audit.routes.js';
 import authRoutes from './auth.routes.js';
+import coldRoutes from './cold.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import depositsRoutes from './deposits.routes.js';
 import healthRoutes from './health.routes.js';
@@ -24,6 +25,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(authRoutes, { cfg: opts.cfg });
 
   // Admin routes (session-protected via per-route preHandler)
+  await app.register(coldRoutes);
   await app.register(dashboardRoutes);
   await app.register(depositsRoutes);
   await app.register(withdrawalsRoutes);

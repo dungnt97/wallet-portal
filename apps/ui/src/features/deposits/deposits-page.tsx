@@ -7,7 +7,7 @@ import { CHAINS } from '@/lib/constants';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { triggerCsvDownload } from '../_shared/csv-export-trigger';
-import { FIX_DEPOSITS, type FixDeposit } from '../_shared/fixtures';
+import type { FixDeposit } from '../_shared/fixtures';
 import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { DepositsKpiStrip } from './deposits-kpi-strip';
 import { DepositsPolicyStrip } from './deposits-policy-strip';
@@ -65,10 +65,10 @@ export function DepositsPage() {
     token: tokenFilter ?? undefined,
   });
 
-  // Prefer real data when present; otherwise fall back to prototype fixtures.
+  // Map real API data to table shape; empty array when loading or no data.
   const deposits: FixDeposit[] = useMemo(() => {
     if (data?.data && data.data.length > 0) return data.data.map(toFix);
-    return FIX_DEPOSITS;
+    return [];
   }, [data]);
 
   const filtered = useMemo(

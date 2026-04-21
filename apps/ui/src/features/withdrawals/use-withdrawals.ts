@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import type { WithdrawalRow, WithdrawalStage } from './withdrawal-types';
 
-export { WithdrawalRow } from './withdrawal-types';
+export type { WithdrawalRow } from './withdrawal-types';
 
 export const WITHDRAWALS_QUERY_KEY = 'withdrawals';
 

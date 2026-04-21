@@ -5,11 +5,15 @@ import type { UserRecord } from '@/api/users';
 import { KYC_LABELS } from '@/api/users';
 import { Address, Risk } from '@/components/custody';
 import { ROLES } from '@/lib/constants';
-import { ROLE_DESCRIPTIONS } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 
-// Cast to generic record so we can look up by any role string without TS errors
-const ROLE_DESC = ROLE_DESCRIPTIONS as Record<string, string>;
+// Static role permission descriptions — display-only copy, not derived from API.
+const ROLE_DESC: Record<string, string> = {
+  admin: 'Full access. Manages staff, roles, and system config.',
+  treasurer: 'Co-signs multisig operations. 2 of 3 required to approve withdrawals.',
+  operator: 'Creates withdrawals, sweeps and manages users. Cannot approve.',
+  viewer: 'Read-only access to dashboards and records.',
+};
 
 interface StaffTableProps {
   rows: StaffMemberRow[];

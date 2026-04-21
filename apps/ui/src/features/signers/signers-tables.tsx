@@ -1,6 +1,5 @@
 // Signers tables — active / retired / change history.
 import { I } from '@/icons';
-import { FIXTURE_STAFF } from '@/lib/constants';
 import { shortHash } from '@/lib/format';
 import type { RetiredSigner, SignerChangeRequest, SignerRow } from '../_shared/fixtures';
 import { minutesAgo } from '../_shared/helpers';
@@ -148,7 +147,6 @@ export function ChangeHistoryTable({ rows }: { rows: SignerChangeRequest[] }) {
       </thead>
       <tbody>
         {rows.map((h) => {
-          const proposer = FIXTURE_STAFF.find((s) => s.id === h.proposedBy);
           return (
             <tr key={h.id}>
               <td className="text-mono fw-500">{h.id}</td>
@@ -160,7 +158,7 @@ export function ChangeHistoryTable({ rows }: { rows: SignerChangeRequest[] }) {
                 </span>
               </td>
               <td className="text-sm">{h.label}</td>
-              <td className="text-sm">{proposer?.name ?? 'system'}</td>
+              <td className="text-sm text-mono text-xs">{h.proposedBy}</td>
               <td className="text-xs text-mono">
                 {h.collected}/{h.required}
               </td>

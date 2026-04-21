@@ -1,18 +1,15 @@
-// Hook encapsulating local mutation flow for signer change requests.
-// Keeps signers-page lean: add / rotate / remove / sign all live here.
+// Hook encapsulating local optimistic mutation flow for signer change requests.
+// NOTE: This hook is superseded by useCeremonies (real API via GET /signers/ceremonies).
+// Kept for legacy modal flows that haven't migrated; initialized empty — no fixture seed.
 import { useAuth } from '@/auth/use-auth';
 import { useToast } from '@/components/overlays';
 import { useState } from 'react';
-import {
-  SIGNER_CHANGE_REQUESTS,
-  type SignerChangeRequest,
-  type SignerRow,
-} from '../_shared/fixtures';
+import type { SignerChangeRequest, SignerRow } from '../_shared/fixtures';
 
 export function useSignerChanges() {
   const { staff } = useAuth();
   const toast = useToast();
-  const [changes, setChanges] = useState<SignerChangeRequest[]>(SIGNER_CHANGE_REQUESTS);
+  const [changes, setChanges] = useState<SignerChangeRequest[]>([]);
 
   const sign = (c: SignerChangeRequest) => {
     if (!staff) return;

@@ -1,6 +1,5 @@
 // Pending signer-change queue — each item requires 2/3 Treasurer approvals.
 import { I } from '@/icons';
-import { FIXTURE_STAFF } from '@/lib/constants';
 import { shortHash } from '@/lib/format';
 import type { SignerChangeRequest } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
@@ -24,7 +23,6 @@ export function SignerChangeRequests({ requests, currentStaffId, currentRole, on
       </div>
       <div style={{ padding: 4 }}>
         {requests.map((c) => {
-          const proposer = FIXTURE_STAFF.find((s) => s.id === c.proposedBy);
           const alreadySigned = currentStaffId ? c.approvers.includes(currentStaffId) : false;
           const KindIcon = c.kind === 'add' ? I.UserPlus : c.kind === 'remove' ? I.UserX : I.Key;
           const kindTone = c.kind === 'add' ? 'ok' : c.kind === 'remove' ? 'err' : 'warn';
@@ -41,7 +39,8 @@ export function SignerChangeRequests({ requests, currentStaffId, currentRole, on
                   <span className="text-xs text-muted text-mono">{c.id}</span>
                 </div>
                 <div className="text-xs text-muted" style={{ marginTop: 3 }}>
-                  Proposed by {proposer?.name ?? 'system'} · <LiveTimeAgo at={c.proposedAt} />
+                  Proposed by <span className="text-mono">{c.proposedBy}</span> ·{' '}
+                  <LiveTimeAgo at={c.proposedAt} />
                   {c.meta?.from && c.meta.to && (
                     <>
                       {' '}

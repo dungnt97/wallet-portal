@@ -1,0 +1,155 @@
+groups:
+  - name: wallet-portal.slo
+    interval: 1m
+    rules:
+
+      # ── Withdrawal latency ────────────────────────────────────────────────
+      # Fires when POST /withdrawals p95 latency exceeds 30 s over 5 m.
+      # Runbook: docs/runbooks/alert-response.md#WithdrawalLatencyP95High
+      - alert: WithdrawalLatencyP95High
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_request_duration_seconds_bucket{
+              route="/withdrawals",
+              method="POST"
+            }[5m])) by (le)
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Withdrawal p95 latency > 30 s"
+          description: >
+            POST /withdrawals p95 is {{ printf "%.1f" $value }}s (threshold 30s).
+            Check DB slow queries, policy-engine response time, and queue backlog.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#withdrawallatencyp95high"
+
+      # ── Audit write failures ──────────────────────────────────────────────
+      # Fires when any audit_log INSERT fails (DB trigger or error).
+      # Runbook: docs/runbooks/alert-response.md#AuditWriteFailures
+      - alert: AuditWriteFailures
+        expr: increase(audit_write_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Audit log writes are failing"
+          description: >
+            {{ printf "%.0f" $value }} audit write failure(s) in last 5m.
+            Audit trail integrity may be compromised. Investigate DB connectivity
+            and trigger function status immediately.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#auditwritefailures"
+
+      # ── DB connection pool exhaustion ─────────────────────────────────────
+      # Fires when in-use connections exceed 90% of pool max for 5 m.
+      # Runbook: docs/runbooks/alert-response.md#DbConnectionExhausted
+      - alert: DbConnectionExhausted
+        expr: >
+          pg_pool_in_use_connections / pg_pool_max_connections > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "PG connection pool >90% utilised"
+          description: >
+            PG pool utilisation is {{ printf "%.2f" $value }} (ratio, threshold 0.9).
+            Risk of connection timeouts. Scale pool size or investigate slow queries.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#dbconnectionexhausted"
+
+      # ── Kill-switch activated ─────────────────────────────────────────────
+      # Fires immediately (for: 0) when global kill-switch is toggled on.
+      # Severity: critical — all withdrawals/sweeps are blocked.
+      # Runbook: docs/runbooks/alert-response.md#KillSwitchActivated
+      - alert: KillSwitchActivated
+        expr: wallet_portal_kill_switch_enabled == 1
+        for: 0m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "KILL SWITCH IS ACTIVE — all withdrawals blocked"
+          description: >
+            The global kill-switch has been enabled. All withdrawal and sweep
+            operations are being denied by the policy engine. Verify this was
+            intentional. Disable via ops dashboard when safe to resume.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#killswitchactivated"
+
+      # ── RPC probe failure rate ────────────────────────────────────────────
+      # Fires when >10% of RPC health probes fail over a 10-minute window.
+      # Runbook: docs/runbooks/alert-response.md#RpcProbeFailRateHigh
+      - alert: RpcProbeFailRateHigh
+        expr: >
+          (
+            sum(rate(rpc_probe_failures_total[5m])) by (chain)
+            /
+            sum(rate(rpc_probe_total[5m])) by (chain)
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "RPC probe failure rate > 10% on {{ $labels.chain }}"
+          description: >
+            {{ $labels.chain }} RPC probe failure ratio is {{ printf "%.3f" $value }} (threshold 0.1).
+            Block watchers may be degraded or producing stale data.
+            Check RPC provider status and failover endpoints.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#rpcprobefailratehigh"
+
+      # ── Worker heartbeat stale ────────────────────────────────────────────
+      # Fires when a worker has not written a heartbeat for > 120 s.
+      # Runbook: docs/runbooks/alert-response.md#WorkerHeartbeatStale
+      - alert: WorkerHeartbeatStale
+        expr: time() - worker_last_heartbeat_seconds > 120
+        for: 2m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Worker {{ $labels.worker }} heartbeat stale (>120 s)"
+          description: >
+            Worker {{ $labels.worker }} last heartbeat was
+            {{ printf "%.0f" $value }}s ago (threshold 120s).
+            The worker process may have crashed or be deadlocked.
+            Check ECS task health and BullMQ worker logs.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#workerheartbeatstale"
+
+      # ── Reconciliation drift (critical) ──────────────────────────────────
+      # Fires immediately when any wallet shows critical balance mismatch.
+      # Runbook: docs/runbooks/alert-response.md#ReconciliationDriftCritical
+      - alert: ReconciliationDriftCritical
+        expr: reconciliation_drift_critical_count > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "{{ printf \"%.0f\" $value }} wallet(s) with critical reconciliation drift"
+          description: >
+            One or more wallets have a critical on-chain vs ledger balance mismatch
+            after the last reconciliation snapshot. Possible causes: missed deposit
+            credit, double-spend, or sync failure. Halt new withdrawals and investigate
+            immediately.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#reconciliationdriftcritical"
+
+      # ── Signer ceremony partial ───────────────────────────────────────────
+      # Fires when a key-management ceremony has been in a partial state for
+      # more than 60 minutes (some signers confirmed, not all).
+      # Runbook: docs/runbooks/alert-response.md#CeremonyPartial
+      - alert: CeremonyPartial
+        expr: signer_ceremony_partial_count > 0
+        for: 60m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "{{ printf \"%.0f\" $value }} signer ceremony(ies) stuck in partial state"
+          description: >
+            One or more signer ceremonies have been partially completed for >60m.
+            All signers must confirm before the ceremony finalises. Contact missing
+            signers or cancel and re-initiate the ceremony.
+          runbook_url: "https://github.com/wallet-portal/wallet-portal/blob/main/docs/runbooks/alert-response.md#ceremonypartial"

@@ -1,0 +1,103 @@
+# Alertmanager configuration for wallet-portal
+# Routes alerts to Slack by severity:
+#   critical → #wallet-portal-ops-critical (immediate, no batching)
+#   warning  → #wallet-portal-ops (grouped 5 min)
+#
+# SLACK_WEBHOOK_URL must be set in the environment or substituted before
+# loading this config (same webhook reused from Slice 5).
+# In docker-compose: env var injected via envsubst or amtool.
+# In ECS: loaded from Secrets Manager via sidecar config.
+
+global:
+  # Silence stale resolved notifications after 1 hour
+  resolve_timeout: 5m
+  # Slack API URL — override per-receiver for multi-channel routing
+  slack_api_url: "${SLACK_WEBHOOK_URL}"
+
+# ── Default route ─────────────────────────────────────────────────────────────
+route:
+  # Aggregate by alertname + severity to deduplicate floods
+  group_by: ["alertname", "severity"]
+  # Wait 30 s before sending first notification (allows related alerts to group)
+  group_wait: 30s
+  # After first notification, wait 5 m before sending more for same group
+  group_interval: 5m
+  # Re-notify if alert is still firing after 1 h
+  repeat_interval: 1h
+  # Default receiver for unmatched routes
+  receiver: slack-ops-warning
+
+  routes:
+    # Critical alerts: immediate delivery, no batching, dedicated channel
+    - matchers:
+        - severity = "critical"
+      receiver: slack-ops-critical
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 30m
+      continue: false
+
+    # Warning alerts: grouped delivery, standard ops channel
+    - matchers:
+        - severity = "warning"
+      receiver: slack-ops-warning
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 1h
+      continue: false
+
+# ── Inhibit rules ─────────────────────────────────────────────────────────────
+# Critical alert for the same alertname suppresses the warning variant.
+# This prevents double-paging when an alert escalates from warning to critical.
+inhibit_rules:
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    # Only inhibit when the alert is for the same named alert
+    equal: ["alertname"]
+
+# ── Receivers ─────────────────────────────────────────────────────────────────
+receivers:
+  - name: slack-ops-critical
+    slack_configs:
+      - channel: "#wallet-portal-ops-critical"
+        # Use env var for webhook URL; falls back to global slack_api_url
+        api_url: "${SLACK_WEBHOOK_URL}"
+        send_resolved: true
+        # Icon and username for easy identification in Slack
+        username: "Wallet Portal Alerts"
+        icon_emoji: ":rotating_light:"
+        # Compact title line: severity + alert name
+        title: |-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+        # Rich message body with all firing alert details
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* `{{ .Labels.severity }}`
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* <{{ .Annotations.runbook_url }}|Open runbook>{{ end }}
+          *Started:* {{ .StartsAt | since }}
+          {{ end }}
+        # Disable link unfurling to keep notifications concise
+        link_names: false
+
+  - name: slack-ops-warning
+    slack_configs:
+      - channel: "#wallet-portal-ops"
+        api_url: "${SLACK_WEBHOOK_URL}"
+        send_resolved: true
+        username: "Wallet Portal Alerts"
+        icon_emoji: ":warning:"
+        title: |-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* `{{ .Labels.severity }}`
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* <{{ .Annotations.runbook_url }}|Open runbook>{{ end }}
+          *Started:* {{ .StartsAt | since }}
+          {{ end }}
+        link_names: false

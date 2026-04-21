@@ -25,3 +25,14 @@ scrape_configs:
       - targets:
           - 'otel-collector-base:8889'
     metrics_path: /metrics
+
+# ── Alert rules (Phase 06) ────────────────────────────────────────
+rule_files:
+  - "rules/slice12-alerts.yml"
+
+# ── Alertmanager routing (Phase 06) ──────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'

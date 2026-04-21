@@ -31,7 +31,9 @@ export type Permission =
   | 'signers.manage'
   // Recovery (Slice 11) — read: admin+treasurer+operator; write: admin-only (1-of-1 override)
   | 'recovery.read'
-  | 'recovery.write';
+  | 'recovery.write'
+  // Global search across users + tx entities
+  | 'search.read';
 
 /** Roles permitted for each action — check with PERMS[perm].includes(role) */
 export const PERMS: Record<Permission, Role[]> = {
@@ -64,4 +66,6 @@ export const PERMS: Record<Permission, Role[]> = {
   // Recovery (Slice 11) — read: admin+treasurer+operator; write: admin-only (1-of-1 emergency override)
   'recovery.read': ['admin', 'treasurer', 'operator'],
   'recovery.write': ['admin'],
+  // Search — admin sees users+tx; treasurer sees tx only (no user emails)
+  'search.read': ['admin', 'treasurer', 'operator', 'viewer'],
 };

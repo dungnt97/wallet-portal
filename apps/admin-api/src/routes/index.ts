@@ -15,6 +15,7 @@ import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import rebalanceRoutes from './rebalance.routes.js';
 import reconciliationRoutes from './reconciliation.routes.js';
 import recoveryRoutes from './recovery.routes.js';
+import searchRoutes from './search.routes.js';
 import signersRoutes from './signers.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
@@ -51,6 +52,9 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
 
   // Recovery — stuck-tx list, gas bump, cancel-replace (Slice 11)
   await app.register(recoveryRoutes);
+
+  // Global search — users + tx lookup (command palette backend)
+  await app.register(searchRoutes);
 
   // Ops routes — kill-switch toggle + health aggregator
   await app.register(opsKillSwitchRoutes);

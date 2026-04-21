@@ -12,9 +12,11 @@ import { Worker } from 'bullmq';
 import type IORedis from 'ioredis';
 import pino from 'pino';
 import type { AppConfig } from '../../config/env.js';
+import { makeDb } from '../../db/client.js';
 import type { BnbPool } from '../../rpc/bnb-pool.js';
 import type { SolanaPool } from '../../rpc/solana-pool.js';
 import type { AdminApiClientOptions } from '../../services/admin-api-client.js';
+import { isKillSwitchEnabled } from '../../services/kill-switch-db-query.js';
 import { broadcastSweepEVM, buildAndSignSweepEVM } from '../../services/sweep-evm.js';
 import { broadcastSweepSolana, buildAndSignSweepSolana } from '../../services/sweep-solana.js';
 import { SWEEP_EXECUTE_QUEUE_NAME, type SweepExecuteJobData } from '../sweep-execute.js';
@@ -147,6 +149,9 @@ export function startSweepExecuteWorker(
     bearerToken: cfg.SVC_BEARER_TOKEN,
   };
 
+  // Shared DB client for kill-switch checks — one pool per worker process
+  const db = makeDb(cfg.DATABASE_URL);
+
   const worker = new Worker<SweepExecuteJobData>(
     SWEEP_EXECUTE_QUEUE_NAME,
     async (job) => {
@@ -154,6 +159,13 @@ export function startSweepExecuteWorker(
       const { sweepId, chain, token, amount, fromAddr, destinationHotSafe, derivationIndex } = data;
 
       logger.info({ jobId: job.id, sweepId, chain }, 'Processing sweep_execute job');
+
+      // Kill-switch guard — requeue with 30s delay; do NOT drop the job
+      if (await isKillSwitchEnabled(db)) {
+        logger.warn({ sweepId, jobId: job.id }, 'paused_by_killswitch — requeueing with 30s delay');
+        await job.moveToDelayed(Date.now() + 30_000);
+        return;
+      }
 
       // ── Policy check ────────────────────────────────────────────────────────
       if (!isDevMode()) {

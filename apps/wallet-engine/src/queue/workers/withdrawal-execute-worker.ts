@@ -8,7 +8,9 @@ import { Worker } from 'bullmq';
 import type IORedis from 'ioredis';
 import pino from 'pino';
 import type { AppConfig } from '../../config/env.js';
+import { makeDb } from '../../db/client.js';
 import type { AdminApiClientOptions } from '../../services/admin-api-client.js';
+import { isKillSwitchEnabled } from '../../services/kill-switch-db-query.js';
 import { WITHDRAWAL_EXECUTE_QUEUE_NAME } from '../withdrawal-execute.js';
 import type { WithdrawalExecuteJobData } from '../withdrawal-execute.js';
 
@@ -77,11 +79,24 @@ export function startWithdrawalExecuteWorker(redis: IORedis, cfg: AppConfig): Wo
     bearerToken: cfg.SVC_BEARER_TOKEN,
   };
 
+  // Shared DB client for kill-switch checks — one pool per worker process
+  const db = makeDb(cfg.DATABASE_URL);
+
   const worker = new Worker<WithdrawalExecuteJobData>(
     WITHDRAWAL_EXECUTE_QUEUE_NAME,
     async (job) => {
       const { withdrawalId, chain, token, amount, destinationAddr } = job.data;
       logger.info({ jobId: job.id, withdrawalId, chain }, 'Processing withdrawal_execute job');
+
+      // Kill-switch guard — requeue with 30s delay; do NOT drop the job
+      if (await isKillSwitchEnabled(db)) {
+        logger.warn(
+          { withdrawalId, jobId: job.id },
+          'paused_by_killswitch — requeueing with 30s delay'
+        );
+        await job.moveToDelayed(Date.now() + 30_000);
+        return;
+      }
 
       let txHash: string;
 

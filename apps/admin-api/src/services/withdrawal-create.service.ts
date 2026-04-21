@@ -5,6 +5,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
 import { emitAudit } from './audit.service.js';
+import { KillSwitchEnabledError, getState as getKillSwitchState } from './kill-switch.service.js';
 import { PolicyRejectedError, checkPolicy } from './policy-client.js';
 import type { PolicyClientOptions } from './policy-client.js';
 
@@ -29,6 +30,7 @@ export class ValidationError extends Error {
 }
 
 export { PolicyRejectedError } from './policy-client.js';
+export { KillSwitchEnabledError } from './kill-switch.service.js';
 
 // ── Input / output types ──────────────────────────────────────────────────────
 
@@ -116,6 +118,12 @@ export async function createWithdrawal(
   policyOpts: PolicyClientOptions
 ): Promise<CreateWithdrawalResult> {
   const { userId, chain, token, amount, destinationAddr, sourceTier } = input;
+
+  // 0. Kill-switch guard — short-circuit before any DB writes when system is paused
+  const ksState = await getKillSwitchState(db);
+  if (ksState.enabled) {
+    throw new KillSwitchEnabledError(ksState.reason);
+  }
 
   // 1. Load user
   const user = await db.query.users.findFirst({

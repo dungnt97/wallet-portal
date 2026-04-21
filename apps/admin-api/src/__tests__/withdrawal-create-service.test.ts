@@ -156,11 +156,29 @@ vi.mock('../services/policy-client.js', async (importOriginal) => {
   };
 });
 
+// ── Mock kill-switch service (disabled by default) ────────────────────────────
+
+const mockGetKillSwitchState = vi.fn();
+
+vi.mock('../services/kill-switch.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/kill-switch.service.js')>();
+  return {
+    ...actual,
+    getState: (...args: unknown[]) => mockGetKillSwitchState(...args),
+  };
+});
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('createWithdrawal service', () => {
   beforeEach(() => {
     mockCheckPolicy.mockResolvedValue({ allow: true, reasons: [] });
+    mockGetKillSwitchState.mockResolvedValue({
+      enabled: false,
+      reason: null,
+      updatedByStaffId: null,
+      updatedAt: new Date().toISOString(),
+    });
   });
 
   it('golden path — creates withdrawal + multisig op + emits socket event', async () => {
@@ -249,5 +267,32 @@ describe('createWithdrawal service', () => {
       statusCode: 403,
       code: 'POLICY_REJECTED',
     });
+  });
+
+  it('throws KillSwitchEnabledError (423) when kill-switch is on', async () => {
+    mockGetKillSwitchState.mockResolvedValue({
+      enabled: true,
+      reason: 'security incident',
+      updatedByStaffId: null,
+      updatedAt: new Date().toISOString(),
+    });
+    const db = buildMockDb({ user: makeUser() });
+    const io = makeMockIo();
+
+    await expect(
+      createWithdrawal(
+        db as unknown as Parameters<typeof createWithdrawal>[0],
+        VALID_INPUT,
+        STAFF_ID,
+        io as unknown as Parameters<typeof createWithdrawal>[3],
+        { baseUrl: 'http://localhost:3003', bearerToken: 'test-token' }
+      )
+    ).rejects.toMatchObject({
+      name: 'KillSwitchEnabledError',
+      statusCode: 423,
+      code: 'KILL_SWITCH_ENABLED',
+    });
+    // User should never be loaded when kill-switch is on
+    expect(db.query.users.findFirst).not.toHaveBeenCalled();
   });
 });

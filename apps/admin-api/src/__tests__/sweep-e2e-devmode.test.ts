@@ -2,6 +2,21 @@
 // All DB, queue, and Socket.io are mocked — no real Postgres, Redis, or network required.
 // Mirrors withdrawal-e2e-devmode.test.ts pattern.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock kill-switch service so sweep E2E tests default to flag=off
+// (the kill-switch.service tests cover the flag-on path independently)
+vi.mock('../services/kill-switch.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/kill-switch.service.js')>();
+  return {
+    ...actual,
+    getState: vi.fn().mockResolvedValue({
+      enabled: false,
+      reason: null,
+      updatedByStaffId: null,
+      updatedAt: new Date().toISOString(),
+    }),
+  };
+});
 import { scanSweepCandidates } from '../services/sweep-candidate-scan.service.js';
 import {
   SWEEP_EXECUTE_QUEUE,

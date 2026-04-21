@@ -6,6 +6,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
 import { emitAudit } from './audit.service.js';
+import { KillSwitchEnabledError, getState as getKillSwitchState } from './kill-switch.service.js';
 
 // ── Error types ────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ export class ConflictError extends Error {
     this.name = 'ConflictError';
   }
 }
+
+export { KillSwitchEnabledError } from './kill-switch.service.js';
 
 // ── BullMQ job payload ────────────────────────────────────────────────────────
 
@@ -96,6 +99,12 @@ export async function createSweeps(
   queue: Queue<SweepExecuteJobData>,
   io: SocketIOServer
 ): Promise<CreateSweepsResult> {
+  // Kill-switch guard — short-circuit before enqueuing when system is paused
+  const ksState = await getKillSwitchState(db);
+  if (ksState.enabled) {
+    throw new KillSwitchEnabledError(ksState.reason);
+  }
+
   const result: CreateSweepsResult = { created: [], skipped: [] };
 
   // Load candidate user_addresses

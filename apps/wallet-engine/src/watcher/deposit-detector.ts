@@ -1,12 +1,12 @@
-// Deposit detector — per-block orchestrator: scan logs → insert deposit row → enqueue job
-// BNB: uses getLogs for ERC-20 Transfer events to watched addresses
-// Solana: skeleton only in this phase — full SPL parsing in Phase 09
+import type { Queue } from 'bullmq';
+// Deposit detector — persist deposit row + enqueue confirm job
+// Provides both legacy BNB-specific API and new unified detectDeposit entry point.
 import type { FallbackProvider, Log } from 'ethers';
-import { AbiCoder, id as ethersId } from 'ethers';
+import { id as ethersId } from 'ethers';
 import pino from 'pino';
 import type { Db } from '../db/client.js';
 import { enqueueDepositConfirm } from '../queue/deposit-confirm.js';
-import type { Queue } from 'bullmq';
+import type { TokenSymbol } from './bnb-log-parser.js';
 
 const logger = pino({ name: 'deposit-detector' });
 
@@ -27,7 +27,7 @@ export interface ParsedTransfer {
 export function parseBnbTransferLog(
   log: Log,
   usdtAddress: string,
-  usdcAddress: string,
+  usdcAddress: string
 ): ParsedTransfer | null {
   if (log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC.toLowerCase()) return null;
   if (log.topics.length < 3) return null;
@@ -43,8 +43,8 @@ export function parseBnbTransferLog(
   }
 
   // topics[1] = from (padded), topics[2] = to (padded), data = amount
-  const from = '0x' + (log.topics[1] ?? '').slice(-40);
-  const to = '0x' + (log.topics[2] ?? '').slice(-40);
+  const from = `0x${(log.topics[1] ?? '').slice(-40)}`;
+  const to = `0x${(log.topics[2] ?? '').slice(-40)}`;
   const amount = BigInt(log.data);
 
   return {
@@ -66,7 +66,7 @@ export async function detectBnbDeposits(
   toBlock: number,
   watchedAddresses: Map<string, string>, // address (lowercase) → userId
   usdtAddress: string,
-  usdcAddress: string,
+  usdcAddress: string
 ): Promise<void> {
   if (watchedAddresses.size === 0) return;
 
@@ -94,13 +94,46 @@ export async function detectBnbDeposits(
   }
 }
 
+// ── Unified detectDeposit API (used by BnbWatcher + SolanaWatcher) ───────────
+
+export interface DepositEvent {
+  chain: 'bnb' | 'sol';
+  txHash: string;
+  /** ERC-20 log index for BNB; 0 for Solana */
+  logIndex: number;
+  /** Block number for BNB; slot for Solana */
+  blockNumber: number;
+  token: TokenSymbol;
+  /** Raw token units (bigint) */
+  amount: bigint;
+  /** Recipient address (normalised) */
+  to: string;
+  userId: string;
+}
+
+/**
+ * Persist a detected deposit and enqueue the confirm job.
+ * Idempotent — safe to call multiple times for same txHash+logIndex.
+ */
+export async function detectDeposit(db: Db, queue: Queue, event: DepositEvent): Promise<void> {
+  const transfer: ParsedTransfer = {
+    from: '',
+    to: event.to,
+    amount: event.amount,
+    txHash: event.txHash,
+    blockNumber: event.blockNumber,
+    token: event.token,
+  };
+  await persistAndEnqueue(db, queue, transfer, event.userId, event.chain);
+}
+
 /** Insert deposit row (idempotent on tx_hash) and enqueue confirm job */
 async function persistAndEnqueue(
   db: Db,
   queue: Queue,
   transfer: ParsedTransfer,
   userId: string,
-  chain: 'bnb' | 'sol',
+  chain: 'bnb' | 'sol'
 ): Promise<void> {
   const { deposits } = await import('@wp/admin-api/db-schema');
   const { eq } = await import('drizzle-orm');
@@ -143,6 +176,6 @@ async function persistAndEnqueue(
 
   logger.info(
     { depositId: inserted.id, txHash: transfer.txHash, chain },
-    'Deposit recorded and job enqueued',
+    'Deposit recorded and job enqueued'
   );
 }

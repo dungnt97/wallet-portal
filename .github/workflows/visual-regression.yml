@@ -1,0 +1,64 @@
+name: Visual Regression
+
+# Nightly baseline comparison + manual trigger.
+# NOT on pull_request — avoids snapshot churn from routine UI changes.
+# To update baselines: run `pnpm -F @wp/ui test:e2e:update` locally, commit PNGs.
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC nightly
+  workflow_dispatch:       # Manual trigger from Actions UI
+
+jobs:
+  visual-regression:
+    name: Playwright visual regression (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chromium-desktop
+          - chromium-mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium browser
+        run: pnpm --filter @wp/ui exec playwright install chromium --with-deps
+
+      - name: Build UI (type-check + bundle)
+        run: pnpm --filter @wp/ui build
+
+      - name: Run visual regression tests
+        env:
+          CI: 'true'
+          VITE_AUTH_DEV_MODE: 'true'
+          VITE_TEST_MODE: 'true'
+          PROJECT: ${{ matrix.project }}
+        run: pnpm --filter @wp/ui test:e2e --project="$PROJECT"
+
+      - name: Upload failure artifacts (diff + actual images)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}-${{ github.run_id }}
+          path: |
+            apps/ui/playwright-report/
+            apps/ui/test-results/
+          retention-days: 7

@@ -80,8 +80,27 @@ export function AuthProvider({ children }: Props) {
   const [staff, setStaff] = useState<StaffUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: attempt to restore session from /auth/me via session cookie
+  // On mount: attempt to restore session from /auth/me via session cookie.
+  // Dev-mode bypass: when VITE_AUTH_DEV_MODE=true and a __dev_staff__ key
+  // exists in localStorage (seeded by Playwright's dev-auth-fixture.ts),
+  // skip the /auth/me call and hydrate directly — avoids OIDC round-trip in
+  // visual regression tests.
   useEffect(() => {
+    const devMode = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
+    if (devMode) {
+      const raw = localStorage.getItem('__dev_staff__');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as ApiStaff;
+          setStaff(hydrateStaff(parsed));
+          setLoading(false);
+          return;
+        } catch {
+          // malformed — fall through to /auth/me
+        }
+      }
+    }
+
     api
       .get<ApiStaff>('/auth/me')
       .then((data) => setStaff(hydrateStaff(data)))

@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../config/env.js';
 import auditRoutes from './audit.routes.js';
 import authRoutes from './auth.routes.js';
+import chainRoutes from './chain.routes.js';
 import coldRoutes from './cold.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import depositsRoutes from './deposits.routes.js';
@@ -31,6 +32,9 @@ import withdrawalsRoutes from './withdrawals.routes.js';
 const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   // Public / liveness
   await app.register(healthRoutes);
+
+  // Chain data — gas history + realtime probe
+  await app.register(chainRoutes, { cfg: opts.cfg });
 
   // Auth — Google Workspace OIDC + WebAuthn step-up (P06)
   await app.register(authRoutes, { cfg: opts.cfg });

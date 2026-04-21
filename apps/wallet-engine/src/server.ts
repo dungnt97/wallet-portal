@@ -19,6 +19,7 @@ import internalDerivePlugin from './routes/internal-derive.js';
 import internalRecoveryPlugin from './routes/internal-recovery.js';
 import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
 import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
+import { startGasSampler } from './services/gas-history-sampler.js';
 import {
   httpRequestDurationSeconds,
   httpRequestsTotal,
@@ -199,6 +200,9 @@ async function start(): Promise<void> {
   await fastify.listen({ port: cfg.PORT, host: '0.0.0.0' });
   logger.info(`listening :${cfg.PORT}`);
 
+  // --- Gas history sampler (every 5 min → Redis sorted sets gas:bnb / gas:sol) ---
+  const stopGasSampler = startGasSampler(bnbPool.provider, solPool.primary, redis);
+
   // --- BullMQ workers ---
   const depositWorker = startDepositConfirmWorker(redis, cfg);
   const withdrawalExecuteWorker = startWithdrawalExecuteWorker(redis, cfg);
@@ -214,6 +218,7 @@ async function start(): Promise<void> {
       await solWatcher.stop();
     }
     registry.stop();
+    stopGasSampler();
     await depositWorker.close();
     await withdrawalExecuteWorker.close();
     await sweepWorker.close();

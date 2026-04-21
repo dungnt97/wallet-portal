@@ -1,12 +1,12 @@
-import { useDashboardMetrics } from '@/api/queries';
+import { useDashboardHistory, useDashboardMetrics } from '@/api/queries';
 import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact, fmtUSD } from '@/lib/format';
 // Dashboard KPI grid — big AUM card + three clickable KPI cards.
 // Split from dashboard-page.tsx to stay under 200 LOC.
-// Real data via /dashboard/metrics. Sparklines are cosmetic trend shapes.
+// Real data via /dashboard/metrics and /dashboard/history. No synthetic fallback.
 import { useMemo } from 'react';
-import { Sparkline, makeSeries } from '../_shared/charts';
+import { Sparkline } from '../_shared/charts';
 
 interface Props {
   onNavigate: (page: 'deposits' | 'sweep' | 'multisig' | 'transactions') => void;
@@ -23,13 +23,21 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
   const pendingDepositsValue = Number(metrics?.pendingDepositsValue ?? 0);
   const pendingMultisig = metrics?.pendingMultisigOps ?? 0;
 
+  // Real history from /dashboard/history — 7d buckets, downsample to 24 points for sparklines
+  const { data: aumHistory } = useDashboardHistory('aum', '7d');
+  const { data: depHistory } = useDashboardHistory('deposits', '7d');
+
   const aumSeries = useMemo(
-    () => makeSeries(42, 60, 0.12, 0.035).map((v) => v * Math.max(total, 1) * 0.92),
-    [total]
+    () => (aumHistory?.points ?? []).map((p) => p.v).slice(-24),
+    [aumHistory]
   );
-  const depSeries = useMemo(() => makeSeries(101, 48, 0.04, 0.1).map((v) => v * 80_000), []);
-  const bnbSpark = useMemo(() => makeSeries(301, 24, 0.05, 0.04), []);
-  const solSpark = useMemo(() => makeSeries(302, 24, -0.02, 0.05), []);
+  const depSeries = useMemo(
+    () => (depHistory?.points ?? []).map((p) => p.v).slice(-24),
+    [depHistory]
+  );
+  // Per-chain AUM history not available yet — sparklines render empty placeholder
+  const bnbSpark: number[] = [];
+  const solSpark: number[] = [];
 
   const aumWhole = fmtUSD(total).split('.')[0];
   const aumDec = fmtUSD(total).split('.')[1] || '00';
@@ -60,7 +68,7 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
           </span>
           <span className="text-muted">vs 7d</span>
           <div className="spacer" />
-          <Sparkline data={aumSeries.slice(-24)} width={120} height={28} stroke="var(--accent)" />
+          <Sparkline data={aumSeries} width={120} height={28} stroke="var(--accent)" />
         </div>
         <div className="kpi-breakdown">
           <div className="kpi-breakdown-cell" onClick={() => onNavigate('transactions')}>
@@ -101,7 +109,7 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
         </div>
         <div className="kpi-value-sm">${fmtCompact(pendingDepositsValue)}</div>
         <div className="kpi-foot text-xs text-muted">Awaiting confirmations</div>
-        <Sparkline data={depSeries.slice(-24)} width={220} height={32} stroke="var(--ok)" />
+        <Sparkline data={depSeries} width={220} height={32} stroke="var(--ok)" />
       </div>
 
       {/* Pending withdrawals */}

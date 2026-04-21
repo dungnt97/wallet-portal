@@ -1,9 +1,10 @@
 // Deposits KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+import { useDashboardHistory } from '@/api/queries';
 import { ChainPill, KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
 import { useMemo } from 'react';
-import { Sparkline, makeSeries } from '../_shared/charts';
+import { Sparkline } from '../_shared/charts';
 import type { FixDeposit } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 
@@ -19,8 +20,12 @@ export function DepositsKpiStrip({ deposits }: Props) {
     .reduce((s, d) => s + d.amount, 0);
   const last = deposits[0];
 
-  const volSeries = useMemo(() => makeSeries(71, 48, 0.04, 0.1).map((v) => v * 8_000), []);
-  const countSeries = useMemo(() => makeSeries(72, 48, 0.02, 0.12), []);
+  // Real deposit history from /dashboard/history — downsample to 24 points for sparkline
+  const { data: depHistory } = useDashboardHistory('deposits', '7d');
+  const depPoints = useMemo(() => {
+    const pts = (depHistory?.points ?? []).map((p) => p.v);
+    return pts.slice(-24);
+  }, [depHistory]);
 
   return (
     <KpiStrip
@@ -37,7 +42,7 @@ export function DepositsKpiStrip({ deposits }: Props) {
           foot: (
             <>
               <span className="text-xs text-muted text-mono">{pending.length} txs</span>
-              <Sparkline data={countSeries} width={56} height={14} stroke="var(--warn)" />
+              <Sparkline data={depPoints} width={56} height={14} stroke="var(--warn)" />
             </>
           ),
         },
@@ -53,7 +58,7 @@ export function DepositsKpiStrip({ deposits }: Props) {
           foot: (
             <>
               <span className="text-xs delta-up">+12.1%</span>
-              <Sparkline data={volSeries.slice(-24)} width={56} height={14} stroke="var(--ok)" />
+              <Sparkline data={depPoints} width={56} height={14} stroke="var(--ok)" />
             </>
           ),
         },

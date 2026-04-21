@@ -1,5 +1,4 @@
-// Sparkline + AreaChart + deterministic makeSeries — ports prototype realtime.jsx
-// Uses raw SVG (no recharts) to match prototype visuals 1-for-1.
+// Sparkline + AreaChart — raw SVG, matches prototype visuals 1-for-1.
 
 interface SparkProps {
   data: number[];
@@ -48,22 +47,6 @@ export function Sparkline({
       />
     </svg>
   );
-}
-
-// Deterministic pseudo-random time series
-export function makeSeries(seed: number, len = 40, trend = 0, volatility = 0.04): number[] {
-  let x = seed || 1;
-  const rand = () => {
-    x = (x * 9301 + 49297) % 233280;
-    return x / 233280;
-  };
-  const out: number[] = [];
-  let v = 1;
-  for (let i = 0; i < len; i++) {
-    v += (rand() - 0.5) * volatility + trend / len;
-    out.push(v);
-  }
-  return out;
 }
 
 interface AreaProps {

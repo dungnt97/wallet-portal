@@ -1,11 +1,11 @@
-import type { TxRow } from '@/api/queries';
+import { type TxRow, useDashboardHistory } from '@/api/queries';
 // Transactions KPI strip — computed from real TxRow[] returned by useTransactions().
 // FixTransaction removed.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
 import { useMemo } from 'react';
-import { Sparkline, makeSeries } from '../_shared/charts';
+import { Sparkline } from '../_shared/charts';
 
 interface Props {
   rows: TxRow[];
@@ -14,8 +14,12 @@ interface Props {
 export function TransactionsKpiStrip({ rows }: Props) {
   const totalVol = rows.reduce((s, t) => s + t.amount, 0);
   const totalFee = rows.reduce((s, t) => s + t.fee, 0);
-  // Cosmetic sparkline — real volume history endpoint not yet available
-  const volSeries = useMemo(() => makeSeries(81, 48, 0.03, 0.08).map((v) => v * 40_000), []);
+  // Real volume history from /dashboard/history — uses deposits metric as tx volume proxy
+  const { data: volHistory } = useDashboardHistory('deposits', '7d');
+  const volSeries = useMemo(
+    () => (volHistory?.points ?? []).map((p) => p.v).slice(-24),
+    [volHistory]
+  );
   const deposits = rows.filter((t) => t.type === 'deposit');
   const withdrawals = rows.filter((t) => t.type === 'withdrawal');
 
@@ -34,12 +38,7 @@ export function TransactionsKpiStrip({ rows }: Props) {
           foot: (
             <>
               <span className="text-xs text-muted text-mono">{rows.length} tx</span>
-              <Sparkline
-                data={volSeries.slice(-24)}
-                width={56}
-                height={14}
-                stroke="var(--accent)"
-              />
+              <Sparkline data={volSeries} width={56} height={14} stroke="var(--accent)" />
             </>
           ),
         },

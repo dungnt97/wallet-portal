@@ -189,6 +189,9 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
           signedAt: z.string().datetime(),
           multisigOpId: z.string().uuid(),
           chain: z.enum(['bnb', 'sol']),
+          // Slice 7 HW-attestation: optional for hot-tier, required for cold-tier (enforced by policy-engine)
+          attestationBlob: z.string().base64().optional(),
+          attestationType: z.enum(['ledger', 'trezor']).optional(),
         }),
         response: {
           200: z.object({
@@ -214,11 +217,28 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
     async (req, reply) => {
       const staffId = (req.session.staff ?? { id: '' }).id;
       try {
+        // Build input explicitly to satisfy exactOptionalPropertyTypes:
+        // Zod infers optional fields as `T | undefined`; we only spread them when defined.
+        const approveInput: import(
+          '../services/withdrawal-approve.service.js'
+        ).ApproveWithdrawalInput = {
+          signature: req.body.signature,
+          signerAddress: req.body.signerAddress,
+          signedAt: req.body.signedAt,
+          multisigOpId: req.body.multisigOpId,
+          chain: req.body.chain,
+          ...(req.body.attestationBlob !== undefined && {
+            attestationBlob: req.body.attestationBlob,
+          }),
+          ...(req.body.attestationType !== undefined && {
+            attestationType: req.body.attestationType,
+          }),
+        };
         const result = await approveWithdrawal(
           app.db,
           req.params.id,
           staffId,
-          req.body,
+          approveInput,
           app.io,
           getPolicyOpts()
         );

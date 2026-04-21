@@ -19,6 +19,11 @@ type Config struct {
 
 	// LogLevel controls zerolog level: debug, info, warn, error. Default: info.
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+
+	// PolicyDevMode enables developer shortcuts:
+	//  - hw_attested rule accepts attestation blobs starting with "DEV_ATTESTATION_" + withdrawalId.
+	// Default: false (production-safe).
+	PolicyDevMode bool `envconfig:"POLICY_DEV_MODE" default:"false"`
 }
 
 // Load reads config from environment variables with the default prefix "".

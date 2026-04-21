@@ -49,6 +49,16 @@ export interface ApproveWithdrawalInput {
   signedAt: string;
   multisigOpId: string;
   chain: 'bnb' | 'sol';
+  /**
+   * Slice 7 HW-attestation: base64-encoded raw bytes produced by the hardware wallet.
+   * Required for cold-tier operations. Optional (undefined/omitted) for hot-tier.
+   */
+  attestationBlob?: string;
+  /**
+   * Slice 7 HW-attestation: device type that produced the blob.
+   * Values: 'ledger' | 'trezor'. Optional (undefined/omitted) for hot-tier.
+   */
+  attestationType?: 'ledger' | 'trezor';
 }
 
 export interface ApproveWithdrawalResult {
@@ -80,7 +90,15 @@ export async function approveWithdrawal(
   socketEmitter: SocketIOServer,
   policyOpts: PolicyClientOptions
 ): Promise<ApproveWithdrawalResult> {
-  const { signature, signerAddress, signedAt, multisigOpId, chain } = input;
+  const {
+    signature,
+    signerAddress,
+    signedAt,
+    multisigOpId,
+    chain,
+    attestationBlob,
+    attestationType,
+  } = input;
 
   // 1. Load withdrawal
   const withdrawal = await db.query.withdrawals.findFirst({
@@ -157,14 +175,22 @@ export async function approveWithdrawal(
   let updatedOp: typeof schema.multisigOperations.$inferSelect | undefined;
 
   await db.transaction(async (tx) => {
-    // Insert approval row
-    await tx.insert(schema.multisigApprovals).values({
+    // Insert approval row — include HW-attestation blob if provided (cold-tier)
+    const approvalRow: typeof schema.multisigApprovals.$inferInsert = {
       opId: multisigOpId,
       staffId,
       staffSigningKeyId: signingKey.id,
       signature,
       signedAt: new Date(signedAt),
-    });
+    };
+    if (attestationBlob !== undefined) {
+      // Decode base64 → Buffer for bytea column
+      approvalRow.attestationBlob = Buffer.from(attestationBlob, 'base64');
+    }
+    if (attestationType !== undefined) {
+      approvalRow.attestationType = attestationType;
+    }
+    await tx.insert(schema.multisigApprovals).values(approvalRow);
 
     // Increment collected_sigs atomically
     const [updated] = await tx

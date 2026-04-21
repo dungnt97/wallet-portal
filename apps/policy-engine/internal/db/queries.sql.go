@@ -214,6 +214,64 @@ func (q *Queries) GetKillSwitchEnabled(ctx context.Context) (bool, error) {
 	return enabled, nil
 }
 
+const getApprovalsForWithdrawal = `-- name: GetApprovalsForWithdrawal :many
+SELECT
+    ma.id,
+    ma.op_id,
+    ma.staff_id,
+    ma.staff_signing_key_id,
+    ma.signature,
+    ma.signed_at,
+    ma.attestation_blob,
+    ma.attestation_type,
+    ssk.address AS signer_address
+FROM multisig_approvals ma
+JOIN multisig_operations mo ON mo.id = ma.op_id
+JOIN staff_signing_keys ssk ON ssk.id = ma.staff_signing_key_id
+WHERE mo.withdrawal_id = $1
+`
+
+// ApprovalWithSigner joins approval rows with their signing key address.
+// Used by hw-attested rule to verify each signer's attestation blob.
+type ApprovalWithSigner struct {
+	MultisigApproval
+	SignerAddress string `json:"signer_address"`
+}
+
+// GetApprovalsForWithdrawal returns all approvals for a given withdrawal (via its multisig op).
+// Joins staff_signing_keys to expose the signer's registered public key address.
+// Hand-written (sqlc does not support multi-table joins with custom result types by default).
+func (q *Queries) GetApprovalsForWithdrawal(ctx context.Context, withdrawalID pgtype.UUID) ([]ApprovalWithSigner, error) {
+	rows, err := q.db.Query(ctx, getApprovalsForWithdrawal, withdrawalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []ApprovalWithSigner
+	for rows.Next() {
+		var i ApprovalWithSigner
+		if err := rows.Scan(
+			&i.ID,
+			&i.OpID,
+			&i.StaffID,
+			&i.StaffSigningKeyID,
+			&i.Signature,
+			&i.SignedAt,
+			&i.AttestationBlob,
+			&i.AttestationType,
+			&i.SignerAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const isColdReserveWallet = `-- name: IsColdReserveWallet :one
 SELECT EXISTS(
     SELECT 1 FROM wallets

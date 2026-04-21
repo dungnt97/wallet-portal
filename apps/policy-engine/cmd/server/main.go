@@ -79,7 +79,7 @@ func main() {
 
 	// ── Service wiring ────────────────────────────────────────────────────────
 	queries := db.New(pool)
-	eval := service.New(queries, service.DefaultRules())
+	eval := service.New(queries, service.DefaultRules(cfg.PolicyDevMode))
 
 	// ── HTTP server — wrapped with OTel HTTP middleware ───────────────────────
 	// Pool is passed to the router so ReadyHandler can ping DB on each probe.

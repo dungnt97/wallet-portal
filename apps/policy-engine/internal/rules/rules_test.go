@@ -2,9 +2,14 @@ package rules_test
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/wallet-portal/policy-engine/internal/db"
@@ -40,6 +45,9 @@ type fakeQuerier struct {
 
 	isColdReserveWallet    bool
 	isColdReserveWalletErr error
+
+	approvalsForWithdrawal    []db.ApprovalWithSigner
+	approvalsForWithdrawalErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -94,6 +102,10 @@ func (f *fakeQuerier) GetKillSwitchEnabled(_ context.Context) (bool, error) {
 
 func (f *fakeQuerier) IsColdReserveWallet(_ context.Context, _ db.IsColdReserveWalletParams) (bool, error) {
 	return f.isColdReserveWallet, f.isColdReserveWalletErr
+}
+
+func (f *fakeQuerier) GetApprovalsForWithdrawal(_ context.Context, _ pgtype.UUID) ([]db.ApprovalWithSigner, error) {
+	return f.approvalsForWithdrawal, f.approvalsForWithdrawalErr
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────
@@ -359,6 +371,54 @@ func TestDestinationWhitelist_HotToCold(t *testing.T) {
 
 // ── HwAttested tests ──────────────────────────────────────────────────────────
 
+// generateTestSecp256k1Key generates a fresh secp256k1 key pair for tests using btcec.
+// Returns the private key and the compressed public key as a lowercase hex string (no 0x prefix).
+func generateTestSecp256k1Key(t *testing.T) (*secp256k1.PrivateKey, string) {
+	t.Helper()
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		t.Fatalf("generateTestSecp256k1Key: %v", err)
+	}
+	pubKeyHex := hex.EncodeToString(priv.PubKey().SerializeCompressed())
+	return priv, pubKeyHex
+}
+
+// signAttestationBlob signs digest with privKey using btcec ECDSA SignCompact (65-byte).
+// The production verifier accepts both 64-byte compact (R||S) and 65-byte (recov||R||S).
+// We return the 65-byte form here; verifySecp256k1Sig strips the first byte automatically.
+func signAttestationBlob(t *testing.T, priv *secp256k1.PrivateKey, digest []byte) []byte {
+	t.Helper()
+	// SignCompact returns 65 bytes: [recovery_flag || R(32) || S(32)]
+	sig := ecdsa.SignCompact(priv, digest, true /* compressed */)
+	return sig
+}
+
+// testAttestationDigest mirrors production attestationDigest function.
+func testAttestationDigest(withdrawalID, destination, amount, chain string) []byte {
+	h := sha3.NewLegacyKeccak256()
+	h.Write([]byte(withdrawalID))
+	h.Write([]byte(destination))
+	h.Write([]byte(amount))
+	h.Write([]byte(chain))
+	return h.Sum(nil)
+}
+
+// makeApproval is a test helper that builds an ApprovalWithSigner row.
+func makeApproval(opIDStr, signerAddr string, blobBytes []byte, attType *string) db.ApprovalWithSigner {
+	var opID pgtype.UUID
+	_ = opID.Scan(opIDStr)
+	return db.ApprovalWithSigner{
+		MultisigApproval: db.MultisigApproval{
+			OpID:            opID,
+			AttestationBlob: blobBytes,
+			AttestationType: attType,
+		},
+		SignerAddress: signerAddr,
+	}
+}
+
+func strPtr(s string) *string { return &s }
+
 func TestHwAttested(t *testing.T) {
 	rule := rules.HwAttested{}
 	ctx := context.Background()
@@ -411,6 +471,181 @@ func TestHwAttested(t *testing.T) {
 				return
 			}
 			pass, reason, err := rule.Check(ctx, tc.req, tc.querier)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if pass != tc.wantPass {
+				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
+			}
+		})
+	}
+}
+
+// ── HwAttested blob verification tests ───────────────────────────────────────
+
+func TestHwAttested_BlobVerification(t *testing.T) {
+	ctx := context.Background()
+
+	const (
+		wdID    = "c0000000-0000-0000-0000-000000000003"
+		dest    = "0xDEAD000000000000000000000000000000000001"
+		amount  = "50000"
+		chain   = "bnb"
+		opIDStr = "d0000000-0000-0000-0000-000000000004"
+	)
+
+	// Generate a real secp256k1 key pair for the test signer
+	priv, pubKeyHex := generateTestSecp256k1Key(t)
+	digest := testAttestationDigest(wdID, dest, amount, chain)
+	validSig := signAttestationBlob(t, priv, digest)
+
+	// Generate a different key pair — its signature should fail against pubKeyHex
+	wrongPriv, _ := generateTestSecp256k1Key(t)
+	wrongSig := signAttestationBlob(t, wrongPriv, digest)
+
+	hwKey := &db.StaffSigningKey{HwAttested: true, Tier: db.TierCold, Address: pubKeyHex}
+
+	tests := []struct {
+		name     string
+		rule     rules.HwAttested
+		req      rules.EvaluateRequest
+		querier  *fakeQuerier
+		wantPass bool
+	}{
+		{
+			name: "no withdrawalId — skips blob check",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain},
+			querier: &fakeQuerier{
+				signingKey:             hwKey,
+				approvalsForWithdrawal: nil,
+			},
+			wantPass: true,
+		},
+		{
+			name: "withdrawalId with no approvals yet — skips blob check",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey:             hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{},
+			},
+			wantPass: true,
+		},
+		{
+			name: "valid secp256k1 sig with ledger type — passes",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, validSig, strPtr("ledger")),
+				},
+			},
+			wantPass: true,
+		},
+		{
+			name: "valid secp256k1 sig with trezor type — passes",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, validSig, strPtr("trezor")),
+				},
+			},
+			wantPass: true,
+		},
+		{
+			name: "missing attestation_type — denied",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, validSig, nil),
+				},
+			},
+			wantPass: false,
+		},
+		{
+			name: "invalid attestation_type 'none' — denied",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, validSig, strPtr("none")),
+				},
+			},
+			wantPass: false,
+		},
+		{
+			name: "missing attestation_blob — denied",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, nil, strPtr("ledger")),
+				},
+			},
+			wantPass: false,
+		},
+		{
+			// wrongSig was produced by wrongPriv; the approval claims SignerAddress=pubKeyHex.
+			// Verification fails: sig does not match the registered key's public key.
+			name: "wrong signer key — sig fails verification",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					// blob signed by wrongPriv but approval claims signerAddress = pubKeyHex
+					makeApproval(opIDStr, pubKeyHex, wrongSig, strPtr("ledger")),
+				},
+			},
+			wantPass: false,
+		},
+		{
+			name: "dev-mode — synthetic blob accepted",
+			rule: rules.HwAttested{DevMode: true},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, []byte("DEV_ATTESTATION_"+wdID), strPtr("ledger")),
+				},
+			},
+			wantPass: true,
+		},
+		{
+			name: "dev-mode OFF — synthetic blob rejected",
+			rule: rules.HwAttested{DevMode: false},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey: hwKey,
+				approvalsForWithdrawal: []db.ApprovalWithSigner{
+					makeApproval(opIDStr, pubKeyHex, []byte("DEV_ATTESTATION_"+wdID), strPtr("ledger")),
+				},
+			},
+			wantPass: false,
+		},
+		{
+			name: "DB error fetching approvals — fail closed",
+			rule: rules.HwAttested{},
+			req:  rules.EvaluateRequest{Tier: "cold", SignerAddress: pubKeyHex, Chain: chain, WithdrawalID: wdID, DestinationAddr: dest, Amount: amount},
+			querier: &fakeQuerier{
+				signingKey:                hwKey,
+				approvalsForWithdrawalErr: errors.New("db down"),
+			},
+			wantPass: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			pass, reason, err := tc.rule.Check(ctx, tc.req, tc.querier)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

@@ -679,6 +679,10 @@ type MultisigApproval struct {
 	StaffSigningKeyID pgtype.UUID        `json:"staff_signing_key_id"`
 	Signature         string             `json:"signature"`
 	SignedAt          pgtype.Timestamptz `json:"signed_at"`
+	// Slice 7 HW-attestation: raw bytes signed by the hardware wallet. NULL for hot-tier.
+	AttestationBlob []byte `json:"attestation_blob"`
+	// Slice 7 HW-attestation: device type ('ledger'|'trezor'|'none'). NULL for hot-tier.
+	AttestationType *string `json:"attestation_type"`
 }
 
 type MultisigOperation struct {

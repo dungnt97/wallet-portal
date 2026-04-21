@@ -25,4 +25,7 @@ type Querier interface {
 	// IsColdReserveWallet: rebalance fast-path — allows destination when it is a registered
 	// cold_reserve wallet scoped by (chain, address) with tier=cold.
 	IsColdReserveWallet(ctx context.Context, arg IsColdReserveWalletParams) (bool, error)
+	// GetApprovalsForWithdrawal: returns all approvals (with signer address) for a withdrawal.
+	// Used by hw-attested rule to verify each approval's attestation blob.
+	GetApprovalsForWithdrawal(ctx context.Context, withdrawalID pgtype.UUID) ([]ApprovalWithSigner, error)
 }

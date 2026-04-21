@@ -9,8 +9,10 @@ import { bnbRpcUrls, loadConfig, solanaRpcUrls } from './config/env.js';
 import { makeDb } from './db/client.js';
 import { closeRedisConnection, getRedisConnection } from './queue/connection.js';
 import { makeDepositConfirmQueue } from './queue/deposit-confirm.js';
+import { makeSweepExecuteQueue } from './queue/sweep-execute.js';
 import { makeWithdrawalExecuteQueue } from './queue/withdrawal-execute.js';
 import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
+import { startSweepExecuteWorker } from './queue/workers/sweep-execute-worker.js';
 import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
 import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
 import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
@@ -69,6 +71,7 @@ async function start(): Promise<void> {
   const redis = getRedisConnection(cfg.REDIS_URL);
   const depositQueue = makeDepositConfirmQueue(redis);
   const withdrawalExecuteQueue = makeWithdrawalExecuteQueue(redis);
+  const sweepExecuteQueue = makeSweepExecuteQueue(redis);
 
   // ── Health endpoints ──────────────────────────────────────────────────────
   fastify.get('/health', async () => ({ status: 'ok' }));
@@ -175,6 +178,10 @@ async function start(): Promise<void> {
   const withdrawalExecuteWorker = startWithdrawalExecuteWorker(redis, cfg);
   logger.info('withdrawal_execute worker started');
 
+  // --- Start BullMQ sweep execute worker ---
+  const sweepWorker = startSweepExecuteWorker(redis, cfg, { bnbPool, solPool });
+  logger.info('sweep_execute worker started');
+
   // --- Graceful shutdown ---
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal — closing wallet-engine');
@@ -183,8 +190,10 @@ async function start(): Promise<void> {
     stopRegistry();
     await depositWorker.close();
     await withdrawalExecuteWorker.close();
+    await sweepWorker.close();
     await depositQueue.close();
     await withdrawalExecuteQueue.close();
+    await sweepExecuteQueue.close();
     await closeRedisConnection();
     await destroyBnbPool(bnbPool);
     await destroySolanaPool(solPool);

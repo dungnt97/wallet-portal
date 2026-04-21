@@ -2,9 +2,12 @@
 import { z } from 'zod';
 
 /** Comma-separated URL list → string array */
-const urlList = z
-  .string()
-  .transform((s) => s.split(',').map((u) => u.trim()).filter(Boolean));
+const urlList = z.string().transform((s) =>
+  s
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean)
+);
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -27,6 +30,9 @@ const EnvSchema = z.object({
   ADMIN_API_BASE_URL: z.string().url().default('http://localhost:3001'),
   SVC_BEARER_TOKEN: z.string().min(16),
 
+  // Policy Engine service-to-service (fail-closed on unreachable)
+  POLICY_ENGINE_BASE_URL: z.string().url().default('http://localhost:3003'),
+
   // HD derivation — DEV FIXTURE ONLY. Prod uses HSM/KMS (future phase).
   HD_MASTER_XPUB_BNB: z.string().min(1),
   HD_MASTER_SEED_SOLANA: z.string().min(1),
@@ -48,9 +54,7 @@ export type AppConfig = z.infer<typeof EnvSchema>;
 export function loadConfig(): AppConfig {
   const result = EnvSchema.safeParse(process.env);
   if (!result.success) {
-    const msg = result.error.errors
-      .map((e) => `  ${e.path.join('.')}: ${e.message}`)
-      .join('\n');
+    const msg = result.error.errors.map((e) => `  ${e.path.join('.')}: ${e.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${msg}`);
   }
   return result.data;

@@ -1,6 +1,7 @@
 import { ToastHost } from '@/components/overlays';
 import { AccountSettingsModal } from '@/features/account/account-settings-modal';
 import { useNotificationsSocket } from '@/features/notifs/use-notifications-socket';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useTweaksStore } from '@/stores/tweaks-store';
 // App layout — .app grid shell. Composes sidebar + topbar + main + overlays.
 // Ports prototype app.jsx `AppShell`, wiring it into react-router-dom.
@@ -12,6 +13,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { CommandPalette } from './command-palette';
 import { MobileNav } from './mobile-nav';
 import { NAV, pageTitleKey } from './nav-structure';
+import { ShortcutsHelpOverlay } from './shortcuts-help-overlay';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { TweaksPanel } from './tweaks-panel';
@@ -37,6 +39,14 @@ export function AppLayout() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Gmail-style g+key navigation shortcuts + '?' help overlay
+  useKeyboardShortcuts({
+    onHelpToggle: () => setShortcutsOpen((o) => !o),
+    // Disable while a modal/palette is open to prevent accidental navigation
+    disabled: cmdOpen || tweaksOpen || accountOpen || shortcutsOpen,
+  });
 
   // Cmd+K / Ctrl+K opens the command palette.
   useEffect(() => {
@@ -94,6 +104,7 @@ export function AppLayout() {
         {tweaksOpen && <TweaksPanel onClose={() => setTweaksOpen(false)} />}
         <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
         <AccountSettingsModal open={accountOpen} onClose={() => setAccountOpen(false)} />
+        <ShortcutsHelpOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       </div>
     </ToastHost>
   );

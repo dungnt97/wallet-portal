@@ -20,6 +20,7 @@ export const queryKeys = {
   killSwitch: () => ['ops', 'killSwitch'] as const,
   opsHealth: () => ['ops', 'health'] as const,
   coldBalances: () => ['cold', 'balances'] as const,
+  coldWallets: () => ['cold', 'wallets'] as const,
   rebalanceHistory: () => ['rebalance', 'history'] as const,
   staff: () => ['staff'] as const,
   loginHistory: () => ['staff', 'loginHistory'] as const,
@@ -243,6 +244,44 @@ export interface CancelWithdrawalBody {
 }
 
 // ---- Cold balance hooks ----
+
+// ---- Cold wallet metadata (pairs with band thresholds) ----
+
+export interface ColdWalletMeta {
+  chain: 'bnb' | 'sol';
+  tier: 'hot' | 'cold';
+  address: string;
+  multisigAddr: string | null;
+  /** Band floor in USD — only populated for hot wallets */
+  bandFloorUsd: number | null;
+  /** Band ceiling in USD — only populated for hot wallets */
+  bandCeilingUsd: number | null;
+  /** e.g. "Gnosis Safe · 3/5 signers" — only populated for cold wallets */
+  signerLabel: string | null;
+  /** e.g. "HSM · Zürich vault" — only populated for cold wallets */
+  geographicLabel: string | null;
+}
+
+/** GET /cold/wallets — wallet pair metadata with band thresholds */
+export function useColdWallets() {
+  return useQuery({
+    queryKey: queryKeys.coldWallets(),
+    queryFn: () => api.get<{ data: ColdWalletMeta[] }>('/cold/wallets').then((r) => r.data),
+    staleTime: 60_000,
+  });
+}
+
+/** POST /cold/band-check/run — flush cache + re-probe balances */
+export function useRunBandCheck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<{ data: ColdBalanceEntry[]; triggeredAt: string }>('/cold/band-check/run'),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.coldBalances() });
+    },
+  });
+}
 
 /** GET /cold/balances — 30s refetch interval matches backend cache */
 export function useColdBalances() {

@@ -1,6 +1,12 @@
-// Cold wallet rebalance page — real balance data from GET /cold/balances.
-// Rebalance history wired to real GET /rebalance/history; REBALANCE_HISTORY fixture removed.
-import { useColdBalances, useRebalanceHistory } from '@/api/queries';
+// Cold wallet rebalance page — real balance + wallet metadata from API.
+// Layout: 2 vertical chain sections (BNB, SOL), each with 3-col hot/arrows/cold grid.
+// Prototype fidelity: cold-pair, cold-pair-head, cold-pair-wallets, cold-advisory CSS classes.
+import {
+  useColdBalances,
+  useColdWallets,
+  useRebalanceHistory,
+  useRunBandCheck,
+} from '@/api/queries';
 import type { RebalanceHistoryRow } from '@/api/queries';
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, PageFrame, StatusBadge } from '@/components/custody';
@@ -10,7 +16,7 @@ import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
-import { ColdBalanceCards } from './cold-balance-cards';
+import { ColdChainSection } from './cold-chain-section';
 import { RebalanceModal } from './rebalance-modal';
 
 export function ColdPage() {
@@ -19,11 +25,30 @@ export function ColdPage() {
   const { staff } = useAuth();
   const canRebalance = staff?.role === 'admin' || staff?.role === 'operator';
 
-  const [rebalanceChain, setRebalanceChain] = useState<'bnb' | 'sol' | null>(null);
+  const [rebalanceOpen, setRebalanceOpen] = useState<{
+    chain: 'bnb' | 'sol';
+    direction: 'hot→cold' | 'cold→hot';
+  } | null>(null);
 
-  const { data: balances, isLoading, isError } = useColdBalances();
+  const { data: balances, isLoading: balancesLoading, isError: balancesError } = useColdBalances();
+  const { data: walletMetas } = useColdWallets();
   const { data: historyData } = useRebalanceHistory();
   const history: RebalanceHistoryRow[] = historyData?.data ?? [];
+  const bandCheckMutation = useRunBandCheck();
+
+  const handleRunBandCheck = async () => {
+    try {
+      await bandCheckMutation.mutateAsync();
+      toast(t('cold.bandCheckTriggered'));
+    } catch {
+      toast(t('cold.bandCheckError'), 'error');
+    }
+  };
+
+  const hotBnb = walletMetas?.find((w) => w.chain === 'bnb' && w.tier === 'hot');
+  const coldBnb = walletMetas?.find((w) => w.chain === 'bnb' && w.tier === 'cold');
+  const hotSol = walletMetas?.find((w) => w.chain === 'sol' && w.tier === 'hot');
+  const coldSol = walletMetas?.find((w) => w.chain === 'sol' && w.tier === 'cold');
 
   return (
     <PageFrame
@@ -43,14 +68,14 @@ export function ColdPage() {
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Shield size={11} />
-            <span className="text-muted">Threshold:</span>
+            <span className="text-muted">{t('cold.thresholdLabel')}</span>
             <span className="fw-600">2/3 (outbound) · 3/5 cold signers</span>
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Clock size={11} />
-            <span className="text-muted">Band check:</span>
-            <span className="fw-600">every 15m</span>
+            <span className="text-muted">{t('cold.bandCheckLabel')}</span>
+            <span className="fw-600">{t('cold.bandCheckInterval')}</span>
           </div>
           <div className="spacer" />
           <BlockTicker chain="bnb" />
@@ -61,44 +86,53 @@ export function ColdPage() {
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => toast('Manual band check triggered.')}
+          onClick={() => void handleRunBandCheck()}
+          disabled={bandCheckMutation.isPending}
         >
-          <I.Refresh size={12} /> {t('cold.runBandCheck')}
+          <I.Refresh size={12} />
+          {bandCheckMutation.isPending ? '…' : t('cold.runBandCheck')}
         </button>
       }
     >
-      {/* ── Real balance cards ── */}
-      <div className="card pro-card" style={{ marginBottom: 14 }}>
-        <div className="pro-card-header">
-          <h3 className="card-title">{t('cold.balancesTitle')}</h3>
-          <span className="text-xs text-muted">{t('cold.balancesHint')}</span>
+      {/* ── Loading / error states ── */}
+      {balancesLoading && (
+        <div className="text-sm text-muted" style={{ padding: '16px 0' }}>
+          {t('common.loading')}
         </div>
+      )}
 
-        {isLoading && (
-          <div className="text-sm text-muted" style={{ padding: '16px 0' }}>
-            {t('common.loading')}
+      {balancesError && (
+        <div className="alert err" style={{ margin: '8px 0' }}>
+          <I.AlertTri size={13} className="alert-icon" />
+          <div className="alert-body">
+            <div className="alert-text">{t('cold.balancesError')}</div>
           </div>
-        )}
+        </div>
+      )}
 
-        {isError && (
-          <div className="alert err" style={{ margin: '8px 0' }}>
-            <I.AlertTri size={13} className="alert-icon" />
-            <div className="alert-body">
-              <div className="alert-text">{t('cold.balancesError')}</div>
-            </div>
-          </div>
-        )}
-
-        {balances && balances.length > 0 && (
-          <ColdBalanceCards
-            entries={balances}
+      {/* ── Chain sections — vertical stack ── */}
+      {balances && (
+        <div className="cold-grid">
+          <ColdChainSection
+            chain="bnb"
+            balanceEntries={balances}
+            hotMeta={hotBnb}
+            coldMeta={coldBnb}
             canRebalance={canRebalance}
-            onRebalance={(chain) => setRebalanceChain(chain)}
+            onRebalance={(chain, direction) => setRebalanceOpen({ chain, direction })}
           />
-        )}
-      </div>
+          <ColdChainSection
+            chain="sol"
+            balanceEntries={balances}
+            hotMeta={hotSol}
+            coldMeta={coldSol}
+            canRebalance={canRebalance}
+            onRebalance={(chain, direction) => setRebalanceOpen({ chain, direction })}
+          />
+        </div>
+      )}
 
-      {/* ── Rebalance history (fixture-driven until rebalance list API ships) ── */}
+      {/* ── Rebalance history table ── */}
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
           <h3 className="card-title">{t('cold.historyTitle')}</h3>
@@ -110,14 +144,14 @@ export function ColdPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Direction</th>
+              <th>{t('cold.colDirection')}</th>
               <th>Chain</th>
-              <th className="num">Amount</th>
+              <th className="num">{t('cold.colAmount')}</th>
               <th>Sigs</th>
-              <th>Status</th>
-              <th>Proposer</th>
-              <th className="num">Created</th>
-              <th className="num">Executed</th>
+              <th>{t('cold.colStatus')}</th>
+              <th>{t('cold.colProposer')}</th>
+              <th className="num">{t('cold.colCreated')}</th>
+              <th className="num">{t('cold.colExecuted')}</th>
               <th>Tx</th>
             </tr>
           </thead>
@@ -129,7 +163,7 @@ export function ColdPage() {
                   className="text-sm text-muted"
                   style={{ textAlign: 'center', padding: 32 }}
                 >
-                  No rebalance history yet.
+                  {t('cold.historyEmpty')}
                 </td>
               </tr>
             )}
@@ -163,11 +197,11 @@ export function ColdPage() {
         </table>
       </div>
 
-      {/* ── Rebalance modal (has its own Sheet internally) ── */}
+      {/* ── Rebalance modal ── */}
       <RebalanceModal
-        open={rebalanceChain !== null}
-        chain={rebalanceChain}
-        onClose={() => setRebalanceChain(null)}
+        open={rebalanceOpen !== null}
+        chain={rebalanceOpen?.chain ?? null}
+        onClose={() => setRebalanceOpen(null)}
       />
     </PageFrame>
   );

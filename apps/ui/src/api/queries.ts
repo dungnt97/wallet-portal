@@ -687,8 +687,10 @@ export function useDeleteAdminChannel() {
 /** POST /admin/notification-channels/:id/test — fire test notification */
 export function useTestAdminChannel() {
   return useMutation({
-    mutationFn: (id: string) =>
-      api.post<{ ok: boolean; channelKind: string }>(`/admin/notification-channels/${id}/test`),
+    mutationFn: ({ id, eventType }: { id: string; eventType?: string }) =>
+      api.post<{ ok: boolean; channelKind: string }>(`/admin/notification-channels/${id}/test`, {
+        eventType,
+      }),
   });
 }
 

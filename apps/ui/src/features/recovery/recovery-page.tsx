@@ -1,6 +1,5 @@
 // Recovery page — lists stuck/failed txs from GET /recovery/stuck, allows gas bump
-// and cancel-replace. Falls back to fixture data when API returns empty (dev mode).
-// Real-time updates via Socket.io; 30s polling as fallback.
+// and cancel-replace. Real-time updates via Socket.io; 30s polling as fallback.
 import { PageFrame } from '@/components/custody';
 import { I } from '@/icons';
 import type { StuckTxItem } from '@wp/shared-types';

@@ -70,12 +70,13 @@ function serializeRule(row: schema.NotificationRoutingRuleRow) {
 
 async function fireTestToChannel(
   channel: schema.NotificationChannelRow,
-  log: { info: (msg: string) => void }
+  log: { info: (msg: string) => void },
+  eventType = 'system.channel_test'
 ): Promise<void> {
   const testPayload = {
-    title: '[TEST] Notification channel test',
-    body: 'This is a test notification. If you received this, the channel is configured correctly.',
-    eventType: 'system.channel_test',
+    title: `[TEST] ${eventType}`,
+    body: `Test notification for event type "${eventType}". If you received this, the channel is configured correctly.`,
+    eventType,
     severity: 'info' as const,
   };
 
@@ -270,6 +271,7 @@ const notificationAdminRoutes: FastifyPluginAsync = async (app) => {
       schema: {
         tags: ['notification-admin'],
         params: z.object({ id: z.string().uuid() }),
+        body: z.object({ eventType: z.string().optional() }),
         response: {
           200: z.object({ ok: z.boolean(), channelKind: z.string() }),
           404: z.object({ code: z.string(), message: z.string() }),
@@ -278,6 +280,7 @@ const notificationAdminRoutes: FastifyPluginAsync = async (app) => {
     },
     async (req, reply) => {
       const { id } = req.params;
+      const { eventType } = req.body;
       const [channel] = await app.db
         .select()
         .from(schema.notificationChannels)
@@ -286,7 +289,7 @@ const notificationAdminRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ code: 'NOT_FOUND', message: 'Channel not found' });
       }
       // Fire async — do not await to keep response fast
-      fireTestToChannel(channel, app.log).catch((err: unknown) =>
+      fireTestToChannel(channel, app.log, eventType).catch((err: unknown) =>
         app.log.error({ err }, 'Test notification fire failed')
       );
       return reply.send({ ok: true, channelKind: channel.kind });

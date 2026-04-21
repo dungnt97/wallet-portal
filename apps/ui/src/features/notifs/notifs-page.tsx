@@ -128,10 +128,13 @@ function ChannelRow({ channel, onEdit }: ChannelRowProps) {
   };
 
   const handleTest = () => {
-    testMut.mutate(channel.id, {
-      onSuccess: () => toast(t('notifs.testSent'), 'success'),
-      onError: () => toast(t('common.error'), 'error'),
-    });
+    testMut.mutate(
+      { id: channel.id },
+      {
+        onSuccess: () => toast(t('notifs.testSent'), 'success'),
+        onError: () => toast(t('common.error'), 'error'),
+      }
+    );
   };
 
   const Icon = I[CHANNEL_ICON[channel.kind]];
@@ -213,7 +216,7 @@ export function NotifsPage() {
       toast('No active channels', 'error');
       return;
     }
-    Promise.all(active.map((c) => testMut.mutateAsync(c.id)))
+    Promise.all(active.map((c) => testMut.mutateAsync({ id: c.id, eventType: testEventType })))
       .then(() => {
         setTestOpen(false);
         toast(t('notifs.testSent'), 'success');

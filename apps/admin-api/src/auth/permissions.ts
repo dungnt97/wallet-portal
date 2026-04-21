@@ -22,26 +22,30 @@ export type Permission =
   | 'staff.read'
   | 'staff.manage'
   | 'wallets.read'
-  | 'audit.read';
+  | 'audit.read'
+  | 'ops.read'
+  | 'ops.killswitch.toggle';
 
 /** Roles permitted for each action — check with PERMS[perm].includes(role) */
 export const PERMS: Record<Permission, Role[]> = {
-  'dashboard.read':      ['admin', 'treasurer', 'operator', 'viewer'],
-  'deposits.read':       ['admin', 'treasurer', 'operator', 'viewer'],
-  'deposits.credit':     ['admin', 'operator'],
-  'withdrawals.read':    ['admin', 'treasurer', 'operator', 'viewer'],
-  'withdrawals.create':  ['admin', 'operator'],
+  'dashboard.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'deposits.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'deposits.credit': ['admin', 'operator'],
+  'withdrawals.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'withdrawals.create': ['admin', 'operator'],
   'withdrawals.approve': ['admin', 'treasurer'],
   'withdrawals.execute': ['admin', 'treasurer'],
-  'withdrawals.cancel':  ['admin', 'treasurer'],
-  'multisig.read':       ['admin', 'treasurer', 'operator', 'viewer'],
-  'multisig.sign':       ['admin', 'treasurer'],
-  'sweeps.read':         ['admin', 'treasurer', 'operator', 'viewer'],
-  'sweeps.trigger':      ['admin', 'operator'],
-  'users.read':          ['admin', 'treasurer', 'operator', 'viewer'],
-  'users.manage':        ['admin', 'operator'],
-  'staff.read':          ['admin', 'treasurer', 'operator', 'viewer'],
-  'staff.manage':        ['admin'],
-  'wallets.read':        ['admin', 'treasurer', 'operator', 'viewer'],
-  'audit.read':          ['admin', 'treasurer'],
+  'withdrawals.cancel': ['admin', 'treasurer'],
+  'multisig.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'multisig.sign': ['admin', 'treasurer'],
+  'sweeps.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'sweeps.trigger': ['admin', 'operator'],
+  'users.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'users.manage': ['admin', 'operator'],
+  'staff.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'staff.manage': ['admin'],
+  'wallets.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'audit.read': ['admin', 'treasurer'],
+  'ops.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'ops.killswitch.toggle': ['admin', 'treasurer'],
 };

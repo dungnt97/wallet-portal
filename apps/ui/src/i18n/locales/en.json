@@ -811,7 +811,31 @@
     "subtitle": "Signing requests, alerts, and system events",
     "markAllRead": "Mark all read",
     "unread": "Unread",
-    "all": "All"
+    "all": "All",
+    "addChannel": "Add channel",
+    "editChannel": "Edit channel",
+    "deleteChannel": "Delete channel",
+    "sendTest": "Send test",
+    "testSent": "Test sent to active channels",
+    "channels": {
+      "title": "Channels",
+      "active": "Active channels",
+      "kind": "Type",
+      "name": "Name",
+      "target": "Target",
+      "severityFilter": "Severity filter",
+      "created": "Channel created",
+      "updated": "Channel updated",
+      "deleted": "Channel deleted"
+    },
+    "routing": {
+      "title": "Event routing matrix",
+      "hint": "Click cells to toggle routing",
+      "rules": "Active rules",
+      "event": "Event",
+      "severity": "Severity",
+      "testHint": "This will fire a test to {{count}} active channel(s)"
+    }
   },
   "recovery": {
     "title": "Failed transactions",

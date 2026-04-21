@@ -543,9 +543,10 @@ export function useLoginHistory(params: { limit?: number } = {}) {
   });
 }
 
-// ---- Notification channels ----
+// ---- Notification channels (read — UI routing matrix) ----
 
 export type ChannelKind = 'email' | 'slack' | 'pagerduty' | 'webhook';
+export type NotifSeverityFilter = 'info' | 'warn' | 'err';
 
 export interface NotifChannel {
   id: string;
@@ -558,7 +559,7 @@ export interface NotifChannel {
 export interface NotifEventKind {
   id: string;
   label: string;
-  severity: 'info' | 'warn' | 'err';
+  severity: NotifSeverityFilter;
   routed: ChannelKind[];
 }
 
@@ -567,7 +568,7 @@ export interface NotifChannelsResponse {
   eventKinds: NotifEventKind[];
 }
 
-/** GET /notification-channels — channel routing matrix */
+/** GET /notification-channels — channel routing matrix (read-only, all roles) */
 export function useNotifChannels() {
   return useQuery({
     queryKey: queryKeys.notifChannels(),
@@ -576,13 +577,128 @@ export function useNotifChannels() {
   });
 }
 
-/** PATCH /notification-channels/:id — toggle channel enabled state */
-export function useToggleNotifChannel() {
+// ---- Admin notification channels CRUD ----
+
+export interface AdminChannel {
+  id: string;
+  kind: ChannelKind;
+  name: string;
+  target: string;
+  enabled: boolean;
+  severityFilter: NotifSeverityFilter;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateChannelBody {
+  kind: ChannelKind;
+  name: string;
+  target: string;
+  enabled?: boolean;
+  severityFilter?: NotifSeverityFilter;
+}
+
+export interface UpdateChannelBody {
+  name?: string;
+  target?: string;
+  enabled?: boolean;
+  severityFilter?: NotifSeverityFilter;
+}
+
+export interface RoutingRule {
+  id: string;
+  eventType: string;
+  severity: NotifSeverityFilter;
+  channelKind: ChannelKind;
+  enabled: boolean;
+}
+
+export interface UpsertRoutingRuleBody {
+  eventType: string;
+  severity: NotifSeverityFilter;
+  channelKind: ChannelKind;
+  enabled: boolean;
+}
+
+export const adminNotifQueryKeys = {
+  channels: () => ['admin', 'notif', 'channels'] as const,
+  routing: () => ['admin', 'notif', 'routing'] as const,
+};
+
+/** GET /admin/notification-channels — admin channel list */
+export function useAdminChannels() {
+  return useQuery({
+    queryKey: adminNotifQueryKeys.channels(),
+    queryFn: () =>
+      api.get<{ data: AdminChannel[] }>('/admin/notification-channels').catch(() => ({ data: [] })),
+    staleTime: 30_000,
+  });
+}
+
+/** POST /admin/notification-channels — create channel */
+export function useCreateAdminChannel() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      api.patch<NotifChannel>(`/notification-channels/${id}`, { enabled }),
+    mutationFn: (body: CreateChannelBody) =>
+      api.post<AdminChannel>('/admin/notification-channels', body),
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminNotifQueryKeys.channels() });
+      void qc.invalidateQueries({ queryKey: queryKeys.notifChannels() });
+    },
+  });
+}
+
+/** PATCH /admin/notification-channels/:id — update channel */
+export function useUpdateAdminChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & UpdateChannelBody) =>
+      api.patch<AdminChannel>(`/admin/notification-channels/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminNotifQueryKeys.channels() });
+      void qc.invalidateQueries({ queryKey: queryKeys.notifChannels() });
+    },
+  });
+}
+
+/** DELETE /admin/notification-channels/:id — hard delete */
+export function useDeleteAdminChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ ok: boolean }>(`/admin/notification-channels/${id}`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminNotifQueryKeys.channels() });
+      void qc.invalidateQueries({ queryKey: queryKeys.notifChannels() });
+    },
+  });
+}
+
+/** POST /admin/notification-channels/:id/test — fire test notification */
+export function useTestAdminChannel() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ ok: boolean; channelKind: string }>(`/admin/notification-channels/${id}/test`),
+  });
+}
+
+/** GET /admin/notification-routing — routing rules */
+export function useAdminRouting() {
+  return useQuery({
+    queryKey: adminNotifQueryKeys.routing(),
+    queryFn: () =>
+      api.get<{ data: RoutingRule[] }>('/admin/notification-routing').catch(() => ({ data: [] })),
+    staleTime: 30_000,
+  });
+}
+
+/** PATCH /admin/notification-routing — upsert a routing rule */
+export function useUpsertRoutingRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpsertRoutingRuleBody) =>
+      api.patch<RoutingRule>('/admin/notification-routing', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminNotifQueryKeys.routing() });
       void qc.invalidateQueries({ queryKey: queryKeys.notifChannels() });
     },
   });

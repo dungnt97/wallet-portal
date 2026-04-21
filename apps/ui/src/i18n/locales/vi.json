@@ -811,7 +811,31 @@
     "subtitle": "Yêu cầu ký, cảnh báo và sự kiện hệ thống",
     "markAllRead": "Đánh dấu đã đọc",
     "unread": "Chưa đọc",
-    "all": "Tất cả"
+    "all": "Tất cả",
+    "addChannel": "Thêm kênh",
+    "editChannel": "Sửa kênh",
+    "deleteChannel": "Xoá kênh",
+    "sendTest": "Gửi thử",
+    "testSent": "Đã gửi thử tới các kênh đang bật",
+    "channels": {
+      "title": "Kênh thông báo",
+      "active": "Kênh đang bật",
+      "kind": "Loại",
+      "name": "Tên",
+      "target": "Đích",
+      "severityFilter": "Lọc mức độ",
+      "created": "Đã tạo kênh",
+      "updated": "Đã cập nhật kênh",
+      "deleted": "Đã xoá kênh"
+    },
+    "routing": {
+      "title": "Ma trận định tuyến sự kiện",
+      "hint": "Bấm ô để bật/tắt định tuyến",
+      "rules": "Quy tắc đang bật",
+      "event": "Sự kiện",
+      "severity": "Mức độ",
+      "testHint": "Sẽ gửi thử tới {{count}} kênh đang hoạt động"
+    }
   },
   "recovery": {
     "title": "Tx lỗi",

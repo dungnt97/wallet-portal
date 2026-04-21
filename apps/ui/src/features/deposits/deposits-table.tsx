@@ -3,8 +3,8 @@
 import { Address, ChainPill, Hash, Risk, StatusBadge, TokenPill } from '@/components/custody';
 import { fmtUSD } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
-import type { FixDeposit } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
+import type { FixDeposit } from './deposit-types';
 
 interface Props {
   rows: FixDeposit[];

@@ -5,8 +5,8 @@ import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
 import { useMemo } from 'react';
 import { Sparkline } from '../_shared/charts';
-import type { FixDeposit } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
+import type { FixDeposit } from './deposit-types';
 
 interface Props {
   deposits: FixDeposit[];

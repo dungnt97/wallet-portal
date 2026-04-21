@@ -6,7 +6,6 @@ import { I } from '@/icons';
 // Batch history wired to real /sweeps/batches API; INITIAL_SWEEP_BATCHES removed.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FixSweepAddr } from '../_shared/fixtures';
 import { GasMonitor } from './gas-monitor';
 import { SweepAddressTable, SweepCart } from './sweep-address-table';
 import { type Batch, SweepBatchHistory } from './sweep-batch-history';
@@ -14,6 +13,7 @@ import { SweepConfirmModal } from './sweep-confirm-modal';
 import { SweepKpiStrip } from './sweep-kpi-strip';
 import { SweepPolicyStrip } from './sweep-policy-strip';
 import { useSweepSocketListener } from './sweep-socket-listener';
+import type { FixSweepAddr } from './sweep-types';
 import { useSweepCandidates } from './use-sweep-candidates';
 import { useSweepTrigger } from './use-sweep-trigger';
 

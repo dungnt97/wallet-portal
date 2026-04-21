@@ -7,8 +7,8 @@ import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtDateTime, fmtUSD } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
-import type { FixDeposit } from '../_shared/fixtures';
 import { explorerUrl } from '../_shared/helpers';
+import type { FixDeposit } from './deposit-types';
 
 interface Props {
   deposit: FixDeposit | null;

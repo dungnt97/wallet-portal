@@ -23,6 +23,8 @@ declare module 'fastify' {
     ceremonyQueue: Queue;
     /** BullMQ queue for reconciliation run jobs (Slice 10) */
     reconQueue: Queue;
+    /** BullMQ queue for pg_dump backup jobs (Phase 12) */
+    backupQueue: Queue;
   }
 
   interface Session {

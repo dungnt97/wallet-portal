@@ -24,3 +24,4 @@ export * from './reconciliation-snapshots';
 export * from './reconciliation-drifts';
 export * from './recovery-actions';
 export * from './staff-login-history';
+export * from './backups';

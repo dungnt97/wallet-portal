@@ -10,6 +10,7 @@ import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
 import notificationsRoutes from './notifications.routes.js';
+import opsBackupRoutes from './ops-backup.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import rebalanceRoutes from './rebalance.routes.js';
@@ -56,9 +57,10 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   // Global search — users + tx lookup (command palette backend)
   await app.register(searchRoutes);
 
-  // Ops routes — kill-switch toggle + health aggregator
+  // Ops routes — kill-switch toggle + health aggregator + pg_dump backup
   await app.register(opsKillSwitchRoutes);
   await app.register(opsHealthRoutes);
+  await app.register(opsBackupRoutes);
 
   // Internal service-to-service routes (bearer token, D4) — paths include /internal prefix
   await app.register(internalRoutes, {

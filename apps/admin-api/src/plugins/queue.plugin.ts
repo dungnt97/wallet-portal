@@ -9,6 +9,7 @@ import fp from 'fastify-plugin';
 import { EMAIL_IMMEDIATE_QUEUE, SLACK_WEBHOOK_QUEUE } from '../services/notify-staff.service.js';
 import { COLD_TIMELOCK_QUEUE } from '../services/withdrawal-create.service.js';
 import { SMS_QUEUE } from '../workers/notif-sms.worker.js';
+import { PG_BACKUP_QUEUE } from '../workers/pg-backup.worker.js';
 import {
   RECON_RUN_QUEUE,
   registerReconRepeatableJobs,
@@ -44,6 +45,9 @@ const queuePlugin: FastifyPluginAsync = async (app) => {
   // Reconciliation run queue (Slice 10) — ad-hoc + cron repeatable jobs
   const reconQueue = new Queue(RECON_RUN_QUEUE, { connection: connOpts });
 
+  // pg_dump backup queue (Phase 12) — concurrency 1 in worker
+  const backupQueue = new Queue(PG_BACKUP_QUEUE, { connection: connOpts });
+
   app.decorate('queue', queue);
   app.decorate('sweepQueue', sweepQueue);
   app.decorate('coldTimelockQueue', coldTimelockQueue);
@@ -52,6 +56,7 @@ const queuePlugin: FastifyPluginAsync = async (app) => {
   app.decorate('smsQueue', smsQueue);
   app.decorate('ceremonyQueue', ceremonyQueue);
   app.decorate('reconQueue', reconQueue);
+  app.decorate('backupQueue', backupQueue);
 
   // Register repeatable cron + GC jobs (idempotent — safe on every restart)
   await registerReconRepeatableJobs(reconQueue);
@@ -65,6 +70,7 @@ const queuePlugin: FastifyPluginAsync = async (app) => {
     await smsQueue.close();
     await ceremonyQueue.close();
     await reconQueue.close();
+    await backupQueue.close();
   });
 };
 

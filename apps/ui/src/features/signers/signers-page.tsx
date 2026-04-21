@@ -256,18 +256,7 @@ export function SignersPage() {
         )
       }
       kpis={
-        <SignersKpiStrip
-          active={activeTreasurers.map((s: StaffMember) => ({
-            id: s.id,
-            name: s.name,
-            email: s.email,
-            initials: s.name.slice(0, 2).toUpperCase(),
-            evmAddr: '',
-            solAddr: null,
-            active: true,
-          }))}
-          pendingChanges={activeCeremCount}
-        />
+        <SignersKpiStrip activeCount={activeTreasurers.length} pendingChanges={activeCeremCount} />
       }
     >
       {/* New ceremony banner */}

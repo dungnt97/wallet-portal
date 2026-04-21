@@ -138,7 +138,17 @@ export function ChannelFormModal({ open, onClose, initialData }: Props) {
         {/* Kind selector — only shown for new channels */}
         {!isEdit && (
           <div className="form-field">
-            <label className="form-label" htmlFor="ch-kind-buttons">
+            <label
+              className="form-label"
+              style={{
+                display: 'block',
+                marginBottom: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'var(--muted)',
+              }}
+              htmlFor="ch-kind-buttons"
+            >
               {t('notifs.channels.kind')}
             </label>
             <div id="ch-kind-buttons" className="segmented" style={{ marginTop: 4 }}>
@@ -158,7 +168,17 @@ export function ChannelFormModal({ open, onClose, initialData }: Props) {
 
         {/* Name */}
         <div className="form-field">
-          <label className="form-label" htmlFor="ch-name-input">
+          <label
+            className="form-label"
+            style={{
+              display: 'block',
+              marginBottom: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--muted)',
+            }}
+            htmlFor="ch-name-input"
+          >
             {t('notifs.channels.name')}
           </label>
           <input
@@ -174,7 +194,17 @@ export function ChannelFormModal({ open, onClose, initialData }: Props) {
 
         {/* Target */}
         <div className="form-field">
-          <label className="form-label" htmlFor="ch-target-input">
+          <label
+            className="form-label"
+            style={{
+              display: 'block',
+              marginBottom: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--muted)',
+            }}
+            htmlFor="ch-target-input"
+          >
             {t('notifs.channels.target')}
           </label>
           <input
@@ -198,7 +228,17 @@ export function ChannelFormModal({ open, onClose, initialData }: Props) {
 
         {/* Severity filter */}
         <div className="form-field">
-          <label className="form-label" htmlFor="ch-severity-group">
+          <label
+            className="form-label"
+            style={{
+              display: 'block',
+              marginBottom: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--muted)',
+            }}
+            htmlFor="ch-severity-group"
+          >
             {t('notifs.channels.severityFilter')}
           </label>
           <div id="ch-severity-group" style={{ display: 'flex', gap: 12, marginTop: 6 }}>

@@ -110,8 +110,6 @@ function ChannelRow({ channel, onEdit }: ChannelRowProps) {
   const testMut = useTestAdminChannel();
   const qc = useQueryClient();
 
-  const [hovered, setHovered] = useState(false);
-
   const handleToggle = () => {
     updateMut.mutate(
       { id: channel.id, enabled: !channel.enabled },
@@ -139,11 +137,7 @@ function ChannelRow({ channel, onEdit }: ChannelRowProps) {
   const Icon = I[CHANNEL_ICON[channel.kind]];
 
   return (
-    <div
-      className="ch-row"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className="ch-row">
       <div className={`ch-kind ch-kind-${channel.kind}`}>
         <Icon size={13} />
       </div>
@@ -153,37 +147,35 @@ function ChannelRow({ channel, onEdit }: ChannelRowProps) {
           {channel.kind} · filter: severity ≥ {channel.severityFilter}
         </div>
       </div>
-      {hovered && (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <button
-            type="button"
-            className="icon-btn"
-            title="Send test"
-            onClick={handleTest}
-            disabled={testMut.isPending}
-          >
-            <I.Zap size={12} />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            title={t('notifs.editChannel')}
-            onClick={() => onEdit(channel)}
-          >
-            <I.Pencil size={12} />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            title={t('notifs.deleteChannel')}
-            onClick={handleDelete}
-            disabled={deleteMut.isPending}
-            style={{ color: 'var(--err-text)' }}
-          >
-            <I.Trash size={12} />
-          </button>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <button
+          type="button"
+          className="icon-btn"
+          title={t('notifs.sendTest')}
+          onClick={handleTest}
+          disabled={testMut.isPending}
+        >
+          <I.Zap size={12} />
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          title={t('notifs.editChannel')}
+          onClick={() => onEdit(channel)}
+        >
+          <I.Pencil size={12} />
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          title={t('notifs.deleteChannel')}
+          onClick={handleDelete}
+          disabled={deleteMut.isPending}
+          style={{ color: 'var(--err-text)' }}
+        >
+          <I.Trash size={12} />
+        </button>
+      </div>
       <Toggle on={channel.enabled} onChange={handleToggle} />
     </div>
   );

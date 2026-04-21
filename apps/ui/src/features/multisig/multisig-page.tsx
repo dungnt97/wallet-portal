@@ -132,12 +132,14 @@ export function MultisigPage() {
 
   const doSync = () => {
     setSyncing(true);
-    void qc.invalidateQueries({ queryKey: ['multisig'] });
-    void qc.invalidateQueries({ queryKey: ['cold'] });
-    setTimeout(() => {
+    void Promise.all([
+      qc.invalidateQueries({ queryKey: ['multisig'] }),
+      qc.invalidateQueries({ queryKey: ['cold'] }),
+      qc.invalidateQueries({ queryKey: ['wallets'] }),
+    ]).then(() => {
       setSyncing(false);
-      toast('Synced with Safe and Squads.', 'success');
-    }, 800);
+      toast(t('multisig.synced', 'Cache refreshed from local DB.'), 'success');
+    });
   };
 
   // Mutation hooks are keyed by selected op id

@@ -1,5 +1,5 @@
 import { useAuth } from '@/auth/use-auth';
-import { DetailSheet, useToast } from '@/components/overlays';
+import { DetailSheet } from '@/components/overlays';
 // Multisig op detail sheet — reuses ApprovalQueue + shows calldata preview.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
@@ -18,7 +18,6 @@ interface Props {
 
 export function MultisigSheet({ op, onClose, onApprove, onReject, onExecute }: Props) {
   const { staff } = useAuth();
-  const toast = useToast();
   if (!op) return null;
 
   const alreadySigned = staff && op.approvers.some((a) => a.staffId === staff.id);
@@ -55,26 +54,40 @@ export function MultisigSheet({ op, onClose, onApprove, onReject, onExecute }: P
         </button>
       )}
       {op.status === 'ready' && (
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            onExecute(op);
-            toast('Broadcasting (stub).', 'success');
-          }}
-        >
+        <button className="btn btn-primary" onClick={() => onExecute(op)}>
           <I.Send size={11} /> Execute on-chain
         </button>
       )}
     </>
   );
 
-  const calldata = `{
-  "to":     "${op.token === 'USDT' ? '0x55d398326f99059fF775485246999027B3197955' : '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'}",
-  "value":  "0",
-  "data":   "0xa9059cbb000000000000000000000000${op.destination.slice(2, 42)}…",
-  "operation": 0,
-  "safeTxGas": 80000,
-  "nonce":  ${op.nonce}
+  // Calldata: show actual multisig op fields — destination, nonce, token, amounts.
+  // Token contract addresses are populated from env or shown as unknown if not available.
+  const bnbUsdtContract = import.meta.env.VITE_BNB_USDT_CONTRACT as string | undefined;
+  const bnbUsdcContract = import.meta.env.VITE_BNB_USDC_CONTRACT as string | undefined;
+
+  let contractAddr = '(token contract — see vault config)';
+  if (op.chain === 'bnb' && op.token === 'USDT' && bnbUsdtContract) contractAddr = bnbUsdtContract;
+  else if (op.chain === 'bnb' && op.token === 'USDC' && bnbUsdcContract)
+    contractAddr = bnbUsdcContract;
+
+  const calldata =
+    op.token && op.destination
+      ? `{
+  "multisigAddr": "${op.multisigAddr}",
+  "destination":  "${op.destination}",
+  "token":        "${op.token ?? 'N/A'}",
+  "tokenContract":"${contractAddr}",
+  "amount":       "${op.amount > 0 ? op.amount : 'see on-chain payload'}",
+  "nonce":        ${op.nonce},
+  "operationType":"${op.operationType}",
+  "chain":        "${op.chain}"
+}`
+      : `{
+  "multisigAddr": "${op.multisigAddr}",
+  "operationType":"${op.operationType}",
+  "chain":        "${op.chain}",
+  "nonce":        ${op.nonce}
 }`;
 
   return (

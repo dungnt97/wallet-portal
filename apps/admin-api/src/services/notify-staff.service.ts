@@ -42,6 +42,10 @@ const EVENT_CATEGORY_MAP: Record<string, PrefCategory> = {
   'health.degraded': 'health',
   'cold.timelock.expiring': 'coldTimelock',
   'cold.withdrawal.auto-executed': 'coldTimelock',
+  // Reconciliation drift events (Slice 10)
+  'reconciliation.drift.critical': 'reconciliation',
+  'reconciliation.drift.warning': 'reconciliation',
+  'reconciliation.drift.none': 'reconciliation',
 };
 
 function getPrefCategory(eventType: string): PrefCategory | null {

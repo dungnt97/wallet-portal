@@ -13,6 +13,8 @@ export interface NotificationEventPrefs {
   reorg: boolean;
   health: boolean;
   coldTimelock: boolean;
+  /** Reconciliation drift alerts (Slice 10) */
+  reconciliation: boolean;
 }
 
 export interface NotificationPrefs {
@@ -34,6 +36,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
     reorg: true,
     health: true,
     coldTimelock: true,
+    reconciliation: true,
   },
 };
 

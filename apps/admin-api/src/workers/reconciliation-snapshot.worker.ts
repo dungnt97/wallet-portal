@@ -13,8 +13,11 @@ import { type Queue, Worker } from 'bullmq';
 import { lt, sql } from 'drizzle-orm';
 import type { RedisOptions } from 'ioredis';
 import type IORedis from 'ioredis';
+import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
+import type { EmailJobData, SlackJobData } from '../services/notify-staff.service.js';
+import { alertOnSnapshotComplete } from '../services/reconciliation-alerter.service.js';
 import { runSnapshot } from '../services/reconciliation-snapshot.service.js';
 
 // ── Queue name constants ──────────────────────────────────────────────────────
@@ -81,6 +84,9 @@ async function runGc(db: Db): Promise<void> {
 export function createReconWorker(
   db: Db,
   redis: IORedis,
+  io: SocketIOServer,
+  emailQueue: Queue<EmailJobData>,
+  slackQueue: Queue<SlackJobData>,
   reconQueue: Queue<ReconRunJobData>,
   redisOpts: RedisOptions
 ): Worker<ReconRunJobData> {
@@ -101,10 +107,23 @@ export function createReconWorker(
         return;
       }
 
-      await runSnapshot(db, redis, {
+      const result = await runSnapshot(db, redis, {
         ...(triggeredBy !== undefined && { triggeredBy }),
         ...(chain !== undefined && { chain }),
         ...(scope !== undefined && { scope }),
+      });
+
+      // Fire aggregate drift alert (non-fatal)
+      const snap = await db.query.reconciliationSnapshots.findFirst({
+        where: (t, { eq }) => eq(t.id, result.snapshotId),
+        columns: { driftTotalMinor: true },
+      });
+      await alertOnSnapshotComplete(db, io, emailQueue, slackQueue, {
+        snapshotId: result.snapshotId,
+        driftCount: result.driftCount,
+        criticalCount: result.criticalCount,
+        warningCount: result.warningCount,
+        driftTotalMinor: snap?.driftTotalMinor ?? 0n,
       });
     },
     { connection: redisOpts, concurrency: 1 }

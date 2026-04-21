@@ -34,6 +34,8 @@ const NotificationEventPrefsSchema = z.object({
   reorg: z.boolean(),
   health: z.boolean(),
   coldTimelock: z.boolean(),
+  /** Reconciliation drift alerts (Slice 10) */
+  reconciliation: z.boolean().optional().default(true),
 });
 
 const NotificationPrefsSchema = z.object({
@@ -277,6 +279,9 @@ const notificationsRoutes: FastifyPluginAsync = async (app) => {
           reorg: patch.eventTypes?.reorg ?? current.eventTypes.reorg,
           health: patch.eventTypes?.health ?? current.eventTypes.health,
           coldTimelock: patch.eventTypes?.coldTimelock ?? current.eventTypes.coldTimelock,
+          // Reconciliation drift alerts (Slice 10)
+          reconciliation:
+            patch.eventTypes?.reconciliation ?? current.eventTypes.reconciliation ?? true,
         },
       };
 

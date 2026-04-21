@@ -25,6 +25,10 @@ import {
 } from './workers/notif-email-digest.worker.js';
 import { createEmailImmediateWorker } from './workers/notif-email-immediate.worker.js';
 import { createSlackWorker } from './workers/notif-slack.worker.js';
+import {
+  createReconWorker,
+  recoverStaleSnapshots,
+} from './workers/reconciliation-snapshot.worker.js';
 
 export async function buildApp(cfg: Config) {
   const app = Fastify({
@@ -173,6 +177,20 @@ export async function buildApp(cfg: Config) {
     app.addHook('onClose', async () => slackWorker.close());
 
     app.log.info('Notification workers started (email-immediate, email-digest, slack)');
+
+    // Reconciliation worker + boot recovery (Slice 10)
+    await recoverStaleSnapshots(app.db);
+    const reconWorker = createReconWorker(
+      app.db,
+      app.redis,
+      app.io,
+      app.emailQueue,
+      app.slackQueue,
+      app.reconQueue,
+      redisOpts
+    );
+    app.addHook('onClose', async () => reconWorker.close());
+    app.log.info('Reconciliation worker started');
   });
 
   return app;

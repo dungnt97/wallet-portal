@@ -1,8 +1,12 @@
+import { api } from '@/api/client';
 import { Modal } from '@/components/overlays/modal';
 import { useToast } from '@/components/overlays/toast-host';
+import { useMutation } from '@tanstack/react-query';
 // Notification preferences modal — per-channel + per-event-type toggles.
 // Opened from user-menu "Notification settings" item.
+// Phase 11: SMS toggle + phone number input (PATCH /staff/me to save phoneNumber).
 import type { NotificationPrefs } from '@wp/shared-types';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNotificationPrefs, usePatchNotificationPrefs } from './use-notifications';
 
@@ -58,20 +62,37 @@ const EVENT_TYPE_KEYS: EventTypeKey[] = [
   'coldTimelock',
 ];
 
+function useSavePhone() {
+  return useMutation({
+    mutationFn: (phoneNumber: string) => api.patch('/staff/me', { phoneNumber }),
+  });
+}
+
 export function NotifPrefsModal({ open, onClose }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
 
   const { data: prefs, isLoading } = useNotificationPrefs();
   const patch = usePatchNotificationPrefs();
+  const savePhone = useSavePhone();
 
-  const handleChannelToggle = (channel: 'inApp' | 'email' | 'slack', value: boolean) => {
+  const [phone, setPhone] = useState('');
+
+  const handleChannelToggle = (channel: 'inApp' | 'email' | 'slack' | 'sms', value: boolean) => {
     patch.mutate(
       { [channel]: value },
       {
         onSuccess: () => toast(t('notifications.prefs.saved'), 'success'),
       }
     );
+  };
+
+  const handleSavePhone = () => {
+    if (!phone.trim()) return;
+    savePhone.mutate(phone.trim(), {
+      onSuccess: () => toast(t('notifications.prefs.saved'), 'success'),
+      onError: (err) => toast((err as Error).message ?? t('common.error'), 'error'),
+    });
   };
 
   const handleEventTypeToggle = (key: EventTypeKey, value: boolean) => {
@@ -119,8 +140,40 @@ export function NotifPrefsModal({ open, onClose }: Props) {
                 checked={prefs.slack}
                 onChange={(v) => handleChannelToggle('slack', v)}
               />
+              <ToggleRow
+                label={t('notifications.prefs.sms')}
+                checked={prefs.sms ?? false}
+                onChange={(v) => handleChannelToggle('sms', v)}
+              />
             </div>
           </section>
+
+          {/* Phone number for SMS (only shown when sms is toggled on) */}
+          {(prefs.sms ?? false) && (
+            <section>
+              <div className="text-xs fw-600 text-muted" style={{ marginBottom: 8 }}>
+                {t('notifications.prefs.phoneNumber')}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="input"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('notifications.prefs.phoneNumberPlaceholder')}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleSavePhone}
+                  disabled={!phone.trim() || savePhone.isPending}
+                >
+                  {t('common.save')}
+                </button>
+              </div>
+            </section>
+          )}
 
           {/* Event-type toggles */}
           <section>

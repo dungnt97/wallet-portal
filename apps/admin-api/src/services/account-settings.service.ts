@@ -9,6 +9,8 @@ export interface UpdateProfileParams {
   staffId: string;
   name?: string | undefined;
   localePref?: string | undefined;
+  /** E.164 phone number for SMS notifications (e.g. "+14155550000") */
+  phoneNumber?: string | undefined;
 }
 
 export interface UpdateProfileResult {
@@ -28,7 +30,7 @@ export async function updateProfile(
   db: Db,
   params: UpdateProfileParams
 ): Promise<UpdateProfileResult> {
-  const { staffId, name, localePref } = params;
+  const { staffId, name, localePref, phoneNumber } = params;
 
   if (localePref !== undefined && !VALID_LOCALES.has(localePref)) {
     throw new Error(
@@ -36,11 +38,17 @@ export async function updateProfile(
     );
   }
 
+  // Validate E.164 format if provided (e.g. "+14155550000")
+  if (phoneNumber !== undefined && !/^\+\d{7,15}$/.test(phoneNumber)) {
+    throw new Error('phoneNumber must be in E.164 format (e.g. +14155550000)');
+  }
+
   const updates: Partial<typeof schema.staffMembers.$inferInsert> = {
     updatedAt: new Date(),
   };
   if (name !== undefined) updates.name = name.trim();
   if (localePref !== undefined) updates.localePref = localePref;
+  if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
 
   const [updated] = await db
     .update(schema.staffMembers)
@@ -60,7 +68,12 @@ export async function updateProfile(
     action: 'staff.profile.updated',
     resourceType: 'staff',
     resourceId: staffId,
-    changes: { name, localePref },
+    // Mask phone number in audit log — only record whether it was set
+    changes: {
+      name,
+      localePref,
+      phoneNumberSet: phoneNumber !== undefined,
+    },
   });
 
   return updated;

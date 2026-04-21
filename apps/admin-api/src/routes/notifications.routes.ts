@@ -42,6 +42,8 @@ const NotificationPrefsSchema = z.object({
   inApp: z.boolean(),
   email: z.boolean(),
   slack: z.boolean(),
+  /** SMS via Twilio — dry-run when TWILIO_* env vars absent */
+  sms: z.boolean().optional().default(false),
   eventTypes: NotificationEventPrefsSchema,
 });
 
@@ -271,6 +273,7 @@ const notificationsRoutes: FastifyPluginAsync = async (app) => {
         inApp: patch.inApp ?? current.inApp,
         email: patch.email ?? current.email,
         slack: patch.slack ?? current.slack,
+        sms: patch.sms ?? current.sms ?? false,
         eventTypes: {
           withdrawal: patch.eventTypes?.withdrawal ?? current.eventTypes.withdrawal,
           sweep: patch.eventTypes?.sweep ?? current.eventTypes.sweep,

@@ -16,6 +16,8 @@ export interface NotificationPrefs {
   inApp: boolean;
   email: boolean;
   slack: boolean;
+  /** SMS via Twilio — dry-run when TWILIO_* env vars absent */
+  sms: boolean;
   eventTypes: NotificationEventPrefs;
 }
 

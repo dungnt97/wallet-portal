@@ -17,6 +17,8 @@ declare module 'fastify' {
     emailQueue: Queue;
     /** BullMQ queue for Slack webhook notifications (Slice 5) */
     slackQueue: Queue;
+    /** BullMQ queue for SMS notifications via Twilio (Phase 11) */
+    smsQueue: Queue;
     /** BullMQ queue for signer ceremony broadcast jobs (Slice 6) */
     ceremonyQueue: Queue;
     /** BullMQ queue for reconciliation run jobs (Slice 10) */

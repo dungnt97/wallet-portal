@@ -21,6 +21,8 @@ export interface NotificationPrefs {
   inApp: boolean;
   email: boolean;
   slack: boolean;
+  /** SMS via Twilio — dry-run when TWILIO_* env vars absent (migration 0018 adds phone_number) */
+  sms: boolean;
   eventTypes: NotificationEventPrefs;
 }
 
@@ -28,6 +30,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   inApp: true,
   email: true,
   slack: false,
+  sms: false,
   eventTypes: {
     withdrawal: true,
     sweep: true,

@@ -1,15 +1,17 @@
 // notify-staff.service — core fan-out: INSERT notifications → Socket.io emit
-// → enqueue email/slack jobs per staff prefs + severity.
+// → enqueue email/slack/sms jobs per staff prefs + severity.
 //
 // Usage:
 //   await notifyStaff(db, io, { role:'treasurer', eventType:'withdrawal.created',
-//     severity:'info', title:'...', body:'...', payload:{...} }, emailQueue, slackQueue)
+//     severity:'info', title:'...', body:'...', payload:{...} }, emailQueue, slackQueue, smsQueue)
 import type { Queue } from 'bullmq';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
 import type { NotificationSeverity } from '../db/schema/notifications.js';
 import { emitNotifCreated } from '../events/emit-notif-created.js';
+import type { SmsJobData } from '../workers/notif-sms.worker.js';
+import { SMS_QUEUE } from '../workers/notif-sms.worker.js';
 import { getStaffIdsByRole, getStaffPrefs } from './notification-prefs.service.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -117,7 +119,8 @@ export async function notifyStaff(
   io: SocketIOServer,
   input: NotifyInput,
   emailQueue: Queue<EmailJobData>,
-  slackQueue: Queue<SlackJobData>
+  slackQueue: Queue<SlackJobData>,
+  smsQueue?: Queue<SmsJobData>
 ): Promise<void> {
   if (!isEnabled()) return;
 
@@ -148,7 +151,9 @@ export async function notifyStaff(
   await Promise.all(
     staffIds.map(async (staffId) => {
       try {
-        await processSingleStaff(db, io, {
+        // exactOptionalPropertyTypes: build the input object conditionally to avoid
+        // passing `undefined` for the optional smsQueue field
+        const processInput: StaffProcessInput = {
           staffId,
           eventType,
           severity,
@@ -159,7 +164,9 @@ export async function notifyStaff(
           category,
           emailQueue,
           slackQueue,
-        });
+        };
+        if (smsQueue !== undefined) processInput.smsQueue = smsQueue;
+        await processSingleStaff(db, io, processInput);
       } catch (err) {
         // Non-fatal: log and continue for other recipients
         console.error('[notify-staff] Failed for staffId=%s err=%s', staffId, err);
@@ -181,6 +188,8 @@ interface StaffProcessInput {
   category: PrefCategory | null;
   emailQueue: Queue<EmailJobData>;
   slackQueue: Queue<SlackJobData>;
+  // exactOptionalPropertyTypes: absence means no smsQueue; passing undefined is prohibited
+  smsQueue?: Queue<SmsJobData>;
 }
 
 async function processSingleStaff(
@@ -258,6 +267,21 @@ async function processSingleStaff(
     await input.slackQueue.add('notif_slack', slackJob, {
       ...jobOpts,
       jobId: `slack:${row.id}`,
+    });
+  }
+
+  // SMS: only for critical events when sms pref enabled + queue provided
+  if (prefs.sms && severity === 'critical' && input.smsQueue) {
+    const smsJob: SmsJobData = {
+      notificationId: row.id,
+      staffId,
+      title,
+      body,
+      severity,
+    };
+    await input.smsQueue.add(SMS_QUEUE, smsJob, {
+      ...jobOpts,
+      jobId: `sms:${row.id}`,
     });
   }
 }

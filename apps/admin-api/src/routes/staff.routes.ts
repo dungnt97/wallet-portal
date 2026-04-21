@@ -72,6 +72,11 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         body: z.object({
           name: z.string().min(1).max(100).optional(),
           localePref: z.enum(['en', 'vi']).optional(),
+          /** E.164 phone number for SMS notifications */
+          phoneNumber: z
+            .string()
+            .regex(/^\+\d{7,15}$/)
+            .optional(),
         }),
         response: {
           200: z.object({
@@ -87,13 +92,14 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
     async (req, reply) => {
       // biome-ignore lint/style/noNonNullAssertion: requireAuth preHandler ensures session.staff exists
       const staffId = req.session.staff!.id;
-      const { name, localePref } = req.body;
+      const { name, localePref, phoneNumber } = req.body;
 
       try {
         // Build params object without spreading undefined into exactOptionalPropertyTypes fields
         const params: Parameters<typeof updateProfile>[1] = { staffId };
         if (name !== undefined) params.name = name;
         if (localePref !== undefined) params.localePref = localePref;
+        if (phoneNumber !== undefined) params.phoneNumber = phoneNumber;
         const result = await updateProfile(app.db, params);
         return reply.code(200).send(result);
       } catch (err) {

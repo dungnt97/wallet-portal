@@ -1,3 +1,4 @@
+import { useLoginHistory } from '@/api/queries';
 // Audit log page — real data wiring replacing fixture stubs.
 // Actions tab: paginated + filtered real rows, hash verify badge, CSV export, socket live.
 // Sign-ins tab: fixture (out-of-scope per plan, real capture is auth slice work).
@@ -6,7 +7,6 @@ import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
 import { LiveDot } from '../_shared/realtime';
 import { AuditDetailSheet } from './audit-detail-sheet';
 import { AuditKpiStrip } from './audit-kpi-strip';
@@ -73,6 +73,10 @@ export function AuditPage() {
   const { data, isLoading } = useAuditLogs(queryParams);
   const rows = data?.data ?? [];
   const total = data?.total ?? 0;
+
+  // Real login history from /staff/login-history
+  const { data: loginHistoryData } = useLoginHistory({ limit: 50 });
+  const loginRows = loginHistoryData?.data ?? [];
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Verify chain for current page range (run when we have rows with timestamps)
@@ -184,7 +188,13 @@ export function AuditPage() {
           <I.External size={13} /> {t('audit.export.btn')}
         </button>
       }
-      kpis={<AuditKpiStrip total={total} isLoading={isLoading} />}
+      kpis={
+        <AuditKpiStrip
+          total={total}
+          isLoading={isLoading}
+          loginCount={loginHistoryData ? loginRows.length : null}
+        />
+      }
     >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
@@ -197,7 +207,7 @@ export function AuditPage() {
               {
                 value: 'logins',
                 label: t('audit.filters.tabLogins'),
-                count: FIXTURE_LOGIN_HISTORY.length,
+                count: loginRows.length,
               },
             ]}
           />
@@ -253,7 +263,7 @@ export function AuditPage() {
         </div>
 
         {tab === 'logins' ? (
-          <AuditLoginsTable rows={FIXTURE_LOGIN_HISTORY} />
+          <AuditLoginsTable rows={loginRows} />
         ) : (
           <AuditActionsTable
             rows={rows}

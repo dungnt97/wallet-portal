@@ -1,16 +1,17 @@
 // Audit KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
-// Accepts real total count from API instead of fixture arrays.
+// FIXTURE_LOGIN_HISTORY removed; loginCount from real /staff/login-history API.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
-import { FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
 
 interface Props {
   /** Total audit log rows from the real API */
   total: number;
   isLoading?: boolean;
+  /** Recent login count from real /staff/login-history API — null while loading */
+  loginCount?: number | null;
 }
 
-export function AuditKpiStrip({ total, isLoading }: Props) {
+export function AuditKpiStrip({ total, isLoading, loginCount }: Props) {
   return (
     <KpiStrip
       items={[
@@ -70,7 +71,7 @@ export function AuditKpiStrip({ total, isLoading }: Props) {
               Logins · session
             </>
           ),
-          value: FIXTURE_LOGIN_HISTORY.length,
+          value: loginCount ?? '…',
           foot: (
             <>
               <span className="text-xs text-muted">MFA enforced</span>

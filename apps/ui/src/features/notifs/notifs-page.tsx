@@ -1,11 +1,12 @@
 // Notifications routing page — channels + event→channel matrix.
-// Ports prototype page_ops_extras.jsx PageNotifs.
+// DEFAULT_CHANNELS + EVENT_KINDS fixtures removed; wired to real /notification-channels API.
+import { useNotifChannels } from '@/api/queries';
+import type { ChannelKind, NotifChannel } from '@/api/queries';
 import { PageFrame, Toggle } from '@/components/custody';
 import { Modal, useToast } from '@/components/overlays';
 import { I, type IconKey } from '@/icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Channel, type ChannelKind, DEFAULT_CHANNELS, EVENT_KINDS } from '../_shared/fixtures';
 
 const CHANNEL_ICON: Record<ChannelKind, IconKey> = {
   email: 'External',
@@ -16,12 +17,25 @@ const CHANNEL_ICON: Record<ChannelKind, IconKey> = {
 
 export function NotifsPage() {
   const { t } = useTranslation();
-  const [channels, setChannels] = useState<Channel[]>(DEFAULT_CHANNELS);
-  const [testOpen, setTestOpen] = useState(false);
   const toast = useToast();
 
+  const { data: notifData } = useNotifChannels();
+  // Optimistic local override for toggle UX — real toggle via PATCH not wired yet
+  const [localOverrides, setLocalOverrides] = useState<Record<string, boolean>>({});
+
+  const channels: NotifChannel[] = (notifData?.channels ?? []).map((c) => ({
+    ...c,
+    enabled: c.id in localOverrides ? localOverrides[c.id] : c.enabled,
+  }));
+  const eventKinds = notifData?.eventKinds ?? [];
+
+  const [testOpen, setTestOpen] = useState(false);
+
   const toggle = (id: string) =>
-    setChannels((cs) => cs.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)));
+    setLocalOverrides((prev) => {
+      const current = channels.find((c) => c.id === id)?.enabled ?? false;
+      return { ...prev, [id]: !current };
+    });
 
   return (
     <PageFrame
@@ -111,7 +125,7 @@ export function NotifsPage() {
               </tr>
             </thead>
             <tbody>
-              {EVENT_KINDS.map((e) => (
+              {eventKinds.map((e) => (
                 <tr key={e.id}>
                   <td>
                     <div className="text-sm fw-500">{e.label}</div>

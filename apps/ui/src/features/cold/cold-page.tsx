@@ -1,15 +1,14 @@
 // Cold wallet rebalance page — real balance data from GET /cold/balances.
-// Replaces fixture-driven prototype. Keeps rebalance history table + band cards.
-import { useColdBalances } from '@/api/queries';
+// Rebalance history wired to real GET /rebalance/history; REBALANCE_HISTORY fixture removed.
+import { useColdBalances, useRebalanceHistory } from '@/api/queries';
+import type { RebalanceHistoryRow } from '@/api/queries';
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, PageFrame, StatusBadge } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
-import { FIXTURE_STAFF } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { REBALANCE_HISTORY, type RebalanceOp } from '../_shared/fixtures';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
 import { ColdBalanceCards } from './cold-balance-cards';
 import { RebalanceModal } from './rebalance-modal';
@@ -21,9 +20,10 @@ export function ColdPage() {
   const canRebalance = staff?.role === 'admin' || staff?.role === 'operator';
 
   const [rebalanceChain, setRebalanceChain] = useState<'bnb' | 'sol' | null>(null);
-  const [history] = useState<RebalanceOp[]>(REBALANCE_HISTORY);
 
   const { data: balances, isLoading, isError } = useColdBalances();
+  const { data: historyData } = useRebalanceHistory();
+  const history: RebalanceHistoryRow[] = historyData?.data ?? [];
 
   return (
     <PageFrame
@@ -122,37 +122,43 @@ export function ColdPage() {
             </tr>
           </thead>
           <tbody>
-            {history.map((r) => {
-              const proposer = FIXTURE_STAFF.find((s) => s.id === r.proposer);
-              return (
-                <tr key={r.id}>
-                  <td className="text-mono fw-500">{r.id}</td>
-                  <td>
-                    <span className={`badge-tight ${r.direction === 'hot→cold' ? 'info' : 'warn'}`}>
-                      {r.direction}
-                    </span>
-                  </td>
-                  <td>
-                    <ChainPill chain={r.chain} />
-                  </td>
-                  <td className="num text-mono fw-500">${fmtUSD(r.amount)}</td>
-                  <td className="text-xs text-mono">{r.sigs}/2</td>
-                  <td>
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="text-sm">{proposer?.name ?? '—'}</td>
-                  <td className="num text-xs text-muted">
-                    <LiveTimeAgo at={r.createdAt} />
-                  </td>
-                  <td className="num text-xs text-muted">
-                    {r.executedAt ? <LiveTimeAgo at={r.executedAt} /> : '—'}
-                  </td>
-                  <td className="text-mono text-xs">
-                    {r.txHash ? shortHash(r.txHash, 6, 4) : '—'}
-                  </td>
-                </tr>
-              );
-            })}
+            {history.length === 0 && (
+              <tr>
+                <td
+                  colSpan={10}
+                  className="text-sm text-muted"
+                  style={{ textAlign: 'center', padding: 32 }}
+                >
+                  No rebalance history yet.
+                </td>
+              </tr>
+            )}
+            {history.map((r) => (
+              <tr key={r.id}>
+                <td className="text-mono fw-500">{r.id}</td>
+                <td>
+                  <span className={`badge-tight ${r.direction === 'hot→cold' ? 'info' : 'warn'}`}>
+                    {r.direction}
+                  </span>
+                </td>
+                <td>
+                  <ChainPill chain={r.chain} />
+                </td>
+                <td className="num text-mono fw-500">${fmtUSD(r.amount)}</td>
+                <td className="text-xs text-mono">{r.sigs}/2</td>
+                <td>
+                  <StatusBadge status={r.status} />
+                </td>
+                <td className="text-sm text-mono text-xs text-muted">{r.proposer.slice(0, 8)}…</td>
+                <td className="num text-xs text-muted">
+                  <LiveTimeAgo at={r.createdAt} />
+                </td>
+                <td className="num text-xs text-muted">
+                  {r.executedAt ? <LiveTimeAgo at={r.executedAt} /> : '—'}
+                </td>
+                <td className="text-mono text-xs">{r.txHash ? shortHash(r.txHash, 6, 4) : '—'}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

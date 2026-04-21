@@ -1,10 +1,10 @@
-// Audit log tables — real-data actions table (paginated + expandable) + fixture logins table
-// Actions table: click row → detail sheet; hash badge per row from verifyChain result
+// Audit log tables — real-data actions table (paginated + expandable) + logins table.
+// LoginEvent fixture removed; AuditLoginsTable now takes LoginHistoryRow from queries.ts.
+import type { LoginHistoryRow } from '@/api/queries';
 import { I } from '@/icons';
 import { ROLES, type RoleId } from '@/lib/constants';
 import { fmtDateTime } from '@/lib/format';
 import { useTranslation } from 'react-i18next';
-import type { LoginEvent } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 import type { AuditLogEntry } from './use-audit-logs';
 
@@ -167,7 +167,7 @@ export function AuditActionsTable({
 }
 
 interface LoginsTableProps {
-  rows: LoginEvent[];
+  rows: LoginHistoryRow[];
 }
 
 export function AuditLoginsTable({ rows }: LoginsTableProps) {
@@ -201,24 +201,25 @@ export function AuditLoginsTable({ rows }: LoginsTableProps) {
             <td>
               <div className="hstack">
                 <div className="avatar" style={{ width: 20, height: 20, fontSize: 9 }}>
-                  {l.name
+                  {l.staffName
                     .split(' ')
                     .map((p) => p[0])
                     .join('')}
                 </div>
                 <div>
-                  <div className="fw-500 text-sm">{l.name}</div>
+                  <div className="fw-500 text-sm">{l.staffName}</div>
                   <div className="text-xs text-muted">{l.email}</div>
                 </div>
               </div>
             </td>
             <td>
-              <span className={`role-pill role-${l.role}`}>
-                {ROLES[l.role as RoleId]?.label ?? l.role}
+              <span className={`badge-tight ${l.result === 'success' ? 'ok' : 'err'}`}>
+                <span className="dot" />
+                {l.result}
               </span>
             </td>
             <td className="text-mono text-xs text-muted">{l.ip}</td>
-            <td className="text-xs text-muted">{l.ua}</td>
+            <td className="text-xs text-muted">{l.userAgent}</td>
             <td className="num text-xs text-muted">{fmtDateTime(l.at)}</td>
           </tr>
         ))}

@@ -16,6 +16,7 @@ import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worke
 import { startSweepExecuteWorker } from './queue/workers/sweep-execute-worker.js';
 import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
 import internalDerivePlugin from './routes/internal-derive.js';
+import internalMultisigSyncPlugin from './routes/internal-multisig-sync.js';
 import internalRecoveryPlugin from './routes/internal-recovery.js';
 import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
 import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
@@ -142,6 +143,16 @@ async function start(): Promise<void> {
     bearerToken: cfg.SVC_BEARER_TOKEN,
     bnbProvider: bnbPool.provider,
     solanaConnection: solPool.primary,
+  });
+
+  // ── Internal multisig sync routes (bearer-protected) ─────────────────────────
+  await fastify.register(internalMultisigSyncPlugin, {
+    bearerToken: cfg.SVC_BEARER_TOKEN,
+    redis,
+    bnbProvider: bnbPool.provider,
+    solanaConnection: solPool.primary,
+    safeAddress: cfg.SAFE_ADDRESS,
+    squadsPda: cfg.SQUADS_MULTISIG_ADDRESS,
   });
 
   // Verify connectivity

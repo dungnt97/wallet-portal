@@ -54,6 +54,10 @@ const EnvSchema = z.object({
     .default('true')
     .transform((v) => v.toLowerCase() !== 'false'),
 
+  // Multisig contract addresses (for sync-status probe)
+  SAFE_ADDRESS: z.string().default(''),
+  SQUADS_MULTISIG_ADDRESS: z.string().default(''),
+
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('wallet-engine'),

@@ -9,6 +9,7 @@ import dashboardRoutes from './dashboard.routes.js';
 import depositsRoutes from './deposits.routes.js';
 import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
+import multisigSyncRoutes from './multisig-sync.routes.js';
 import multisigRoutes from './multisig.routes.js';
 import notificationAdminRoutes from './notification-admin.routes.js';
 import notifChannelsRoutes from './notification-channels.routes.js';
@@ -47,6 +48,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(withdrawalsRoutes);
   await app.register(transactionsRoutes);
   await app.register(multisigRoutes);
+  await app.register(multisigSyncRoutes);
   await app.register(sweepsRoutes, { sweepQueue: app.sweepQueue });
   await app.register(usersRoutes);
   await app.register(signersRoutes);

@@ -1,14 +1,18 @@
+// Users tables — staff table + end-users table.
+// StaffTable uses StaffMemberRow from real /staff API; STAFF_DIRECTORY fixture removed.
+import type { StaffMemberRow } from '@/api/queries';
 import type { UserRecord } from '@/api/users';
 import { KYC_LABELS } from '@/api/users';
-// Users tables — staff table + end-users table (real API shape, Slice 8).
 import { Address, Risk } from '@/components/custody';
 import { ROLES } from '@/lib/constants';
-import type { StaffRow } from '../_shared/fixtures';
 import { ROLE_DESCRIPTIONS } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 
+// Cast to generic record so we can look up by any role string without TS errors
+const ROLE_DESC = ROLE_DESCRIPTIONS as Record<string, string>;
+
 interface StaffTableProps {
-  rows: StaffRow[];
+  rows: StaffMemberRow[];
 }
 
 export function StaffTable({ rows }: StaffTableProps) {
@@ -19,12 +23,20 @@ export function StaffTable({ rows }: StaffTableProps) {
           <th>Name</th>
           <th>Email</th>
           <th>Role</th>
-          <th>Timezone</th>
           <th>Status</th>
           <th>Permissions</th>
         </tr>
       </thead>
       <tbody>
+        {rows.length === 0 && (
+          <tr>
+            <td colSpan={5}>
+              <div className="table-empty">
+                <div className="table-empty-title">No staff members</div>
+              </div>
+            </td>
+          </tr>
+        )}
         {rows.map((s) => (
           <tr key={s.id}>
             <td>
@@ -35,11 +47,10 @@ export function StaffTable({ rows }: StaffTableProps) {
             </td>
             <td className="text-sm text-muted">{s.email}</td>
             <td>
-              <span className={`role-pill role-${s.role}`}>{ROLES[s.role].label}</span>
+              <span className={`role-pill role-${s.role}`}>{ROLES[s.role]?.label ?? s.role}</span>
             </td>
-            <td className="text-sm text-muted">{s.tz}</td>
             <td>
-              {s.active ? (
+              {s.status === 'active' ? (
                 <span className="badge ok">
                   <span className="dot" />
                   Active
@@ -47,11 +58,11 @@ export function StaffTable({ rows }: StaffTableProps) {
               ) : (
                 <span className="badge">
                   <span className="dot" />
-                  Disabled
+                  {s.status}
                 </span>
               )}
             </td>
-            <td className="text-xs text-muted">{ROLE_DESCRIPTIONS[s.role]}</td>
+            <td className="text-xs text-muted">{ROLE_DESC[s.role] ?? ''}</td>
           </tr>
         ))}
       </tbody>
@@ -109,7 +120,6 @@ export function EndUsersTable({ rows, loading, showRiskFlags, onSelect }: EndUse
             </td>
             {showRiskFlags && (
               <td>
-                {/* riskScore is 0-100; map to low/med/high for display */}
                 <Risk level={u.riskScore >= 70 ? 'high' : u.riskScore >= 40 ? 'med' : 'low'} />
               </td>
             )}

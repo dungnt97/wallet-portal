@@ -7,8 +7,8 @@ import { LiveTimeAgo } from '../_shared/realtime';
 
 interface Batch {
   id: string;
-  executedAt: string;
-  status: 'completed' | 'partial';
+  executedAt: string | null;
+  status: 'completed' | 'partial' | 'pending' | 'failed';
 }
 
 interface Props {
@@ -96,7 +96,7 @@ export function SweepKpiStrip({
               Last sweep
             </>
           ),
-          value: latest ? <LiveTimeAgo at={latest.executedAt} /> : '—',
+          value: latest?.executedAt ? <LiveTimeAgo at={latest.executedAt} /> : '—',
           valueStyle: { fontSize: 16 },
           foot: (
             <>

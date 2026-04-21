@@ -1,20 +1,22 @@
+import type { StaffMemberRow } from '@/api/queries';
 import type { UserRecord } from '@/api/users';
-// Users KPI strip — counts from real API data (Slice 8).
+// Users KPI strip — counts from real API data. StaffRow fixture replaced with StaffMemberRow.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import type { StaffRow } from '../_shared/fixtures';
 
 interface Props {
   users: UserRecord[];
   totalUsers: number;
-  staff: StaffRow[];
+  /** Staff list from real /staff API — null while loading */
+  staff: StaffMemberRow[] | null;
 }
 
 export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
   const t1 = users.filter((u) => u.kycTier === 'basic').length;
   const t3 = users.filter((u) => u.kycTier === 'enhanced').length;
   const highRisk = users.filter((u) => u.riskScore >= 40).length;
+  const activeStaff = (staff ?? []).filter((s) => s.status === 'active').length;
 
   return (
     <KpiStrip
@@ -27,12 +29,10 @@ export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
               Staff accounts
             </>
           ),
-          value: staff.length,
+          value: staff?.length ?? '…',
           foot: (
             <>
-              <span className="text-xs text-muted text-mono">
-                {staff.filter((s) => s.active).length} active
-              </span>
+              <span className="text-xs text-muted text-mono">{activeStaff} active</span>
               <span className="badge-tight ok">
                 <span className="dot" />
                 MFA

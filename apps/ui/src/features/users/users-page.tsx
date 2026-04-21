@@ -1,6 +1,8 @@
+import { useStaffList } from '@/api/queries';
 import type { KycTier, UserRecord } from '@/api/users';
 import { useUserList } from '@/api/users';
-// Users page — staff directory + end-user list. Real API wiring (Slice 8).
+// Users page — staff directory + end-user list. STAFF_DIRECTORY fixture replaced with
+// real useStaffList() hook wired to /staff API.
 import { useAuth } from '@/auth/use-auth';
 import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
@@ -8,7 +10,6 @@ import { I } from '@/icons';
 import { useTweaksStore } from '@/stores/tweaks-store';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { STAFF_DIRECTORY } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
 import { InviteModal } from './invite-modal';
@@ -34,6 +35,16 @@ export function UsersPage() {
   const canManageStaff = staff?.role === 'admin';
   const canCreateUser = staff?.role === 'admin' || staff?.role === 'operator';
 
+  // Real staff list from /staff API
+  const staffQuery = useStaffList({ limit: 100 });
+  const staffAll = staffQuery.data?.data ?? [];
+  const staffFiltered = staffAll.filter(
+    (s) =>
+      !search ||
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase())
+  );
+
   // Server-side filtered + paginated user list
   const usersQuery = useUserList({
     q: search || undefined,
@@ -44,19 +55,12 @@ export function UsersPage() {
   const endUsers = usersQuery.data?.data ?? [];
   const totalUsers = usersQuery.data?.total ?? 0;
 
-  const staffFiltered = STAFF_DIRECTORY.filter(
-    (s) =>
-      !search ||
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase())
-  );
-
   const doExport = () => {
     if (tab === 'staff') {
       downloadCSV(
         'staff.csv',
-        staffFiltered.map((s) => [s.name, s.email, s.role, s.tz, s.active ? 'yes' : 'no']),
-        ['name', 'email', 'role', 'tz', 'active']
+        staffFiltered.map((s) => [s.name, s.email, s.role, s.status]),
+        ['name', 'email', 'role', 'status']
       );
     } else {
       downloadCSV(
@@ -133,7 +137,13 @@ export function UsersPage() {
           )}
         </>
       }
-      kpis={<UsersKpiStrip users={endUsers} totalUsers={totalUsers} staff={STAFF_DIRECTORY} />}
+      kpis={
+        <UsersKpiStrip
+          users={endUsers}
+          totalUsers={totalUsers}
+          staff={staffQuery.data ? staffAll : null}
+        />
+      }
     >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
@@ -142,7 +152,7 @@ export function UsersPage() {
             onChange={(v) => setTab(v as Tab)}
             embedded
             tabs={[
-              { value: 'staff', label: 'Staff', count: STAFF_DIRECTORY.length },
+              { value: 'staff', label: 'Staff', count: staffAll.length },
               { value: 'endusers', label: 'End users', count: totalUsers },
             ]}
           />
@@ -171,7 +181,7 @@ export function UsersPage() {
             </select>
           )}
           <span className="text-xs text-muted text-mono">
-            {tab === 'staff' ? staffFiltered.length : totalUsers}
+            {tab === 'staff' ? (staffQuery.isLoading ? '…' : staffFiltered.length) : totalUsers}
           </span>
         </div>
 

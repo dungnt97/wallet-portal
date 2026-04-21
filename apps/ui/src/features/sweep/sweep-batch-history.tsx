@@ -1,21 +1,15 @@
-// Sweep batch history table — recent batches row list.
+// Sweep batch history table — uses SweepBatchRow from real /sweeps/batches API.
+// Local Batch type removed; INITIAL_SWEEP_BATCHES fixture no longer used here.
+import type { SweepBatchRow } from '@/api/queries';
 import { ChainPill, StatusBadge } from '@/components/custody';
 import { fmtUSD } from '@/lib/format';
 import { LiveTimeAgo } from '../_shared/realtime';
 
-export interface Batch {
-  id: string;
-  chain: 'bnb' | 'sol';
-  addresses: number;
-  total: number;
-  fee: number;
-  status: 'completed' | 'partial';
-  createdAt: string;
-  executedAt: string;
-}
+/** Re-export so sweep-page can type the state without importing from queries */
+export type Batch = SweepBatchRow;
 
 interface Props {
-  batches: Batch[];
+  batches: SweepBatchRow[];
 }
 
 export function SweepBatchHistory({ batches }: Props) {
@@ -66,7 +60,11 @@ export function SweepBatchHistory({ batches }: Props) {
                 <LiveTimeAgo at={b.createdAt} />
               </td>
               <td className="num text-xs text-muted">
-                <LiveTimeAgo at={b.executedAt} />
+                {b.executedAt ? (
+                  <LiveTimeAgo at={b.executedAt} />
+                ) : (
+                  <span className="text-faint">—</span>
+                )}
               </td>
             </tr>
           ))}

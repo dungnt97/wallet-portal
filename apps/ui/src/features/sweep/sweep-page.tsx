@@ -1,12 +1,12 @@
+import { useSweepBatches } from '@/api/queries';
 import { PageFrame, Segmented } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 // Sweep page — real candidates via useSweepCandidates, trigger via useSweepTrigger.
-// Fixture fallback removed: empty state shown when no candidates above threshold.
+// Batch history wired to real /sweeps/batches API; INITIAL_SWEEP_BATCHES removed.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FixSweepAddr } from '../_shared/fixtures';
-import { INITIAL_SWEEP_BATCHES } from '../_shared/fixtures';
 import { GasMonitor } from './gas-monitor';
 import { SweepAddressTable, SweepCart } from './sweep-address-table';
 import { type Batch, SweepBatchHistory } from './sweep-batch-history';
@@ -45,16 +45,17 @@ export function SweepPage() {
   const [chain, setChain] = useState<'bnb' | 'sol'>('bnb');
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [batches] = useState<Batch[]>(INITIAL_SWEEP_BATCHES);
 
   // ── Real data ───────────────────────────────────────────────────────────────
   const { data: candidatesRes, isLoading } = useSweepCandidates(chain);
   const trigger = useSweepTrigger();
+  const { data: batchesRes } = useSweepBatches(chain);
 
   // ── Live updates via Socket.io ──────────────────────────────────────────────
   useSweepSocketListener();
 
   // ── Derived state ───────────────────────────────────────────────────────────
+  const batches = batchesRes?.data ?? [];
   const candidates = candidatesRes?.data ?? [];
   const filtered: FixSweepAddr[] = useMemo(() => candidates.map(toTableRow), [candidates]);
 

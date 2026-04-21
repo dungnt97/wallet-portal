@@ -1,8 +1,15 @@
 // multisig_operations + multisig_approvals tables
-import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { customType, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { chainEnum, multisigStatusEnum } from './enums';
 import { staffMembers } from './staff';
 import { staffSigningKeys } from './staff';
+
+// Drizzle does not ship a first-class bytea helper; define a minimal custom type.
+const bytea = customType<{ data: Buffer | null; driverData: Buffer | null }>({
+  dataType() {
+    return 'bytea';
+  },
+});
 
 /**
  * A multisig signing round tied to a withdrawal or sweep.
@@ -46,6 +53,17 @@ export const multisigApprovals = pgTable('multisig_approvals', {
   /** EIP-712 signature (BNB) or base58-encoded Squads approval (Solana) */
   signature: text('signature').notNull(),
   signedAt: timestamp('signed_at', { withTimezone: true }).defaultNow().notNull(),
+  /**
+   * Slice 7 HW-attestation: raw bytes of the hardware-wallet signed payload.
+   * NULL for hot-tier operations. Required for cold-tier per policy rule.
+   */
+  attestationBlob: bytea('attestation_blob'),
+  /**
+   * Slice 7 HW-attestation: which device produced the blob.
+   * Values: 'ledger' | 'trezor' | 'none' | NULL (hot-tier, no device required).
+   * CHECK constraint enforced at DB level in migration 0011.
+   */
+  attestationType: text('attestation_type'),
 });
 
 export type MultisigApprovalRow = typeof multisigApprovals.$inferSelect;

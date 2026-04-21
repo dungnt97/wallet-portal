@@ -1,10 +1,10 @@
-import { Address, ChainPill, StatusBadge, Tabs } from '@/components/custody';
-// Multisig pending/failed ops table — approval pip row, click row to open sheet.
+import { ChainPill, StatusBadge, Tabs } from '@/components/custody';
+// Multisig pending/failed ops table — uses MultisigOpDisplay (real API shape).
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
-import type { FIX_MULTISIG_OPS } from '../_shared/fixtures';
+import { LiveTimeAgo } from '../_shared/realtime';
+import type { MultisigOpDisplay } from './multisig-types';
 
-type Op = (typeof FIX_MULTISIG_OPS)[number];
 type Tab = 'pending' | 'failed';
 
 interface Props {
@@ -12,8 +12,8 @@ interface Props {
   onTabChange: (t: Tab) => void;
   pendingCount: number;
   failedCount: number;
-  list: Op[];
-  onSelect: (o: Op) => void;
+  list: MultisigOpDisplay[];
+  onSelect: (o: MultisigOpDisplay) => void;
 }
 
 export function MultisigOpsTable({
@@ -45,17 +45,15 @@ export function MultisigOpsTable({
             <th>Operation</th>
             <th>Vault</th>
             <th className="num">Amount</th>
-            <th>Destination</th>
             <th>Approvals</th>
             <th>Status</th>
-            <th className="num">Nonce</th>
             <th className="num">Expires</th>
           </tr>
         </thead>
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td colSpan={8}>
+              <td colSpan={6}>
                 <div className="table-empty">
                   <div className="table-empty-title">No operations</div>
                   <div className="text-sm">New co-signing operations appear here.</div>
@@ -65,7 +63,10 @@ export function MultisigOpsTable({
           ) : (
             list.map((op) => (
               <tr key={op.id} onClick={() => onSelect(op)} style={{ cursor: 'pointer' }}>
-                <td className="text-mono fw-500">{op.id}</td>
+                <td>
+                  <div className="text-mono fw-500 text-xs">{op.id.slice(0, 12)}…</div>
+                  <div className="text-xs text-muted">{op.operationType}</div>
+                </td>
                 <td>
                   <div className="hstack">
                     <ChainPill chain={op.chain} />
@@ -73,10 +74,13 @@ export function MultisigOpsTable({
                   </div>
                 </td>
                 <td className="num text-mono fw-500">
-                  {fmtUSD(op.amount)} <span className="text-faint text-xs">{op.token}</span>
-                </td>
-                <td>
-                  <Address value={op.destination} chain={op.chain} />
+                  {op.amount > 0 ? (
+                    <>
+                      {fmtUSD(op.amount)} <span className="text-faint text-xs">{op.token}</span>
+                    </>
+                  ) : (
+                    <span className="text-faint">—</span>
+                  )}
                 </td>
                 <td>
                   <div className="approval-row">
@@ -96,8 +100,9 @@ export function MultisigOpsTable({
                 <td>
                   <StatusBadge status={op.status} />
                 </td>
-                <td className="num text-mono">{op.nonce}</td>
-                <td className="num text-xs text-muted text-mono">in 5h 42m</td>
+                <td className="num text-xs text-muted">
+                  <LiveTimeAgo at={op.expiresAt} />
+                </td>
               </tr>
             ))
           )}

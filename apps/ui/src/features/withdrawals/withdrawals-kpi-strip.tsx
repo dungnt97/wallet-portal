@@ -1,18 +1,17 @@
-// Withdrawals KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
-// Data shaping lives here; presentation lives in `components/custody/kpi-strip.tsx`.
+// Withdrawals KPI strip — derived from real WithdrawalRow list.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import type { FixWithdrawal } from '../_shared/fixtures';
+import type { WithdrawalRow } from './withdrawal-types';
 
 interface Props {
-  list: FixWithdrawal[];
+  list: WithdrawalRow[];
 }
 
 export function WithdrawalsKpiStrip({ list }: Props) {
   const awaiting = list.filter((w) => w.stage === 'awaiting_signatures');
   const completed = list.filter((w) => w.stage === 'completed');
-  const failed = list.filter((w) => w.stage === 'failed');
+  const failed = list.filter((w) => w.stage === 'failed' || w.stage === 'cancelled');
 
   return (
     <KpiStrip
@@ -41,16 +40,11 @@ export function WithdrawalsKpiStrip({ list }: Props) {
           label: (
             <>
               <I.Check size={10} />
-              Completed · 7d
+              Completed
             </>
           ),
           value: `$${fmtCompact(completed.reduce((s, w) => s + w.amount, 0))}`,
-          foot: (
-            <>
-              <span className="text-xs delta-up">+8.4%</span>
-              <span className="text-xs text-muted text-mono">{completed.length} sent</span>
-            </>
-          ),
+          foot: <span className="text-xs text-muted text-mono">{completed.length} sent</span>,
         },
         {
           key: 'turnaround',
@@ -60,34 +54,23 @@ export function WithdrawalsKpiStrip({ list }: Props) {
               Avg turnaround
             </>
           ),
-          value: '1h 04m',
-          foot: (
-            <>
-              <span className="text-xs text-muted">target &lt; 2h</span>
-              <span className="badge-tight ok">
-                <span className="dot" />
-                SLA
-              </span>
-            </>
-          ),
+          value: '—',
+          foot: <span className="text-xs text-muted">target &lt; 2h</span>,
         },
         {
           key: 'failed',
           label: (
             <>
               <I.UserX size={10} />
-              Failed / rejected
+              Failed / cancelled
             </>
           ),
           value: failed.length,
           foot: (
-            <>
-              <span className="text-xs text-muted">last 30d</span>
-              <span className="badge-tight err">
-                <span className="dot" />
-                review
-              </span>
-            </>
+            <span className="badge-tight err">
+              <span className="dot" />
+              review
+            </span>
           ),
         },
       ]}

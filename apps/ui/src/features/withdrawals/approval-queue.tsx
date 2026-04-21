@@ -1,26 +1,21 @@
 // Approval queue — renders multisig signer rows with progress bar.
-// Used inside WithdrawalSheet and can be reused on the Multisig page.
+// Uses real WithdrawalMultisig shape; no fixture imports.
 import { I } from '@/icons';
-import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
 import { shortAddr } from '../_shared/helpers';
 import { LiveTimeAgo } from '../_shared/realtime';
+import type { WithdrawalMultisig } from './withdrawal-types';
 
 interface Props {
-  multisig: FixWithdrawal['multisig'];
-  stage: FixWithdrawal['stage'];
+  multisig: WithdrawalMultisig;
+  stage: string;
   chain: 'bnb' | 'sol';
   currentStaffId?: string | null;
 }
 
-export function ApprovalQueue({ multisig, stage, chain, currentStaffId }: Props) {
-  const approverMap = new Map(multisig.approvers.map((a) => [a.staffId, a]));
-  const rejector = multisig.rejectedBy
-    ? TREASURERS.find((s) => s.id === multisig.rejectedBy)
-    : null;
-
-  const barWidth = Math.min(100, (multisig.collected / multisig.required) * 100);
+export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
+  const barWidth = Math.min(100, (multisig.collected / Math.max(multisig.required, 1)) * 100);
   const barBg =
-    stage === 'failed'
+    stage === 'failed' || stage === 'cancelled'
       ? 'var(--err)'
       : multisig.collected >= multisig.required
         ? 'var(--ok)'
@@ -37,19 +32,22 @@ export function ApprovalQueue({ multisig, stage, chain, currentStaffId }: Props)
           {multisig.collected} of {multisig.required}
         </span>
       </div>
+
       <div className="approval-progress">
         <div className="approval-bar">
           <div className="approval-bar-fill" style={{ width: `${barWidth}%`, background: barBg }} />
         </div>
-        <span className="text-xs text-muted">{multisig.total - multisig.collected} remaining</span>
+        <span className="text-xs text-muted">
+          {Math.max(0, multisig.required - multisig.collected)} remaining
+        </span>
       </div>
 
-      {rejector && (
+      {multisig.rejectedBy && (
         <div className="perm-blocked" style={{ marginBottom: 12 }}>
           <I.UserX size={13} />
           <div>
             <div className="fw-500" style={{ fontSize: 12 }}>
-              Rejected by {rejector.name}
+              Rejected by {multisig.rejectedBy}
             </div>
             <div className="text-xs" style={{ marginTop: 2, opacity: 0.85 }}>
               No further signatures accepted on this request.
@@ -58,67 +56,64 @@ export function ApprovalQueue({ multisig, stage, chain, currentStaffId }: Props)
         </div>
       )}
 
-      <div>
-        {TREASURERS.map((t) => {
-          const a = approverMap.get(t.id);
-          const isMe = currentStaffId && currentStaffId === t.id;
-          const addr = chain === 'sol' ? t.solAddr : t.evmAddr;
-          return (
-            <div key={t.id} className="signer-row">
-              <div className="avatar">{t.initials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="signer-row-head">
-                  <span className="signer-name">{t.name}</span>
-                  {isMe && <span className="signer-you">you</span>}
-                  <span className="signer-addr text-mono">
-                    {addr ? shortAddr(addr, 5, 4) : 'unregistered'}
-                  </span>
+      {multisig.approvers.length > 0 ? (
+        <div>
+          {multisig.approvers.map((a, i) => {
+            const isMe = currentStaffId && currentStaffId === a.staffId;
+            return (
+              <div key={i} className="signer-row">
+                <div className="avatar">{a.staffId.slice(0, 2).toUpperCase()}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="signer-row-head">
+                    <span className="signer-name text-mono text-xs">
+                      {shortAddr(a.staffId, 6, 4)}
+                    </span>
+                    {isMe && <span className="signer-you">you</span>}
+                  </div>
+                  <div className="signer-row-sub">
+                    <span className="signer-dot signer-dot-ok" />
+                    signed <LiveTimeAgo at={a.at} />
+                    {a.txSig && (
+                      <>
+                        {' '}
+                        ·{' '}
+                        <span className="text-mono text-faint">
+                          {a.txSig.slice(0, 14)}…{a.txSig.slice(-6)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
+                <span className="approved-stamp">
+                  <I.Check size={10} /> signed
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Slots still awaiting */}
+          {Array.from({ length: Math.max(0, multisig.required - multisig.collected) }, (_, i) => (
+            <div key={`pending-${i}`} className="signer-row">
+              <div className="avatar" style={{ opacity: 0.4 }}>
+                —
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="signer-row-sub">
-                  {a ? (
-                    <>
-                      <span className="signer-dot signer-dot-ok" />
-                      signed <LiveTimeAgo at={a.at} />
-                      {a.txSig && (
-                        <>
-                          {' '}
-                          ·{' '}
-                          <span className="text-mono text-faint">
-                            {a.txSig.slice(0, 14)}…{a.txSig.slice(-6)}
-                          </span>
-                        </>
-                      )}
-                    </>
-                  ) : rejector ? (
-                    <>
-                      <span className="signer-dot signer-dot-faint" />
-                      not required
-                    </>
-                  ) : (
-                    <>
-                      <span className="signer-dot signer-dot-pending" />
-                      awaiting signature
-                    </>
-                  )}
+                  <span className="signer-dot signer-dot-pending" />
+                  awaiting signature
                 </div>
               </div>
-              <span className="tr-status">
-                {a ? (
-                  <span className="approved-stamp">
-                    <I.Check size={10} /> signed
-                  </span>
-                ) : rejector ? (
-                  <span className="pending-stamp">—</span>
-                ) : (
-                  <span className="pending-stamp">
-                    <I.Clock size={10} /> pending
-                  </span>
-                )}
+              <span className="pending-stamp">
+                <I.Clock size={10} /> pending
               </span>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs text-muted" style={{ padding: '8px 0' }}>
+          No signatures collected yet — {multisig.required} required.
+        </div>
+      )}
     </div>
   );
 }

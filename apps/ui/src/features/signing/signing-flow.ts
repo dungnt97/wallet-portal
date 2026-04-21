@@ -4,7 +4,7 @@
 // otp (fallback from step-up).
 // Real adapters used unless VITE_AUTH_DEV_MODE=true (CI / offline demo).
 import { useCallback, useState } from 'react';
-import type { FixWithdrawal } from '../_shared/fixtures';
+import type { WithdrawalRow } from '../withdrawals/withdrawal-types';
 import { mockSign } from './mock-adapters';
 import { evaluatePolicy } from './policy-preview';
 import { IS_DEV_MODE, broadcastDevMode, makeBroadcastResult } from './signing-flow-broadcast';
@@ -39,9 +39,8 @@ const INITIAL: SigningFlowState = {
   hwAttestation: null,
 };
 
-/** Convert a fixture withdrawal into an op the signing flow can drive. */
-export function withdrawalToOp(w: FixWithdrawal): SigningOp {
-  const wExt = w as unknown as Record<string, unknown>;
+/** Convert a WithdrawalRow into an op the signing flow can drive. */
+export function withdrawalToOp(w: WithdrawalRow): SigningOp {
   return {
     id: w.id,
     chain: w.chain,
@@ -57,8 +56,8 @@ export function withdrawalToOp(w: FixWithdrawal): SigningOp {
     totalSigners: w.multisig.total,
     myIndex: w.multisig.collected + 1,
     destinationKnown: true,
-    // Slice 7: propagate tier + id so SigningFlowHost can insert HW prompt for cold ops
-    sourceTier: (wExt.sourceTier as 'hot' | 'cold' | undefined) ?? 'hot',
+    // Propagate tier + id so SigningFlowHost can insert HW prompt for cold ops
+    sourceTier: w.sourceTier ?? 'hot',
     withdrawalId: w.id,
   };
 }

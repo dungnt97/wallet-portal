@@ -1,17 +1,17 @@
-// Multisig KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+// Multisig KPI strip — uses MultisigOpDisplay (real API shape). TREASURERS fixture removed.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import { type FIX_MULTISIG_OPS, TREASURERS } from '../_shared/fixtures';
-
-type Op = (typeof FIX_MULTISIG_OPS)[number];
+import type { MultisigOpDisplay } from './multisig-types';
 
 interface Props {
-  ops: Op[];
+  ops: MultisigOpDisplay[];
   failedCount: number;
+  /** Active treasurer count from real /staff API — defaults to '…' while loading */
+  treasurerCount: number | null;
 }
 
-export function MultisigKpiStrip({ ops, failedCount }: Props) {
+export function MultisigKpiStrip({ ops, failedCount, treasurerCount }: Props) {
   const collecting = ops.filter((o) => o.status === 'collecting');
   const ready = ops.filter((o) => o.status === 'ready');
 
@@ -66,7 +66,7 @@ export function MultisigKpiStrip({ ops, failedCount }: Props) {
               Treasurers
             </>
           ),
-          value: TREASURERS.length,
+          value: treasurerCount ?? '…',
           foot: (
             <>
               <span className="text-xs text-muted">all active</span>

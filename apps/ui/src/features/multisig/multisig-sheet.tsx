@@ -3,10 +3,10 @@ import { DetailSheet, useToast } from '@/components/overlays';
 // Multisig op detail sheet — reuses ApprovalQueue + shows calldata preview.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
-import type { FIX_MULTISIG_OPS } from '../_shared/fixtures';
 import { ApprovalQueue } from '../withdrawals/approval-queue';
+import type { MultisigOpDisplay } from './multisig-types';
 
-type Op = (typeof FIX_MULTISIG_OPS)[number];
+type Op = MultisigOpDisplay;
 
 interface Props {
   op: Op | null;

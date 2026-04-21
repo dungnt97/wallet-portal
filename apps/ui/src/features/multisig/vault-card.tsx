@@ -1,20 +1,30 @@
+import type { StaffMemberRow } from '@/api/queries';
 // Vault card — Safe / Squads treasurer pool header for the multisig page.
+// TREASURERS fixture removed — staff list passed via props from real /staff API.
 import { ChainPill } from '@/components/custody';
-import { fmtCompact } from '@/lib/format';
-import { shortHash } from '@/lib/format';
-import { TREASURERS } from '../_shared/fixtures';
+import { fmtCompact, shortHash } from '@/lib/format';
 import { LiveDot } from '../_shared/realtime';
 
-interface Props {
+interface VaultCardProps {
   chain: 'bnb' | 'sol';
   name: string;
   address: string;
   policy: string;
   balance: number;
   pending: number;
+  /** Signer avatars — subset of staff list filtered to treasurer role */
+  signers: Pick<StaffMemberRow, 'id' | 'initials' | 'name'>[];
 }
 
-export function VaultCard({ chain, name, address, policy, balance, pending }: Props) {
+export function VaultCard({
+  chain,
+  name,
+  address,
+  policy,
+  balance,
+  pending,
+  signers,
+}: VaultCardProps) {
   return (
     <div className="card" style={{ padding: 0 }}>
       <div
@@ -59,9 +69,9 @@ export function VaultCard({ chain, name, address, policy, balance, pending }: Pr
         <div className="hstack" style={{ gap: 6 }}>
           <span className="text-xs text-muted">Signers</span>
           <div className="hstack" style={{ gap: 0 }}>
-            {TREASURERS.map((t, i) => (
+            {signers.map((s, i) => (
               <div
-                key={t.id}
+                key={s.id}
                 className="avatar"
                 style={{
                   width: 22,
@@ -70,9 +80,9 @@ export function VaultCard({ chain, name, address, policy, balance, pending }: Pr
                   marginLeft: i ? -6 : 0,
                   border: '2px solid var(--bg-elev)',
                 }}
-                title={t.name}
+                title={s.name}
               >
-                {t.initials}
+                {s.initials}
               </div>
             ))}
           </div>
@@ -86,12 +96,21 @@ export function VaultCard({ chain, name, address, policy, balance, pending }: Pr
   );
 }
 
-export function TreasurerTeamCard() {
+interface TreasurerTeamCardProps {
+  /** Staff members with treasurer role from real /staff API */
+  treasurers: StaffMemberRow[];
+  required: number;
+  total: number;
+}
+
+export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeamCardProps) {
   return (
     <div className="card pro-card" style={{ marginTop: 14 }}>
       <div className="pro-card-header">
         <h3 className="card-title">Treasurer team</h3>
-        <span className="text-xs text-muted">2 of 3 co-signatures required per transfer</span>
+        <span className="text-xs text-muted">
+          {required} of {total} co-signatures required per transfer
+        </span>
         <div className="spacer" />
         <span className="badge-tight ok">
           <span className="dot" />
@@ -106,7 +125,7 @@ export function TreasurerTeamCard() {
           background: 'var(--line)',
         }}
       >
-        {TREASURERS.map((t) => (
+        {treasurers.map((t) => (
           <div
             key={t.id}
             style={{
@@ -122,12 +141,20 @@ export function TreasurerTeamCard() {
               <div className="fw-500 text-sm truncate">{t.name}</div>
               <div className="text-xs text-muted truncate text-mono">{t.email}</div>
               <div className="text-xs text-faint" style={{ marginTop: 2 }}>
-                {t.tz} · <LiveDot variant="ok" /> online
+                <LiveDot variant="ok" /> online
               </div>
             </div>
             <span className="role-pill role-treasurer">Treasurer</span>
           </div>
         ))}
+        {treasurers.length === 0 && (
+          <div
+            style={{ padding: 12, background: 'var(--bg-elev)', gridColumn: '1 / -1' }}
+            className="text-sm text-muted"
+          >
+            Loading treasurer list…
+          </div>
+        )}
       </div>
     </div>
   );

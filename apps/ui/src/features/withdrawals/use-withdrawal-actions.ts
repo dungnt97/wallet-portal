@@ -2,26 +2,25 @@ import { ApiError } from '@/api/client';
 import { useApproveWithdrawal, useExecuteWithdrawal } from '@/api/queries';
 // Withdrawal action handlers — real approve + execute mutations wired to admin-api.
 // Signing flow integration: approve click → signing-flow.start → on done POST /approve.
-// Local optimistic overrides remain for instant UI feedback before server round-trip.
 import { useAuth } from '@/auth/use-auth';
 import { useToast } from '@/components/overlays';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FixWithdrawal } from '../_shared/fixtures';
 import { type useSigningFlow, withdrawalToOp } from '../signing';
 import { useWithdrawals } from './use-withdrawals';
+import type { WithdrawalRow } from './withdrawal-types';
 
 type SigningFlow = ReturnType<typeof useSigningFlow>;
 
 export interface WithdrawalActions {
-  list: FixWithdrawal[];
-  selected: FixWithdrawal | null;
-  setSelected: (w: FixWithdrawal | null) => void;
-  onApprove: (w: FixWithdrawal) => void;
-  onReject: (w: FixWithdrawal) => void;
-  onExecute: (w: FixWithdrawal) => void;
-  onSubmitDraft: (w: FixWithdrawal) => void;
-  onNewSubmit: (w: FixWithdrawal) => void;
+  list: WithdrawalRow[];
+  selected: WithdrawalRow | null;
+  setSelected: (w: WithdrawalRow | null) => void;
+  onApprove: (w: WithdrawalRow) => void;
+  onReject: (w: WithdrawalRow) => void;
+  onExecute: (w: WithdrawalRow) => void;
+  onSubmitDraft: (w: WithdrawalRow) => void;
+  onNewSubmit: (w: WithdrawalRow) => void;
   onSigningComplete: () => void;
   onSigningRejected: () => void;
 }
@@ -35,29 +34,29 @@ export function useWithdrawalActions(
   const { t } = useTranslation();
   const { data } = useWithdrawals();
 
-  const [selected, setSelected] = useState<FixWithdrawal | null>(null);
-  const [localOverrides, setLocalOverrides] = useState<Record<string, FixWithdrawal>>({});
-  const [pendingSignWithdrawal, setPendingSignWithdrawal] = useState<FixWithdrawal | null>(null);
+  const [selected, setSelected] = useState<WithdrawalRow | null>(null);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, WithdrawalRow>>({});
+  const [pendingSignWithdrawal, setPendingSignWithdrawal] = useState<WithdrawalRow | null>(null);
 
-  // Mutation hooks — keyed by selected withdrawal id; fallback to 'none' when idle
+  // Mutation hooks — keyed by active withdrawal id
   const approveMutation = useApproveWithdrawal(pendingSignWithdrawal?.id ?? selected?.id ?? 'none');
   const executeMutation = useExecuteWithdrawal(selected?.id ?? 'none');
 
-  const list: FixWithdrawal[] = useMemo(() => {
+  const list: WithdrawalRow[] = useMemo(() => {
     const base = data ?? [];
     return base.map((w) => localOverrides[w.id] ?? w);
   }, [data, localOverrides]);
 
-  const addOverride = (w: FixWithdrawal) => setLocalOverrides((prev) => ({ ...prev, [w.id]: w }));
+  const addOverride = (w: WithdrawalRow) => setLocalOverrides((prev) => ({ ...prev, [w.id]: w }));
 
-  // ── Approve: start signing flow ───────────────────────────────────────────────
-  const onApprove = (w: FixWithdrawal) => {
+  // ── Approve: start signing flow ──────────────────────────────────────────────
+  const onApprove = (w: WithdrawalRow) => {
     if (!staff) return;
     setPendingSignWithdrawal(w);
     signingFlow.start(withdrawalToOp(w));
   };
 
-  // ── After signing completes: POST /withdrawals/:id/approve ────────────────────
+  // ── After signing completes: POST /withdrawals/:id/approve ───────────────────
   const onSigningComplete = () => {
     const w = pendingSignWithdrawal;
     if (!w || !staff) return;
@@ -75,18 +74,15 @@ export function useWithdrawalActions(
         signature: sig.signature,
         signerAddress: sig.signer,
         signedAt: sig.at,
-        multisigOpId: w.multisig
-          ? String((w as unknown as Record<string, unknown>).multisigOpId ?? '')
-          : '',
+        multisigOpId: w.multisigOpId ?? '',
         chain: w.chain,
-        // Slice 7: include HW-attestation blob for cold-tier withdrawals
         ...(hw ? { attestationBlob: hw.blob, attestationType: hw.type } : {}),
       },
       {
         onSuccess: (result) => {
           const nextCount = result.op.collectedSigs;
           const threshold = result.thresholdMet;
-          const updated: FixWithdrawal = {
+          const updated: WithdrawalRow = {
             ...w,
             stage: threshold ? 'executing' : 'awaiting_signatures',
             multisig: {
@@ -131,7 +127,7 @@ export function useWithdrawalActions(
     const w = pendingSignWithdrawal;
     setPendingSignWithdrawal(null);
     if (!w || !staff) return;
-    const updated: FixWithdrawal = {
+    const updated: WithdrawalRow = {
       ...w,
       stage: 'failed',
       multisig: { ...w.multisig, rejectedBy: staff.id },
@@ -141,25 +137,25 @@ export function useWithdrawalActions(
     toast(t('withdrawals.signatureCancelled'), 'success');
   };
 
-  // ── Reject (without signing) ──────────────────────────────────────────────────
-  const onReject = (w: FixWithdrawal) => {
+  // ── Reject (without signing) ─────────────────────────────────────────────────
+  const onReject = (w: WithdrawalRow) => {
     if (!staff) return;
-    const updated: FixWithdrawal = {
+    const updated: WithdrawalRow = {
       ...w,
       stage: 'failed',
       multisig: { ...w.multisig, rejectedBy: staff.id },
     };
     addOverride(updated);
     setSelected(updated);
-    toast(`${t('withdrawals.rejectBtn')} ${w.id}`, 'success');
+    toast(`${t('withdrawals.rejectBtn')} ${w.id.slice(0, 12)}`, 'success');
   };
 
-  // ── Execute: POST /withdrawals/:id/execute ────────────────────────────────────
-  const onExecute = (w: FixWithdrawal) => {
+  // ── Execute: POST /withdrawals/:id/execute ───────────────────────────────────
+  const onExecute = (w: WithdrawalRow) => {
     toast(t('withdrawals.executeQueued'), 'success');
     executeMutation.mutate(undefined, {
       onSuccess: () => {
-        const updated: FixWithdrawal = { ...w, stage: 'executing' };
+        const updated: WithdrawalRow = { ...w, stage: 'executing' };
         addOverride(updated);
         setSelected(updated);
       },
@@ -170,16 +166,16 @@ export function useWithdrawalActions(
     });
   };
 
-  // ── Submit draft (pre-multisig local action) ──────────────────────────────────
-  const onSubmitDraft = (w: FixWithdrawal) => {
-    const updated: FixWithdrawal = { ...w, stage: 'awaiting_signatures' };
+  // ── Submit draft ─────────────────────────────────────────────────────────────
+  const onSubmitDraft = (w: WithdrawalRow) => {
+    const updated: WithdrawalRow = { ...w, stage: 'awaiting_signatures' };
     addOverride(updated);
     setSelected(updated);
     toast(t('withdrawals.submitToMultisig'), 'success');
   };
 
-  // ── New withdrawal created callback ──────────────────────────────────────────
-  const onNewSubmit = (w: FixWithdrawal) => {
+  // ── New withdrawal created callback ─────────────────────────────────────────
+  const onNewSubmit = (w: WithdrawalRow) => {
     addOverride(w);
     onCreated();
     toast(t('withdrawals.createSuccess'), 'success');

@@ -1,7 +1,7 @@
 import { ApiError } from '@/api/client';
-import { useCreateWithdrawal } from '@/api/queries';
-// New withdrawal — 2-step form (fields → review). Real POST via useCreateWithdrawal mutation.
-// Falls back to optimistic local add when API returns 201.
+import { useColdBalances, useCreateWithdrawal } from '@/api/queries';
+// New withdrawal — 2-step form (fields → review). Real POST via useCreateWithdrawal.
+// Treasury balance shown from real /cold/balances instead of TOTAL_BALANCES fixture.
 import { useAuth } from '@/auth/use-auth';
 import { Risk, Segmented } from '@/components/custody';
 import { Sheet } from '@/components/overlays';
@@ -9,16 +9,15 @@ import { I } from '@/icons';
 import { CHAINS, MULTISIG_POLICY } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TOTAL_BALANCES } from '../_shared/fixtures';
-import type { FixWithdrawal } from '../_shared/fixtures';
+import type { WithdrawalRow } from './withdrawal-types';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   /** Called with a locally-shaped withdrawal when the server confirms creation. */
-  onSubmit: (w: FixWithdrawal) => void;
+  onSubmit: (w: WithdrawalRow) => void;
 }
 
 export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
@@ -35,6 +34,16 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
 
   const createMutation = useCreateWithdrawal();
   const resetMutation = createMutation.reset;
+
+  // Real treasury balances from /cold/balances
+  const { data: coldBalances } = useColdBalances();
+  const treasuryBalance = useMemo(() => {
+    if (!coldBalances) return 0;
+    const entry = coldBalances.find(
+      (b) => b.chain === chain && b.token === token && b.tier === 'hot'
+    );
+    return entry ? Number.parseFloat(entry.balance) : 0;
+  }, [coldBalances, chain, token]);
 
   useEffect(() => {
     if (open) {
@@ -69,7 +78,7 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
         sourceTier: 'hot',
       });
 
-      // Shape server response into the FixWithdrawal type the page expects
+      // Shape server response into the WithdrawalRow type the page expects
       const serverWithdrawal = result.withdrawal as Record<string, unknown>;
       onSubmit({
         id: String(serverWithdrawal.id ?? `wd_${Math.random().toString(36).slice(2)}`),
@@ -90,15 +99,14 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
         },
         txHash: null,
         note: note || null,
+        multisigOpId: result.multisigOpId,
       });
     } catch (err) {
       if (err instanceof ApiError) {
-        // 403 = policy rejected — surface reasons
-        const msg = err.message;
         setApiError(
           err.code === 'POLICY_REJECTED'
-            ? t('withdrawals.policyBlocked', { msg })
-            : t('withdrawals.createError', { msg })
+            ? t('withdrawals.policyBlocked', { msg: err.message })
+            : t('withdrawals.createError', { msg: err.message })
         );
       } else {
         setApiError(t('withdrawals.createError', { msg: String(err) }));
@@ -179,7 +187,7 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
             <label htmlFor="wd-amount" className="field-label">
               {t('withdrawals.fldAmount')}{' '}
               <span className="text-faint text-xs">
-                {t('withdrawals.treasuryBal')} ${fmtUSD(TOTAL_BALANCES[chain][token])}
+                {t('withdrawals.treasuryBal')} ${fmtUSD(treasuryBalance)}
               </span>
             </label>
             <div className="input-prefix">
@@ -193,7 +201,7 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
               />
               <button
                 className="input-suffix-btn"
-                onClick={() => setAmount(String(TOTAL_BALANCES[chain][token]))}
+                onClick={() => setAmount(String(treasuryBalance))}
               >
                 MAX
               </button>

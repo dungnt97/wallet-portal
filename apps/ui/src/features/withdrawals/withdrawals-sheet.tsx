@@ -1,27 +1,26 @@
 // Withdrawal detail sheet — amount header, approval queue, details, action footer.
-// Execute button visible only when: threshold met (stage=executing) + time_lock expired.
-// Slice 7: adds 48h countdown for cold tier time_locked status + cancel button.
+// Execute visible when: threshold met (stage=executing) + time_lock expired.
+// Cancel button for cold-tier withdrawals in cancellable states.
 import { useAuth } from '@/auth/use-auth';
-import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
+import { ChainPill, StatusBadge, TokenPill } from '@/components/custody';
 import { DetailSheet, useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS, ROLES } from '@/lib/constants';
 import { fmtDateTime, fmtUSD, shortHash } from '@/lib/format';
-import { useTweaksStore } from '@/stores/tweaks-store';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
 import { TimeLeftDisplay } from '../cold/time-left-display';
 import { ApprovalQueue } from './approval-queue';
 import { CancelWithdrawalModal } from './cancel-withdrawal-modal';
+import type { WithdrawalRow } from './withdrawal-types';
 
 interface Props {
-  withdrawal: FixWithdrawal | null;
+  withdrawal: WithdrawalRow | null;
   onClose: () => void;
-  onApprove: (w: FixWithdrawal) => void;
-  onReject: (w: FixWithdrawal) => void;
-  onExecute: (w: FixWithdrawal) => void;
-  onSubmitDraft: (w: FixWithdrawal) => void;
+  onApprove: (w: WithdrawalRow) => void;
+  onReject: (w: WithdrawalRow) => void;
+  onExecute: (w: WithdrawalRow) => void;
+  onSubmitDraft: (w: WithdrawalRow) => void;
 }
 
 export function WithdrawalSheet({
@@ -37,31 +36,21 @@ export function WithdrawalSheet({
   const { t } = useTranslation();
   const canApprove = hasPerm('withdrawal.approve');
   const canExecute = hasPerm('withdrawal.execute');
-  const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
   const [cancelOpen, setCancelOpen] = useState(false);
 
   if (!withdrawal) return null;
   const w = withdrawal;
 
-  // Safely read optional fields injected by the API that aren't on FixWithdrawal yet
-  const wExt = w as unknown as Record<string, unknown>;
-  const timeLockExpiresAt = (wExt.timeLockExpiresAt ?? wExt.unlockAt) as string | undefined;
-  const sourceTier = (wExt.sourceTier ?? 'hot') as 'hot' | 'cold';
-  const apiStatus = (wExt.status ?? w.stage) as string;
-
+  const timeLockExpiresAt = w.timeLockExpiresAt;
+  const sourceTier = w.sourceTier ?? 'hot';
   const timeLockActive = timeLockExpiresAt ? new Date(timeLockExpiresAt) > new Date() : false;
 
-  const requester = TREASURERS.find((s) => s.id === w.requestedBy);
   const alreadyApproved = staff && w.multisig.approvers.some((a) => a.staffId === staff.id);
 
-  // Execute button: visible when stage=executing (threshold met) AND time-lock not active
   const showExecute = w.stage === 'executing' && canExecute && !timeLockActive;
 
-  // Cancel button: visible for treasurers on cold-tier withdrawals in cancellable states
-  const cancellableStatus = ['time_locked', 'pending', 'approved'].includes(apiStatus);
-  const isCreator = staff?.id === (wExt.createdBy as string | undefined);
-  const showCancel =
-    sourceTier === 'cold' && cancellableStatus && hasPerm('withdrawals.cancel') && !isCreator;
+  const cancellableStatus = ['time_locked', 'awaiting_signatures', 'draft'].includes(w.stage);
+  const showCancel = sourceTier === 'cold' && cancellableStatus && hasPerm('withdrawals.cancel');
 
   const footer = (
     <>
@@ -143,7 +132,7 @@ export function WithdrawalSheet({
         open={!!withdrawal}
         onClose={onClose}
         wide
-        title={t('withdrawals.sheetTitle', { id: w.id })}
+        title={t('withdrawals.sheetTitle', { id: w.id.slice(0, 12) })}
         subtitle={t('withdrawals.sheetSub', {
           amt: fmtUSD(w.amount),
           token: w.token,
@@ -169,7 +158,6 @@ export function WithdrawalSheet({
           </div>
         </div>
 
-        {/* Timelock countdown for cold-tier withdrawals */}
         {timeLockExpiresAt && (
           <div style={{ marginBottom: 16 }}>
             <TimeLeftDisplay unlockAt={timeLockExpiresAt} />
@@ -186,7 +174,9 @@ export function WithdrawalSheet({
         <h4 className="section-head">{t('withdrawals.details')}</h4>
         <dl className="dl">
           <dt>{t('withdrawals.dId')}</dt>
-          <dd className="text-mono">{w.id}</dd>
+          <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
+            {w.id}
+          </dd>
           <dt>{t('withdrawals.dStatus')}</dt>
           <dd>
             <StatusBadge status={w.stage} />
@@ -201,8 +191,6 @@ export function WithdrawalSheet({
               </dd>
             </>
           )}
-          <dt>{t('withdrawals.dVault')}</dt>
-          <dd>{w.chain === 'bnb' ? t('withdrawals.vaultBsc') : t('withdrawals.vaultSol')}</dd>
           <dt>{t('withdrawals.dChain')}</dt>
           <dd>
             <ChainPill chain={w.chain} /> {CHAINS[w.chain].name}
@@ -214,15 +202,6 @@ export function WithdrawalSheet({
           <dt>{t('withdrawals.dDest')}</dt>
           <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
             {w.destination}
-          </dd>
-          <dt>{t('withdrawals.dRequestedBy')}</dt>
-          <dd className="hstack">
-            {requester?.name || '—'}
-            {requester && (
-              <span className={`role-pill role-${requester.role}`}>
-                {ROLES[requester.role]?.label}
-              </span>
-            )}
           </dd>
           <dt>{t('withdrawals.dCreated')}</dt>
           <dd>{fmtDateTime(w.createdAt)}</dd>
@@ -242,14 +221,6 @@ export function WithdrawalSheet({
               </dd>
             </>
           )}
-          {showRiskFlags && (
-            <>
-              <dt>{t('withdrawals.dRisk')}</dt>
-              <dd>
-                <Risk level={w.risk} />
-              </dd>
-            </>
-          )}
           {w.note && (
             <>
               <dt>{t('withdrawals.dMemo')}</dt>
@@ -259,7 +230,6 @@ export function WithdrawalSheet({
         </dl>
       </DetailSheet>
 
-      {/* Cancel confirmation modal — rendered outside DetailSheet to avoid z-index nesting */}
       <CancelWithdrawalModal
         open={cancelOpen}
         withdrawalId={w.id}

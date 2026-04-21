@@ -9,6 +9,7 @@ import depositsRoutes from './deposits.routes.js';
 import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
+import notificationsRoutes from './notifications.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import rebalanceRoutes from './rebalance.routes.js';
@@ -37,6 +38,9 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(staffRoutes);
   await app.register(walletsRoutes);
   await app.register(auditRoutes);
+
+  // Notifications — bell panel list, unread count, mark-read, prefs
+  await app.register(notificationsRoutes);
 
   // Ops routes — kill-switch toggle + health aggregator
   await app.register(opsKillSwitchRoutes);

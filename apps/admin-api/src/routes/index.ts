@@ -1,18 +1,18 @@
 // Routes index — registers all route plugins with their prefixes
 import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../config/env.js';
-import healthRoutes from './health.routes.js';
+import auditRoutes from './audit.routes.js';
 import authRoutes from './auth.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import depositsRoutes from './deposits.routes.js';
-import withdrawalsRoutes from './withdrawals.routes.js';
+import healthRoutes from './health.routes.js';
+import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
+import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
 import usersRoutes from './users.routes.js';
-import staffRoutes from './staff.routes.js';
 import walletsRoutes from './wallets.routes.js';
-import auditRoutes from './audit.routes.js';
-import internalRoutes from './internal.routes.js';
+import withdrawalsRoutes from './withdrawals.routes.js';
 
 const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   // Public / liveness
@@ -26,7 +26,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(depositsRoutes);
   await app.register(withdrawalsRoutes);
   await app.register(multisigRoutes);
-  await app.register(sweepsRoutes);
+  await app.register(sweepsRoutes, { sweepQueue: app.sweepQueue });
   await app.register(usersRoutes);
   await app.register(staffRoutes);
   await app.register(walletsRoutes);

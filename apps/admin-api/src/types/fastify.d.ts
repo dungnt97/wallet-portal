@@ -1,8 +1,8 @@
-// Fastify instance augmentation — adds app.db, app.redis, app.io decorators
-import type { Db } from '../db/index.js';
+import type { Queue } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Server as SocketIOServer } from 'socket.io';
-import type { Queue } from 'bullmq';
+// Fastify instance augmentation — adds app.db, app.redis, app.io decorators
+import type { Db } from '../db/index.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -10,6 +10,7 @@ declare module 'fastify' {
     redis: Redis;
     io: SocketIOServer;
     queue: Queue;
+    sweepQueue: Queue;
   }
 
   interface Session {

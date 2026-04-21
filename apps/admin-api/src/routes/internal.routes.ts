@@ -1,8 +1,10 @@
 import { timingSafeEqual } from 'node:crypto';
 // Internal routes — service-to-service endpoints protected by shared bearer token (D4)
-// POST /internal/deposits/:id/credit     — credited by wallet-engine after confirmation
+// POST /internal/deposits/:id/credit        — credited by wallet-engine after confirmation
 // POST /internal/withdrawals/:id/broadcasted — wallet-engine signals tx broadcast
 // POST /internal/withdrawals/:id/confirmed  — wallet-engine signals tx confirmed
+// POST /internal/sweeps/:id/broadcasted     — wallet-engine signals sweep tx broadcast
+// POST /internal/sweeps/:id/confirmed       — wallet-engine signals sweep tx confirmed
 //
 // Bearer check runs at onRequest (before body parsing) so 401 is returned before
 // Zod body validation fires. This prevents leaking whether a route exists to unauthenticated callers.
@@ -11,6 +13,11 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { emitDepositCredited } from '../events/emit-deposit-credited.js';
 import { ConflictError, NotFoundError, creditDeposit } from '../services/deposit-credit.service.js';
+import {
+  NotFoundError as SwNotFoundError,
+  recordSweepBroadcasted,
+  recordSweepConfirmed,
+} from '../services/sweep-create.service.js';
 import {
   NotFoundError as WdNotFoundError,
   recordBroadcasted,
@@ -137,6 +144,64 @@ const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, 
         return reply.code(200).send({ ok: true });
       } catch (err) {
         if (err instanceof WdNotFoundError) {
+          return reply.code(404).send({ code: err.code, message: err.message });
+        }
+        throw err;
+      }
+    }
+  );
+  // ── POST /internal/sweeps/:id/broadcasted ────────────────────────────────
+  // Called by wallet-engine after HD-signed sweep tx is submitted to the network
+  r.post(
+    '/internal/sweeps/:id/broadcasted',
+    {
+      schema: {
+        tags: ['internal'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({ txHash: z.string().min(1) }),
+        response: {
+          200: z.object({ ok: z.boolean() }),
+          401: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        await recordSweepBroadcasted(app.db, req.params.id, req.body.txHash, app.io);
+        return reply.code(200).send({ ok: true });
+      } catch (err) {
+        if (err instanceof SwNotFoundError) {
+          return reply.code(404).send({ code: err.code, message: err.message });
+        }
+        throw err;
+      }
+    }
+  );
+
+  // ── POST /internal/sweeps/:id/confirmed ───────────────────────────────────
+  // Called by wallet-engine after the sweep tx reaches required confirmations
+  r.post(
+    '/internal/sweeps/:id/confirmed',
+    {
+      schema: {
+        tags: ['internal'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ ok: z.boolean() }),
+          401: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        await recordSweepConfirmed(app.db, req.params.id, app.io);
+        return reply.code(200).send({ ok: true });
+      } catch (err) {
+        if (err instanceof SwNotFoundError) {
           return reply.code(404).send({ code: err.code, message: err.message });
         }
         throw err;

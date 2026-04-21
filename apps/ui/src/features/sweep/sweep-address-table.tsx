@@ -72,6 +72,7 @@ export function SweepAddressTable({
     {
       label: 'Last deposit',
       render: (r) => {
+        if (!r.lastDepositAt) return <span className="text-xs text-muted">—</span>;
         const mins = Math.max(1, Math.floor((Date.now() - +new Date(r.lastDepositAt)) / 60_000));
         return <span className="text-xs text-muted">{mins}m ago</span>;
       },

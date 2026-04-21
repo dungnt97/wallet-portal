@@ -25,17 +25,22 @@ function toTableRow(c: {
   address: string;
   creditedUsdt: string;
   creditedUsdc: string;
+  lastDepositAt?: string | null;
+  userName?: string | null;
 }): FixSweepAddr {
   return {
     id: c.userAddressId,
     userId: c.userId,
-    userName: `${c.address.slice(0, 8)}…`,
+    // Use real userName from API if available; fall back to address prefix
+    userName: c.userName ?? `${c.address.slice(0, 8)}…`,
     chain: c.chain,
     address: c.address,
     balanceUSDT: Number(c.creditedUsdt),
     balanceUSDC: Number(c.creditedUsdc),
+    // gasBalance not available from sweep candidates API — shown as 0 (cosmetic)
     gasBalance: 0,
-    lastDepositAt: new Date().toISOString(),
+    // Use real lastDepositAt from API if provided; null otherwise (not fabricated)
+    lastDepositAt: c.lastDepositAt ?? null,
   };
 }
 
@@ -135,7 +140,7 @@ export function SweepPage() {
 
       {isLoading ? (
         <div className="text-muted text-sm" style={{ padding: '24px 0' }}>
-          Loading candidates…
+          {t('sweep.loadingCandidates', 'Loading candidates…')}
         </div>
       ) : (
         <div className="sweep-grid">

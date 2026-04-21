@@ -82,7 +82,7 @@ export interface FixSweepAddr {
   balanceUSDT: number;
   balanceUSDC: number;
   gasBalance: number;
-  lastDepositAt: string;
+  lastDepositAt: string | null;
 }
 
 // Dedicated seed so withdrawals/multisig edits don't perturb these balances.

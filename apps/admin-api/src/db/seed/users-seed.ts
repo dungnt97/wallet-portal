@@ -8,8 +8,20 @@ const USER_FIXTURES = [
     kycTier: 'basic' as const,
     riskScore: 10,
     addresses: [
-      { chain: 'bnb' as const, address: '0xDEAD0001000000000000000000000000000000A1', derivationPath: "m/44'/60'/0'/0/0", tier: 'hot' as const },
-      { chain: 'sol' as const, address: 'Fixture1SolanaAddressAAAAAAAAAAAAAAAAAAAAAAAAAA', derivationPath: "m/44'/501'/0'/0/0", tier: 'hot' as const },
+      {
+        chain: 'bnb' as const,
+        address: '0xDEAD0001000000000000000000000000000000A1',
+        derivationPath: "m/44'/60'/0'/0/0",
+        derivationIndex: 0,
+        tier: 'hot' as const,
+      },
+      {
+        chain: 'sol' as const,
+        address: 'Fixture1SolanaAddressAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        derivationPath: "m/44'/501'/0'/0'",
+        derivationIndex: 0,
+        tier: 'hot' as const,
+      },
     ],
   },
   {
@@ -17,16 +29,28 @@ const USER_FIXTURES = [
     kycTier: 'enhanced' as const,
     riskScore: 5,
     addresses: [
-      { chain: 'bnb' as const, address: '0xDEAD0002000000000000000000000000000000A2', derivationPath: "m/44'/60'/0'/0/1", tier: 'hot' as const },
+      {
+        chain: 'bnb' as const,
+        address: '0xDEAD0002000000000000000000000000000000A2',
+        derivationPath: "m/44'/60'/0'/0/1",
+        derivationIndex: 1,
+        tier: 'hot' as const,
+      },
     ],
   },
   {
     email: 'testuser3@example.com',
     kycTier: 'none' as const,
     riskScore: 0,
-    addresses: [],
+    addresses: [] as Array<{
+      chain: 'bnb' | 'sol';
+      address: string;
+      derivationPath: string;
+      derivationIndex: number;
+      tier: 'hot' | 'cold';
+    }>,
   },
-] as const;
+];
 
 export async function seedUsers(db: Db): Promise<void> {
   console.log('  Seeding users + user_addresses…');
@@ -45,13 +69,14 @@ export async function seedUsers(db: Db): Promise<void> {
       .returning({ id: users.id });
 
     // Only insert addresses if user was freshly inserted
-    if (inserted.length > 0 && fixture.addresses.length > 0) {
-      const userId = inserted[0]!.id;
+    const userId = inserted[0]?.id;
+    if (userId && fixture.addresses.length > 0) {
       const addrRows = fixture.addresses.map((a) => ({
         userId,
         chain: a.chain,
         address: a.address,
         derivationPath: a.derivationPath,
+        derivationIndex: a.derivationIndex,
         tier: a.tier,
       }));
       await db.insert(userAddresses).values(addrRows).onConflictDoNothing();

@@ -5,7 +5,7 @@ import { useLoginHistory } from '@/api/queries';
 import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LiveDot } from '../_shared/realtime';
 import { AuditDetailSheet } from './audit-detail-sheet';
@@ -44,6 +44,18 @@ export function AuditPage() {
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState<string | undefined>();
   const [to, setTo] = useState<string | undefined>();
+
+  // Date-picker refs — clicking the Filter label programmatically opens the
+  // native date input, replacing window.prompt (M4 fix).
+  const fromPickerRef = useRef<HTMLInputElement>(null);
+  const toPickerRef = useRef<HTMLInputElement>(null);
+
+  /** Parse a YYYY-MM-DD date string into ISO-8601; returns undefined on invalid input. */
+  function parseDateFilter(value: string): string | undefined {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return undefined;
+    return d.toISOString();
+  }
 
   // Reset page on filter change
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset
@@ -235,27 +247,60 @@ export function AuditPage() {
                 onClear={() => setEntity(undefined)}
               />
 
-              <Filter
-                label={t('audit.filters.from')}
-                value={from ? from.slice(0, 10) : undefined}
-                active={!!from}
-                onClick={() => {
-                  const d = window.prompt(t('audit.filters.fromPrompt'), from ?? '');
-                  if (d) setFrom(new Date(d).toISOString());
-                }}
-                onClear={() => setFrom(undefined)}
-              />
+              {/* M4 fix: use native <input type="date"> instead of window.prompt */}
+              <span style={{ position: 'relative' }}>
+                <Filter
+                  label={t('audit.filters.from')}
+                  value={from ? from.slice(0, 10) : undefined}
+                  active={!!from}
+                  onClick={() => fromPickerRef.current?.showPicker?.()}
+                  onClear={() => setFrom(undefined)}
+                />
+                <input
+                  ref={fromPickerRef}
+                  type="date"
+                  aria-label={t('audit.filters.fromPrompt')}
+                  value={from ? from.slice(0, 10) : ''}
+                  style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    width: 0,
+                    height: 0,
+                  }}
+                  onChange={(e) => {
+                    const iso = parseDateFilter(e.target.value);
+                    if (iso) setFrom(iso);
+                  }}
+                />
+              </span>
 
-              <Filter
-                label={t('audit.filters.to')}
-                value={to ? to.slice(0, 10) : undefined}
-                active={!!to}
-                onClick={() => {
-                  const d = window.prompt(t('audit.filters.toPrompt'), to ?? '');
-                  if (d) setTo(new Date(d).toISOString());
-                }}
-                onClear={() => setTo(undefined)}
-              />
+              <span style={{ position: 'relative' }}>
+                <Filter
+                  label={t('audit.filters.to')}
+                  value={to ? to.slice(0, 10) : undefined}
+                  active={!!to}
+                  onClick={() => toPickerRef.current?.showPicker?.()}
+                  onClear={() => setTo(undefined)}
+                />
+                <input
+                  ref={toPickerRef}
+                  type="date"
+                  aria-label={t('audit.filters.toPrompt')}
+                  value={to ? to.slice(0, 10) : ''}
+                  style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    width: 0,
+                    height: 0,
+                  }}
+                  onChange={(e) => {
+                    const iso = parseDateFilter(e.target.value);
+                    if (iso) setTo(iso);
+                  }}
+                />
+              </span>
 
               <span className="text-xs text-muted text-mono">{total}</span>
             </>

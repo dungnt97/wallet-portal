@@ -88,11 +88,24 @@ function computeTimeLockExpiresAt(tier: 'hot' | 'cold', amount: string): Date | 
 // ── Multisig address per chain ─────────────────────────────────────────────────
 
 function getMultisigAddr(chain: 'bnb' | 'sol'): string {
-  // Returns env-configured address or a dev placeholder so rows are always valid.
   if (chain === 'bnb') {
-    return process.env.SAFE_ADDRESS || '0x0000000000000000000000000000000000000001';
+    const addr = process.env.SAFE_ADDRESS;
+    if (!addr) {
+      throw new Error(
+        'FATAL: SAFE_ADDRESS env var not set. ' +
+          'Configure the deployed Safe address before creating withdrawals.'
+      );
+    }
+    return addr;
   }
-  return process.env.SQUADS_MULTISIG_ADDRESS || '11111111111111111111111111111111';
+  const addr = process.env.SQUADS_MULTISIG_ADDRESS;
+  if (!addr) {
+    throw new Error(
+      'FATAL: SQUADS_MULTISIG_ADDRESS env var not set. ' +
+        'Configure the deployed Squads multisig address before creating withdrawals.'
+    );
+  }
+  return addr;
 }
 
 // ── User balance helper ────────────────────────────────────────────────────────

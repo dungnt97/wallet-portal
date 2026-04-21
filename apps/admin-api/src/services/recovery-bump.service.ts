@@ -90,7 +90,7 @@ async function callWalletEngineBump(payload: {
   hdIndex: number;
   currentCuPriceMicroLamports?: number;
   originalTxBase64?: string;
-}): Promise<{ txHash: string }> {
+}): Promise<{ txHash: string; newMaxFeePerGasWei?: string }> {
   const baseUrl = process.env.WALLET_ENGINE_URL ?? 'http://localhost:3002';
   const token = process.env.SVC_BEARER_TOKEN ?? '';
 
@@ -115,7 +115,7 @@ async function callWalletEngineBump(payload: {
     throw new Error(`${code}: ${msg}`);
   }
 
-  const data = (await res.json()) as { txHash: string };
+  const data = (await res.json()) as { txHash: string; newMaxFeePerGasWei?: string };
   return data;
 }
 
@@ -208,7 +208,11 @@ export async function bumpTx(
   const walletResult = await callWalletEngineBump(bumpPayload);
 
   const newTxHash = walletResult.txHash;
-  const gasPriceGwei = '0'; // wallet-engine returns wei; conversion deferred to Phase 06
+  // Convert wei → gwei for audit column. wallet-engine returns newMaxFeePerGasWei as a
+  // decimal wei string. Divide by 10^9 and round to 3 decimal places.
+  const gasPriceGwei = walletResult.newMaxFeePerGasWei
+    ? (Number(BigInt(walletResult.newMaxFeePerGasWei)) / 1e9).toFixed(3)
+    : '0';
 
   // 10. Persist recovery_action row
   const [actionRow] = await db

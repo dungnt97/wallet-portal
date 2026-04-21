@@ -45,7 +45,12 @@ export async function syncGoogleWorkspace(db: Db, staffId: string): Promise<Sync
   }
 
   // ── Real sync path ───────────────────────────────────────────────────────────
-  // When credentials are present we:
+  // Credentials are present but the googleapis SDK is not yet installed.
+  // Throw StubError (501) so the UI shows the same "not configured" notice as
+  // the no-credentials branch — no silent 0-result "success" to confuse operators.
+  //
+  // To implement: pnpm add googleapis in apps/admin-api, then replace this block
+  // with the full Directory API sync flow outlined below:
   //  1. Parse service-account JSON from GOOGLE_WORKSPACE_CREDS_JSON
   //  2. Authenticate via JWT grant (domain-wide delegation)
   //  3. GET https://admin.googleapis.com/admin/directory/v1/users?domain=<domain>
@@ -53,28 +58,10 @@ export async function syncGoogleWorkspace(db: Db, staffId: string): Promise<Sync
   //  5. Offboard removed accounts (set status='offboarded')
   //  6. Emit audit entry
   //
-  // This requires the `googleapis` npm package which is intentionally not installed
-  // until real credentials are available (YAGNI). The stub path above gives a clear
-  // error message pointing to the runbook.
-
-  const started = Date.now();
-
-  // Placeholder: real implementation would go here.
-  // For now emit an audit entry so the sync attempt is traceable.
-  await emitAudit(db, {
-    staffId,
-    action: 'staff.sync.google_workspace',
-    resourceType: 'staff',
-    resourceId: 'all',
-    changes: { triggered: true, adminEmail },
-  });
-
-  return {
-    synced: 0,
-    created: 0,
-    updated: 0,
-    offboarded: 0,
-    durationMs: Date.now() - started,
-    note: 'Credentials present but googleapis SDK not yet installed. Run: pnpm add googleapis in apps/admin-api.',
-  };
+  // See docs/runbooks/staff-directory-sync.md for the full integration runbook.
+  throw new StubError(
+    'Google Workspace credentials are present but the googleapis SDK is not yet installed. ' +
+      'Run: pnpm add googleapis in apps/admin-api, then implement the sync. ' +
+      'See docs/runbooks/staff-directory-sync.md'
+  );
 }

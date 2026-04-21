@@ -60,7 +60,7 @@ async function callWalletEngineCancel(payload: {
   hdIndex: number;
   chainId: string;
   hotSafeAddress: string;
-}): Promise<{ txHash: string }> {
+}): Promise<{ txHash: string; newMaxFeePerGasWei?: string }> {
   const baseUrl = process.env.WALLET_ENGINE_URL ?? 'http://localhost:3002';
   const token = process.env.SVC_BEARER_TOKEN ?? '';
 
@@ -85,7 +85,7 @@ async function callWalletEngineCancel(payload: {
     throw new Error(`${code}: ${msg}`);
   }
 
-  return (await res.json()) as { txHash: string };
+  return (await res.json()) as { txHash: string; newMaxFeePerGasWei?: string };
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -175,6 +175,11 @@ export async function cancelTx(
   });
 
   const cancelTxHash = walletResult.txHash;
+  // Convert wei → gwei for audit column. wallet-engine returns newMaxFeePerGasWei
+  // as a decimal wei string. Divide by 10^9 and round to 3 decimal places.
+  const gasPriceGwei = walletResult.newMaxFeePerGasWei
+    ? (Number(BigInt(walletResult.newMaxFeePerGasWei)) / 1e9).toFixed(3)
+    : '0';
 
   // 9. Persist recovery_action row
   const [actionRow] = await db
@@ -187,7 +192,7 @@ export async function cancelTx(
       chain: entity.chain as string,
       originalTxHash: txHash,
       newTxHash: cancelTxHash,
-      gasPriceGwei: '0',
+      gasPriceGwei,
       status: 'broadcast',
       initiatedBy: staffId,
     })

@@ -13,6 +13,7 @@ import notificationsRoutes from './notifications.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import rebalanceRoutes from './rebalance.routes.js';
+import signersRoutes from './signers.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
 import usersRoutes from './users.routes.js';
@@ -35,6 +36,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(multisigRoutes);
   await app.register(sweepsRoutes, { sweepQueue: app.sweepQueue });
   await app.register(usersRoutes);
+  await app.register(signersRoutes);
   await app.register(staffRoutes);
   await app.register(walletsRoutes);
   await app.register(auditRoutes);

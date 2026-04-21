@@ -2,7 +2,8 @@ import { Queue } from 'bullmq';
 import type { FastifyPluginAsync } from 'fastify';
 // BullMQ queue plugin — decorates app.queue (withdrawal_execute), app.sweepQueue (sweep_execute),
 // app.coldTimelockQueue (cold_timelock_broadcast, Slice 7),
-// app.emailQueue (notif_email_immediate, Slice 5), app.slackQueue (notif_slack, Slice 5)
+// app.emailQueue (notif_email_immediate, Slice 5), app.slackQueue (notif_slack, Slice 5),
+// app.ceremonyQueue (signer_ceremony, Slice 6)
 import fp from 'fastify-plugin';
 import { EMAIL_IMMEDIATE_QUEUE, SLACK_WEBHOOK_QUEUE } from '../services/notify-staff.service.js';
 import { COLD_TIMELOCK_QUEUE } from '../services/withdrawal-create.service.js';
@@ -30,11 +31,15 @@ const queuePlugin: FastifyPluginAsync = async (app) => {
   const emailQueue = new Queue(EMAIL_IMMEDIATE_QUEUE, { connection: connOpts });
   const slackQueue = new Queue(SLACK_WEBHOOK_QUEUE, { connection: connOpts });
 
+  // Signer ceremony broadcast queue (Slice 6) — consumed by wallet-engine ceremony worker
+  const ceremonyQueue = new Queue('signer_ceremony', { connection: connOpts });
+
   app.decorate('queue', queue);
   app.decorate('sweepQueue', sweepQueue);
   app.decorate('coldTimelockQueue', coldTimelockQueue);
   app.decorate('emailQueue', emailQueue);
   app.decorate('slackQueue', slackQueue);
+  app.decorate('ceremonyQueue', ceremonyQueue);
 
   app.addHook('onClose', async () => {
     await queue.close();
@@ -42,6 +47,7 @@ const queuePlugin: FastifyPluginAsync = async (app) => {
     await coldTimelockQueue.close();
     await emailQueue.close();
     await slackQueue.close();
+    await ceremonyQueue.close();
   });
 };
 

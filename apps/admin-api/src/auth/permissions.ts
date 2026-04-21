@@ -24,7 +24,9 @@ export type Permission =
   | 'wallets.read'
   | 'audit.read'
   | 'ops.read'
-  | 'ops.killswitch.toggle';
+  | 'ops.killswitch.toggle'
+  | 'signers.read'
+  | 'signers.manage';
 
 /** Roles permitted for each action — check with PERMS[perm].includes(role) */
 export const PERMS: Record<Permission, Role[]> = {
@@ -48,4 +50,7 @@ export const PERMS: Record<Permission, Role[]> = {
   'audit.read': ['admin', 'treasurer'],
   'ops.read': ['admin', 'treasurer', 'operator', 'viewer'],
   'ops.killswitch.toggle': ['admin', 'treasurer'],
+  // Signer ceremony management — restricted to admin only (WebAuthn step-up required)
+  'signers.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  'signers.manage': ['admin'],
 };

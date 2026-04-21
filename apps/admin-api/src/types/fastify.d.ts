@@ -17,6 +17,8 @@ declare module 'fastify' {
     emailQueue: Queue;
     /** BullMQ queue for Slack webhook notifications (Slice 5) */
     slackQueue: Queue;
+    /** BullMQ queue for signer ceremony broadcast jobs (Slice 6) */
+    ceremonyQueue: Queue;
   }
 
   interface Session {

@@ -17,6 +17,13 @@ export const staffMembers = pgTable('staff_members', {
     .$type<NotificationPrefs>()
     .notNull()
     .default(DEFAULT_NOTIFICATION_PREFS),
+  /** UI locale preference: 'en' | 'vi' — persisted per-staff (migration 0018) */
+  localePref: text('locale_pref').notNull().default('en'),
+  /** Mobile number for SMS notifications (migration 0018 / expanded in 0021) */
+  phoneNumber: text('phone_number'),
+  /** Short-lived signed invite token — cleared on first WebAuthn registration */
+  inviteToken: text('invite_token'),
+  inviteExpiresAt: timestamp('invite_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

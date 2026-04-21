@@ -11,9 +11,10 @@ import { useTranslation } from 'react-i18next';
 import { STAFF_DIRECTORY } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
+import { InviteModal } from './invite-modal';
 import { UserDetailSheet } from './users-detail-sheet';
 import { UsersKpiStrip } from './users-kpi-strip';
-import { AddUserModal, InviteStaffModal } from './users-modals';
+import { AddUserModal } from './users-modals';
 import { EndUsersTable, StaffTable } from './users-tables';
 
 type Tab = 'staff' | 'endusers';
@@ -186,7 +187,7 @@ export function UsersPage() {
         )}
       </div>
 
-      <InviteStaffModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <InviteModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
       <AddUserModal open={addUserOpen} onClose={() => setAddUserOpen(false)} />
       <UserDetailSheet
         userId={selectedId}

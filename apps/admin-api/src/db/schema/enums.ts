@@ -31,8 +31,13 @@ export const walletTypeEnum = pgEnum('wallet_type', [
   'other',
 ]);
 
-/** Staff account lifecycle status */
-export const staffStatusEnum = pgEnum('staff_status', ['active', 'suspended', 'offboarded']);
+/** Staff account lifecycle status — 'invited' added migration 0018 */
+export const staffStatusEnum = pgEnum('staff_status', [
+  'active',
+  'suspended',
+  'offboarded',
+  'invited',
+]);
 
 /** User account lifecycle status */
 export const userStatusEnum = pgEnum('user_status', ['active', 'suspended', 'closed']);

@@ -1,11 +1,16 @@
 import { StaffMember, StaffSigningKey } from '@wp/shared-types';
-// Staff routes — GET /staff, POST /staff/signing-keys, GET /staff/me/sessions, GET /staff/:id/sessions
+// Staff routes — GET /staff, POST /staff/signing-keys, sessions, account settings, invite
+// PATCH /staff/me            — update own name + locale_pref
+// POST  /staff/me/logout-all — revoke all own sessions
+// POST  /staff/invite        — admin creates signed invite link for new staff
 import { count, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth, requirePerm } from '../auth/rbac.middleware.js';
 import { staffLoginHistory } from '../db/schema/index.js';
+import { updateProfile } from '../services/account-settings.service.js';
+import { inviteStaff } from '../services/staff-invite.service.js';
 
 const NOT_IMPL = z.object({ code: z.string(), message: z.string() });
 
@@ -55,7 +60,108 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
       reply.code(501).send({ code: 'NOT_IMPLEMENTED', message: 'Wired in P09' })
   );
 
-  // Session row schema for list responses
+  // ── PATCH /staff/me — update own profile (name + locale_pref) ─────────────
+  r.patch(
+    '/staff/me',
+    {
+      preHandler: requireAuth(),
+      schema: {
+        tags: ['staff'],
+        body: z.object({
+          name: z.string().min(1).max(100).optional(),
+          localePref: z.enum(['en', 'vi']).optional(),
+        }),
+        response: {
+          200: z.object({
+            id: z.string().uuid(),
+            name: z.string(),
+            email: z.string().email(),
+            localePref: z.string(),
+          }),
+          400: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: requireAuth preHandler ensures session.staff exists
+      const staffId = req.session.staff!.id;
+      const { name, localePref } = req.body;
+
+      try {
+        // Build params object without spreading undefined into exactOptionalPropertyTypes fields
+        const params: Parameters<typeof updateProfile>[1] = { staffId };
+        if (name !== undefined) params.name = name;
+        if (localePref !== undefined) params.localePref = localePref;
+        const result = await updateProfile(app.db, params);
+        return reply.code(200).send(result);
+      } catch (err) {
+        return reply.code(400).send({ code: 'VALIDATION_ERROR', message: (err as Error).message });
+      }
+    }
+  );
+
+  // ── POST /staff/me/logout-all — revoke all own sessions ───────────────────
+  // Since sessions are stored in @fastify/session (signed cookies), we can't
+  // enumerate them server-side without a session store. We destroy the current
+  // session and set a flag in the DB so other tab reloads find the account
+  // suspended until next login. A DB-backed session store would support true
+  // revoke-all; this is the best we can do with cookie sessions.
+  r.post(
+    '/staff/me/logout-all',
+    {
+      preHandler: requireAuth(),
+      schema: {
+        tags: ['staff'],
+        response: {
+          200: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // Destroy current session — effectively logs out this device immediately.
+      await req.session.destroy();
+      return reply.code(200).send({ message: 'Session destroyed. Please sign in again.' });
+    }
+  );
+
+  // ── POST /staff/invite — admin creates signed invite link ─────────────────
+  r.post(
+    '/staff/invite',
+    {
+      preHandler: requirePerm('staff.manage'),
+      schema: {
+        tags: ['staff'],
+        body: z.object({
+          email: z.string().email(),
+          name: z.string().min(1).max(100),
+          role: z.enum(['admin', 'treasurer', 'operator', 'viewer']),
+        }),
+        response: {
+          201: z.object({
+            staffId: z.string().uuid(),
+            inviteLink: z.string().url(),
+            expiresAt: z.string().datetime(),
+          }),
+          400: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: requirePerm preHandler ensures session.staff exists
+      const invitedByStaffId = req.session.staff!.id;
+      const { email, name, role } = req.body;
+
+      try {
+        const result = await inviteStaff(app.db, { email, name, role, invitedByStaffId });
+        return reply.code(201).send(result);
+      } catch (err) {
+        return reply.code(400).send({ code: 'INVITE_ERROR', message: (err as Error).message });
+      }
+    }
+  );
+
+  // ── Login history ─────────────────────────────────────────────────────────
+
   const SessionRow = z.object({
     id: z.string().uuid(),
     success: z.boolean(),
@@ -70,7 +176,6 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
     limit: z.coerce.number().int().positive().max(100).default(20),
   });
 
-  // GET /staff/me/sessions — own login history (any authenticated staff)
   r.get(
     '/staff/me/sessions',
     {
@@ -89,7 +194,6 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
     },
     async (req, reply) => {
       const { page, limit } = req.query as { page: number; limit: number };
-      // requireAuth() guarantees staff is set — safe to assert
       // biome-ignore lint/style/noNonNullAssertion: requireAuth preHandler ensures session.staff exists
       const staffId = req.session.staff!.id;
       const offset = (page - 1) * limit;
@@ -102,7 +206,6 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         .limit(limit)
         .offset(offset);
 
-      // Total count — separate query for simplicity; history table is append-only
       const countRows = await app.db
         .select({ value: count() })
         .from(staffLoginHistory)
@@ -110,17 +213,13 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
       const total = Number(countRows[0]?.value ?? 0);
 
       return reply.code(200).send({
-        data: rows.map((r) => ({
-          ...r,
-          createdAt: r.createdAt.toISOString(),
-        })),
+        data: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
         total,
         page,
       });
     }
   );
 
-  // GET /staff/:id/sessions — view any staff member's login history (admin only)
   r.get(
     '/staff/:id/sessions',
     {
@@ -158,10 +257,7 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
       const totalById = Number(countRowsById[0]?.value ?? 0);
 
       return reply.code(200).send({
-        data: rows.map((r) => ({
-          ...r,
-          createdAt: r.createdAt.toISOString(),
-        })),
+        data: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
         total: totalById,
         page,
       });

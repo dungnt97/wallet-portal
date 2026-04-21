@@ -1,4 +1,5 @@
 import { ToastHost } from '@/components/overlays';
+import { AccountSettingsModal } from '@/features/account/account-settings-modal';
 import { useNotificationsSocket } from '@/features/notifs/use-notifications-socket';
 import { useTweaksStore } from '@/stores/tweaks-store';
 // App layout — .app grid shell. Composes sidebar + topbar + main + overlays.
@@ -35,6 +36,7 @@ export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // Cmd+K / Ctrl+K opens the command palette.
   useEffect(() => {
@@ -60,8 +62,6 @@ export function AppLayout() {
     else toggleSidebarPref();
   }, [isNarrow, toggleSidebarPref]);
 
-  // Dashboard index of current page for `data-screen-label` attr (prototype
-  // exposes this for debugging overlays).
   const segment = location.pathname.split('/')[2] ?? 'dashboard';
   const idx = NAV.flatMap((g) => g.items).findIndex((i) => i.id === segment);
   const screenLabel = `${String(idx + 1).padStart(2, '0')} ${t(pageTitleKey(segment))}`;
@@ -84,6 +84,7 @@ export function AppLayout() {
           onToggleSidebar={onToggleSidebar}
           onOpenCommandPalette={() => setCmdOpen(true)}
           onOpenTweaks={() => setTweaksOpen((o) => !o)}
+          onOpenAccount={() => setAccountOpen(true)}
         />
 
         <main className="main">
@@ -92,6 +93,7 @@ export function AppLayout() {
 
         {tweaksOpen && <TweaksPanel onClose={() => setTweaksOpen(false)} />}
         <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+        <AccountSettingsModal open={accountOpen} onClose={() => setAccountOpen(false)} />
       </div>
     </ToastHost>
   );

@@ -761,7 +761,50 @@
     "colReason": "Reason",
     "colStatus": "Status",
     "retry": "Retry",
-    "archive": "Archive"
+    "archive": "Archive",
+    "stuck": "Stuck",
+    "allClear": "All clear",
+    "allClearSub": "No stuck transactions need attention.",
+    "needsAttention": "Needs attention",
+    "loadError": "Failed to load stuck transactions",
+    "colKind": "Kind",
+    "colTxHash": "Tx hash",
+    "colAge": "Age",
+    "colBumps": "Bumps",
+    "colActions": "Actions",
+    "bumpBtn": "Bump +15%",
+    "cancelBtn": "Cancel",
+    "bumpDisabledTip": "Cannot bump — limit reached or cold-tier",
+    "cancelDisabledTip": "Cannot cancel — already cancelling or cold-tier",
+    "cancelSolanaDisabledTip": "Cancel not supported on Solana — tx expires in ~2 min",
+    "bump": {
+      "title": "Gas bump",
+      "currentTxLabel": "Current tx hash",
+      "infoTitle": "EIP-1559 gas bump",
+      "infoBody": "Will rebroadcast at same nonce with fees multiplied {{multiplier}} (bump #{{count}}). Original tx becomes invalid if new tx confirms.",
+      "bumpCount": "Bump #",
+      "chain": "Chain",
+      "confirm": "Confirm bump",
+      "success": "Bump submitted — new tx {{hash}}",
+      "error": "Bump failed: {{msg}}"
+    },
+    "cancel": {
+      "title": "Cancel transaction",
+      "currentTxLabel": "Stuck tx hash",
+      "warningTitle": "Irreversible action",
+      "warningBody": "This will attempt to replace the pending tx with a zero-value self-send at the same nonce. Gas will be burned. Once the cancel tx confirms the original tx is dropped.",
+      "solanaTip": "Cancel not supported on Solana — transactions auto-expire in ~2 minutes.",
+      "reasonLabel": "Reason for cancellation",
+      "reasonPlaceholder": "e.g. Wrong destination address, amount error…",
+      "reasonHint": "At least 10 characters — recorded in the audit log",
+      "confirm": "Confirm cancel",
+      "success": "Cancel tx submitted — {{hash}}",
+      "error": "Cancel failed: {{msg}}"
+    },
+    "socket": {
+      "confirmed": "Recovery action confirmed: {{type}} {{id}}",
+      "failed": "Recovery action failed: {{type}} {{id}}"
+    }
   },
   "architecture": {
     "title": "System architecture",

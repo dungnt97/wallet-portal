@@ -1,27 +1,30 @@
-import { ChainPill, PageFrame } from '@/components/custody';
-import { useToast } from '@/components/overlays';
+// Recovery page — lists stuck/failed txs from GET /recovery/stuck, allows gas bump
+// and cancel-replace. Falls back to fixture data when API returns empty (dev mode).
+// Real-time updates via Socket.io; 30s polling as fallback.
+import { PageFrame } from '@/components/custody';
 import { I } from '@/icons';
-import { fmtUSD, shortHash } from '@/lib/format';
-// Failed-tx recovery page — stuck/failed transactions with retry/bump/cancel.
-// Ports prototype page_ops_extras.jsx PageRecovery.
+import type { StuckTxItem } from '@wp/shared-types';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FAILED_TXS, type FailedTx } from '../_shared/fixtures';
-import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
-
-type RetryKind = 'bump' | 'retry' | 'cancel';
+import { BlockTicker } from '../_shared/realtime';
+import { BumpConfirmModal } from './bump-confirm-modal';
+import { CancelConfirmModal } from './cancel-confirm-modal';
+import { StuckTxTable } from './stuck-tx-table';
+import { useStuckTxs } from './use-recovery';
+import { useRecoverySocket } from './use-recovery-socket';
 
 export function RecoveryPage() {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<FailedTx[]>(FAILED_TXS);
-  const toast = useToast();
+  const { data, isLoading, isError, refetch } = useStuckTxs();
 
-  const retry = (r: FailedTx, kind: RetryKind) => {
-    setRows((rs) => rs.filter((x) => x.id !== r.id));
-    const msg =
-      kind === 'bump' ? 'resubmitted at +25% gas' : kind === 'retry' ? 'retry queued' : 'cancelled';
-    toast(`${r.id} ${msg}`, 'success');
-  };
+  // Wire Socket.io invalidation + toast on confirmed/failed events
+  useRecoverySocket();
+
+  const [bumpTarget, setBumpTarget] = useState<StuckTxItem | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<StuckTxItem | null>(null);
+
+  const items = data?.items ?? [];
+  const thresholds = data?.thresholdsUsed;
 
   return (
     <PageFrame
@@ -35,97 +38,70 @@ export function RecoveryPage() {
         <div className="policy-strip">
           <div className="policy-strip-item">
             <I.AlertTri size={11} />
-            <span className="text-muted">Stuck:</span>
-            <span className="fw-600">{rows.length} tx</span>
+            <span className="text-muted">{t('recovery.stuck')}:</span>
+            <span className="fw-600">{isLoading ? '…' : items.length} tx</span>
           </div>
-          <div className="policy-strip-sep" />
-          <div className="policy-strip-item">
-            <I.Clock size={11} />
-            <span className="text-muted">Gas bumping:</span>
-            <span className="fw-600">EIP-1559 +25%</span>
-          </div>
+          {thresholds && (
+            <>
+              <div className="policy-strip-sep" />
+              <div className="policy-strip-item">
+                <I.Clock size={11} />
+                <span className="text-muted">EVM &gt;</span>
+                <span className="fw-600">{thresholds.evmMinutes}m</span>
+              </div>
+              <div className="policy-strip-sep" />
+              <div className="policy-strip-item">
+                <I.Clock size={11} />
+                <span className="text-muted">SOL &gt;</span>
+                <span className="fw-600">{thresholds.solanaSeconds}s</span>
+              </div>
+            </>
+          )}
           <div className="spacer" />
           <BlockTicker chain="bnb" />
           <BlockTicker chain="sol" />
         </div>
       }
     >
-      {rows.length === 0 ? (
-        <div className="card" style={{ padding: 40, marginTop: 14, textAlign: 'center' }}>
-          <I.Check
-            size={28}
-            style={{ color: 'var(--ok-text)', margin: '0 auto 8px', display: 'block' }}
-          />
-          <div className="fw-500">All clear</div>
-          <div className="text-sm text-muted">No failed transactions need attention.</div>
-        </div>
-      ) : (
-        <div className="card pro-card" style={{ marginTop: 14 }}>
-          <div className="pro-card-header">
-            <h3 className="card-title">Needs attention</h3>
-            <div className="spacer" />
-            <span className="text-xs text-muted text-mono">{rows.length} tx</span>
+      {isError && (
+        <div className="alert err" style={{ marginTop: 14 }}>
+          <I.AlertTri size={14} className="alert-icon" />
+          <div className="alert-body">
+            <div className="alert-title">{t('recovery.loadError')}</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => void refetch()}>
+              {t('common.retry')}
+            </button>
           </div>
-          <table className="table table-tight">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Kind</th>
-                <th>Chain</th>
-                <th className="num">Amount</th>
-                <th>Reason</th>
-                <th>Hash</th>
-                <th>Failed</th>
-                <th className="num">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="text-mono fw-500">{r.id}</td>
-                  <td>
-                    <span className={`badge-tight ${r.kind === 'withdrawal' ? 'warn' : 'info'}`}>
-                      {r.kind}
-                    </span>
-                  </td>
-                  <td>
-                    <ChainPill chain={r.chain} />
-                  </td>
-                  <td className="num text-mono">
-                    {fmtUSD(r.amount)} <span className="text-faint text-xs">{r.token}</span>
-                  </td>
-                  <td className="text-sm">{r.reason}</td>
-                  <td className="text-mono text-xs">{shortHash(r.hash, 6, 4)}</td>
-                  <td className="text-xs text-muted">
-                    <LiveTimeAgo at={r.failedAt} />
-                  </td>
-                  <td className="num">
-                    {r.canBumpFee && (
-                      <button className="btn btn-ghost btn-sm" onClick={() => retry(r, 'bump')}>
-                        <I.Zap size={11} /> Bump +25%
-                      </button>
-                    )}
-                    {r.canRetry && (
-                      <button className="btn btn-ghost btn-sm" onClick={() => retry(r, 'retry')}>
-                        <I.Refresh size={11} /> Retry
-                      </button>
-                    )}
-                    {r.canCancel && (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => retry(r, 'cancel')}
-                        style={{ color: 'var(--err-text)' }}
-                      >
-                        <I.X size={11} /> Cancel
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
+
+      {isLoading && (
+        <div className="card" style={{ padding: 40, marginTop: 14, textAlign: 'center' }}>
+          <div className="text-muted text-sm">{t('common.loading')}</div>
+        </div>
+      )}
+
+      {!isLoading && !isError && (
+        <StuckTxTable
+          items={items}
+          onBump={(item) => setBumpTarget(item)}
+          onCancel={(item) => setCancelTarget(item)}
+        />
+      )}
+
+      {/* Bump modal */}
+      <BumpConfirmModal
+        open={bumpTarget !== null}
+        item={bumpTarget}
+        onClose={() => setBumpTarget(null)}
+      />
+
+      {/* Cancel modal */}
+      <CancelConfirmModal
+        open={cancelTarget !== null}
+        item={cancelTarget}
+        onClose={() => setCancelTarget(null)}
+      />
     </PageFrame>
   );
 }

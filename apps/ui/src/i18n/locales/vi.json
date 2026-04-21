@@ -761,7 +761,50 @@
     "colReason": "Lý do",
     "colStatus": "Trạng thái",
     "retry": "Thử lại",
-    "archive": "Lưu trữ"
+    "archive": "Lưu trữ",
+    "stuck": "Bị kẹt",
+    "allClear": "Tất cả ổn",
+    "allClearSub": "Không có giao dịch nào bị kẹt.",
+    "needsAttention": "Cần xử lý",
+    "loadError": "Không tải được danh sách tx bị kẹt",
+    "colKind": "Loại",
+    "colTxHash": "Tx hash",
+    "colAge": "Thời gian",
+    "colBumps": "Lần bump",
+    "colActions": "Hành động",
+    "bump": {
+      "title": "Tăng phí gas",
+      "currentTxLabel": "Tx hash hiện tại",
+      "infoTitle": "EIP-1559 gas bump",
+      "infoBody": "Sẽ phát lại ở cùng nonce với phí nhân {{multiplier}} (lần bump #{{count}}). Tx gốc sẽ bị huỷ nếu tx mới xác nhận.",
+      "bumpCount": "Lần bump #",
+      "chain": "Chain",
+      "confirm": "Xác nhận bump",
+      "success": "Đã gửi bump — tx mới {{hash}}",
+      "error": "Bump thất bại: {{msg}}"
+    },
+    "cancel": {
+      "title": "Huỷ giao dịch",
+      "currentTxLabel": "Tx hash bị kẹt",
+      "warningTitle": "Hành động không thể hoàn tác",
+      "warningBody": "Sẽ thay thế tx đang chờ bằng một giao dịch tự gửi giá trị 0 ở cùng nonce. Phí gas sẽ bị mất. Tx gốc sẽ bị huỷ khi tx mới xác nhận.",
+      "solanaTip": "Solana không hỗ trợ huỷ — giao dịch tự hết hạn sau ~2 phút.",
+      "reasonLabel": "Lý do huỷ",
+      "reasonPlaceholder": "VD: Địa chỉ đích sai, số tiền nhầm…",
+      "reasonHint": "Ít nhất 10 ký tự — được ghi vào audit log",
+      "confirm": "Xác nhận huỷ",
+      "success": "Đã gửi tx huỷ — {{hash}}",
+      "error": "Huỷ thất bại: {{msg}}"
+    },
+    "bumpDisabledTip": "Không thể bump — đã đạt giới hạn hoặc ví lạnh",
+    "cancelDisabledTip": "Không thể huỷ — đang huỷ hoặc ví lạnh",
+    "cancelSolanaDisabledTip": "Solana không hỗ trợ huỷ — tx tự hết hạn sau ~2 phút",
+    "socket": {
+      "confirmed": "Hành động phục hồi đã xác nhận: {{type}} {{id}}",
+      "failed": "Hành động phục hồi thất bại: {{type}} {{id}}"
+    },
+    "bumpBtn": "Bump +15%",
+    "cancelBtn": "Huỷ tx"
   },
   "architecture": {
     "title": "Kiến trúc hệ thống",

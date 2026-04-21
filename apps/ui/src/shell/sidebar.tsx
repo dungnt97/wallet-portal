@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 // we only render the markup and respond to the collapsed attribute.
 import { NavLink } from 'react-router-dom';
 import { NAV } from './nav-structure';
+import { useSidebarCounts } from './use-sidebar-counts';
 
 interface Props {
   collapsed: boolean;
@@ -17,6 +18,7 @@ interface Props {
 export function Sidebar({ collapsed, onNavigate }: Props) {
   const { t } = useTranslation();
   const { staff } = useAuth();
+  const counts = useSidebarCounts();
 
   return (
     <aside className="sidebar" data-collapsed={collapsed ? 'true' : 'false'}>
@@ -45,9 +47,19 @@ export function Sidebar({ collapsed, onNavigate }: Props) {
                 >
                   <Icon className="nav-icon" />
                   <span className="nav-label">{label}</span>
-                  {item.badge && (
-                    <span className={`nav-badge ${item.badgeKind ?? ''}`}>{item.badge}</span>
-                  )}
+                  {(() => {
+                    // Resolve live count for this nav item; fall back to static badge from nav-structure
+                    const liveCount = counts[item.id as keyof typeof counts];
+                    const badge =
+                      liveCount !== undefined && liveCount !== null
+                        ? liveCount > 0
+                          ? String(liveCount)
+                          : undefined
+                        : item.badge;
+                    return badge ? (
+                      <span className={`nav-badge ${item.badgeKind ?? ''}`}>{badge}</span>
+                    ) : null;
+                  })()}
                 </NavLink>
               );
             })}

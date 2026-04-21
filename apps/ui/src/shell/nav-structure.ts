@@ -1,6 +1,7 @@
 // Nav structure — sidebar groups + items. Ports prototype shell.jsx `NAV`.
-// Labels are i18n keys resolved at render via `t()`. Badges/counts are
-// placeholders until the dashboard summary endpoint wires them up.
+// Labels are i18n keys resolved at render via `t()`.
+// Live badge counts come from useSidebarCounts() (GET /dashboard/nav-counts, 30s poll).
+// The `badge` field here is intentionally removed — sidebar.tsx resolves counts dynamically.
 import type { IconKey } from '@/icons';
 
 export interface NavItem {
@@ -37,15 +38,13 @@ export const NAV: NavGroup[] = [
         to: '/app/deposits',
         labelKey: 'sidebar.deposits',
         iconKey: 'ArrowDown',
-        badge: '4',
       },
-      { id: 'sweep', to: '/app/sweep', labelKey: 'sidebar.sweep', iconKey: 'Sweep', badge: '12' },
+      { id: 'sweep', to: '/app/sweep', labelKey: 'sidebar.sweep', iconKey: 'Sweep' },
       {
         id: 'withdrawals',
         to: '/app/withdrawals',
         labelKey: 'sidebar.withdrawals',
         iconKey: 'ArrowUp',
-        badge: '3',
         badgeKind: 'warn',
       },
       { id: 'cold', to: '/app/cold', labelKey: 'sidebar.cold', iconKey: 'Database' },
@@ -59,7 +58,6 @@ export const NAV: NavGroup[] = [
         to: '/app/multisig',
         labelKey: 'sidebar.multisig',
         iconKey: 'Shield',
-        badge: '5',
         badgeKind: 'warn',
       },
       {
@@ -67,7 +65,6 @@ export const NAV: NavGroup[] = [
         to: '/app/recovery',
         labelKey: 'sidebar.failedTxs',
         iconKey: 'AlertTri',
-        badge: '4',
         badgeKind: 'err',
       },
     ],

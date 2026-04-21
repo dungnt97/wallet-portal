@@ -1,8 +1,8 @@
-// Dashboard routes — GET /dashboard/metrics with real aggregations (wired P09)
+import { count, eq, inArray, sum } from 'drizzle-orm';
+// Dashboard routes — GET /dashboard/metrics + GET /dashboard/nav-counts
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { eq, count, sum } from 'drizzle-orm';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
 
@@ -72,7 +72,75 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
         blockSyncBnb: null,
         blockSyncSol: null,
       });
+    }
+  );
+
+  // ── GET /dashboard/nav-counts — sidebar badge counts ─────────────────────────
+  // Polled every 30s by use-sidebar-counts hook; also refreshed on socket events.
+  r.get(
+    '/dashboard/nav-counts',
+    {
+      preHandler: requirePerm('dashboard.read'),
+      schema: {
+        tags: ['dashboard'],
+        response: {
+          200: z.object({
+            deposits: z.number().int(),
+            sweep: z.number().int(),
+            withdrawals: z.number().int(),
+            multisig: z.number().int(),
+            recovery: z.number().int(),
+          }),
+        },
+      },
     },
+    async (_req, reply) => {
+      const [depositCount, sweepCount, withdrawalCount, multisigCount, recoveryCount] =
+        await Promise.all([
+          // Deposits: pending only
+          app.db
+            .select({ cnt: count() })
+            .from(schema.deposits)
+            .where(eq(schema.deposits.status, 'pending'))
+            .then((r) => Number(r[0]?.cnt ?? 0)),
+
+          // Sweep: in-progress (pending sweeps)
+          app.db
+            .select({ cnt: count() })
+            .from(schema.sweeps)
+            .where(eq(schema.sweeps.status, 'pending'))
+            .then((r) => Number(r[0]?.cnt ?? 0)),
+
+          // Withdrawals: pending + approved + time_locked
+          app.db
+            .select({ cnt: count() })
+            .from(schema.withdrawals)
+            .where(inArray(schema.withdrawals.status, ['pending', 'approved', 'time_locked']))
+            .then((r) => Number(r[0]?.cnt ?? 0)),
+
+          // Multisig: collecting + ready ops
+          app.db
+            .select({ cnt: count() })
+            .from(schema.multisigOperations)
+            .where(inArray(schema.multisigOperations.status, ['collecting', 'ready', 'pending']))
+            .then((r) => Number(r[0]?.cnt ?? 0)),
+
+          // Recovery: failed sweeps needing attention
+          app.db
+            .select({ cnt: count() })
+            .from(schema.sweeps)
+            .where(eq(schema.sweeps.status, 'failed'))
+            .then((r) => Number(r[0]?.cnt ?? 0)),
+        ]);
+
+      return reply.code(200).send({
+        deposits: depositCount,
+        sweep: sweepCount,
+        withdrawals: withdrawalCount,
+        multisig: multisigCount,
+        recovery: recoveryCount,
+      });
+    }
   );
 };
 

@@ -230,6 +230,8 @@ export interface RebalanceBody {
   chain: 'bnb' | 'sol';
   token: 'USDT' | 'USDC';
   amountMinor: string;
+  /** Direction of the rebalance — defaults to hot_to_cold on the server */
+  direction?: 'hot_to_cold' | 'cold_to_hot';
 }
 
 export interface RebalanceResult {
@@ -701,5 +703,160 @@ export function useUpsertRoutingRule() {
       void qc.invalidateQueries({ queryKey: adminNotifQueryKeys.routing() });
       void qc.invalidateQueries({ queryKey: queryKeys.notifChannels() });
     },
+  });
+}
+
+// ---- Nav sidebar counts ----
+
+export interface NavCounts {
+  deposits: number;
+  sweep: number;
+  withdrawals: number;
+  multisig: number;
+  recovery: number;
+}
+
+/** GET /dashboard/nav-counts — badge counts for sidebar navigation */
+export function useNavCounts() {
+  return useQuery({
+    queryKey: ['dashboard', 'nav-counts'] as const,
+    queryFn: () => api.get<NavCounts>('/dashboard/nav-counts').catch(() => null),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+}
+
+// ---- Deposit add-to-sweep mutation ----
+
+/** POST /deposits/:id/add-to-sweep — create sweep trigger for a credited deposit */
+export function useAddDepositToSweep(depositId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<{ sweepId: string; userAddressId: string }>(`/deposits/${depositId}/add-to-sweep`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['sweep'] });
+      void qc.invalidateQueries({ queryKey: ['deposits'] });
+      void qc.invalidateQueries({ queryKey: ['dashboard', 'nav-counts'] });
+    },
+  });
+}
+
+// ---- Withdrawal reject + submit-draft mutations ----
+
+export interface RejectWithdrawalBody {
+  reason?: string;
+}
+
+/** POST /withdrawals/:id/reject — treasurer rejects a pending withdrawal */
+export function useRejectWithdrawal(withdrawalId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: RejectWithdrawalBody) =>
+      api.post<{ ok: boolean }>(`/withdrawals/${withdrawalId}/reject`, body ?? {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+      void qc.invalidateQueries({ queryKey: ['dashboard', 'nav-counts'] });
+    },
+  });
+}
+
+/** POST /withdrawals/:id/submit — promote draft to pending (awaiting signatures) */
+export function useSubmitWithdrawal(withdrawalId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<{ ok: boolean; status: string }>(`/withdrawals/${withdrawalId}/submit`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+    },
+  });
+}
+
+// ---- Multisig approve / reject / execute mutations ----
+
+export interface MultisigApproveBody {
+  staffId: string;
+  at: string;
+}
+
+/** POST /multisig-ops/:id/approve — record a signer approval on a multisig op */
+export function useApproveMultisigOp(opId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MultisigApproveBody) =>
+      api.post<{
+        op: { id: string; collectedSigs: number; requiredSigs: number; status: string };
+        thresholdMet: boolean;
+      }>(`/multisig-ops/${opId}/approve`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+    },
+  });
+}
+
+/** POST /multisig-ops/:id/reject — signer rejects a multisig op */
+export function useRejectMultisigOp(opId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: { reason?: string }) =>
+      api.post<{ ok: boolean }>(`/multisig-ops/${opId}/reject`, body ?? {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+    },
+  });
+}
+
+/** POST /multisig-ops/:id/execute — broadcast a ready multisig op */
+export function useExecuteMultisigOp(opId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ jobId: string }>(`/multisig-ops/${opId}/execute`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+    },
+  });
+}
+
+// ---- Wallets registry ----
+
+export interface WalletRow {
+  id: string;
+  chain: 'bnb' | 'sol';
+  address: string;
+  tier: 'hot' | 'cold';
+  purpose: 'deposit_hd' | 'operational' | 'cold_reserve';
+  multisigAddr: string | null;
+  derivationPath: string | null;
+  policyConfig: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface WalletsPage {
+  data: WalletRow[];
+  total: number;
+  page: number;
+}
+
+/** GET /wallets — registry of custody wallets (hot operational, cold reserve, HD deposit) */
+export function useWallets(
+  params: { chain?: 'bnb' | 'sol'; tier?: 'hot' | 'cold'; purpose?: string } = {}
+) {
+  const qs = new URLSearchParams();
+  if (params.chain) qs.set('chain', params.chain);
+  if (params.tier) qs.set('tier', params.tier);
+  if (params.purpose) qs.set('purpose', params.purpose);
+  const q = qs.toString();
+  return useQuery({
+    queryKey: ['wallets', params] as const,
+    queryFn: () =>
+      api
+        .get<WalletsPage>(`/wallets${q ? `?${q}` : ''}`)
+        .catch(() => ({ data: [] as WalletRow[], total: 0, page: 1 })),
+    staleTime: 60_000,
   });
 }

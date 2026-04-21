@@ -12,6 +12,7 @@ import type { NotificationSeverity } from '../db/schema/notifications.js';
 import { emitNotifCreated } from '../events/emit-notif-created.js';
 import type { SmsJobData } from '../workers/notif-sms.worker.js';
 import { SMS_QUEUE } from '../workers/notif-sms.worker.js';
+import { fanoutToSystemChannels } from './notif-system-channel-fanout.service.js';
 import { getStaffIdsByRole, getStaffPrefs } from './notification-prefs.service.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -147,7 +148,18 @@ export async function notifyStaff(
   // 2. Resolve pref category
   const category = getPrefCategory(eventType);
 
-  // 3. Process each staff member
+  // 3. Fan-out to org-level system channels (additive — does not replace per-staff flow)
+  fanoutToSystemChannels(db, {
+    eventType,
+    severity,
+    title,
+    body: body ?? null,
+    payload: payload ?? null,
+  }).catch((err: unknown) =>
+    console.error('[notify-staff] System channel fanout failed eventType=%s err=%s', eventType, err)
+  );
+
+  // 4. Process each staff member
   await Promise.all(
     staffIds.map(async (staffId) => {
       try {

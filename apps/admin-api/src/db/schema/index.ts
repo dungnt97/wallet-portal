@@ -25,3 +25,5 @@ export * from './reconciliation-drifts';
 export * from './recovery-actions';
 export * from './staff-login-history';
 export * from './backups';
+export * from './notification-channels';
+export * from './notification-routing-rules';

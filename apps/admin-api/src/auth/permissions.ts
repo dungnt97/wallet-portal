@@ -34,7 +34,9 @@ export type Permission =
   | 'recovery.read'
   | 'recovery.write'
   // Global search across users + tx entities
-  | 'search.read';
+  | 'search.read'
+  // Admin notification channel + routing config
+  | 'notifications.manage';
 
 /** Roles permitted for each action — check with PERMS[perm].includes(role) */
 export const PERMS: Record<Permission, Role[]> = {
@@ -70,4 +72,6 @@ export const PERMS: Record<Permission, Role[]> = {
   'recovery.write': ['admin'],
   // Search — admin sees users+tx; treasurer sees tx only (no user emails)
   'search.read': ['admin', 'treasurer', 'operator', 'viewer'],
+  // Notification channels + routing config — admin only
+  'notifications.manage': ['admin'],
 };

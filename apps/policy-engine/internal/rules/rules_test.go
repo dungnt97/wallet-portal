@@ -34,6 +34,9 @@ type fakeQuerier struct {
 
 	isOperationalWallet    bool
 	isOperationalWalletErr error
+
+	killSwitchEnabled    bool
+	killSwitchEnabledErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -80,6 +83,10 @@ func (f *fakeQuerier) GetWithdrawal(_ context.Context, _ pgtype.UUID) (db.GetWit
 
 func (f *fakeQuerier) IsOperationalWallet(_ context.Context, _ db.IsOperationalWalletParams) (bool, error) {
 	return f.isOperationalWallet, f.isOperationalWalletErr
+}
+
+func (f *fakeQuerier) GetKillSwitchEnabled(_ context.Context) (bool, error) {
+	return f.killSwitchEnabled, f.killSwitchEnabledErr
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────
@@ -426,5 +433,116 @@ func TestTimeLock(t *testing.T) {
 				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
 			}
 		})
+	}
+}
+
+// ── KillSwitchCheck tests ─────────────────────────────────────────────────────
+
+func TestKillSwitchCheck(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name      string
+		req       rules.EvaluateRequest
+		querier   *fakeQuerier
+		wantPass  bool
+		wantApply bool
+	}{
+		{
+			name:      "withdrawal — flag disabled — allowed",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal"},
+			querier:   &fakeQuerier{killSwitchEnabled: false},
+			wantPass:  true,
+			wantApply: true,
+		},
+		{
+			name:      "sweep — flag disabled — allowed",
+			req:       rules.EvaluateRequest{OperationType: "sweep"},
+			querier:   &fakeQuerier{killSwitchEnabled: false},
+			wantPass:  true,
+			wantApply: true,
+		},
+		{
+			name:      "withdrawal — flag enabled — denied",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal"},
+			querier:   &fakeQuerier{killSwitchEnabled: true},
+			wantPass:  false,
+			wantApply: true,
+		},
+		{
+			name:      "sweep — flag enabled — denied",
+			req:       rules.EvaluateRequest{OperationType: "sweep"},
+			querier:   &fakeQuerier{killSwitchEnabled: true},
+			wantPass:  false,
+			wantApply: true,
+		},
+		{
+			name:      "deposit operation — rule does not apply",
+			req:       rules.EvaluateRequest{OperationType: "deposit"},
+			querier:   &fakeQuerier{killSwitchEnabled: true},
+			wantPass:  true, // N/A — AppliesTo false
+			wantApply: false,
+		},
+		{
+			name:      "empty operation type — rule does not apply",
+			req:       rules.EvaluateRequest{},
+			querier:   &fakeQuerier{killSwitchEnabled: true},
+			wantPass:  true,
+			wantApply: false,
+		},
+		{
+			name:      "DB error — fail closed (denied)",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal"},
+			querier:   &fakeQuerier{killSwitchEnabledErr: errors.New("db down")},
+			wantPass:  false,
+			wantApply: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			rule := &rules.KillSwitchCheck{}
+			if rule.AppliesTo(tc.req) != tc.wantApply {
+				t.Fatalf("AppliesTo = %v, want %v", rule.AppliesTo(tc.req), tc.wantApply)
+			}
+			if !tc.wantApply {
+				return
+			}
+			pass, reason, _ := rule.Check(ctx, tc.req, tc.querier)
+			if pass != tc.wantPass {
+				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
+			}
+		})
+	}
+}
+
+// countingKillSwitchQuerier wraps fakeQuerier and counts GetKillSwitchEnabled calls.
+type countingKillSwitchQuerier struct {
+	*fakeQuerier
+	counter *int
+}
+
+func (c *countingKillSwitchQuerier) GetKillSwitchEnabled(_ context.Context) (bool, error) {
+	*c.counter++
+	return c.fakeQuerier.GetKillSwitchEnabled(context.Background())
+}
+
+func TestKillSwitchCheck_CacheTTL(t *testing.T) {
+	// Two successive calls within TTL should only query DB once (cache hit on 2nd).
+	ctx := context.Background()
+	callCount := 0
+	cq := &countingKillSwitchQuerier{
+		fakeQuerier: &fakeQuerier{killSwitchEnabled: false},
+		counter:     &callCount,
+	}
+
+	rule := &rules.KillSwitchCheck{}
+	req := rules.EvaluateRequest{OperationType: "withdrawal"}
+
+	_, _, _ = rule.Check(ctx, req, cq)
+	_, _, _ = rule.Check(ctx, req, cq)
+
+	if callCount != 1 {
+		t.Errorf("expected 1 DB call (cache hit on 2nd call), got %d", callCount)
 	}
 }

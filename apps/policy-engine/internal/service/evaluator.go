@@ -29,8 +29,11 @@ func New(q db.Querier, ruleSet []rules.Rule) *Evaluator {
 }
 
 // DefaultRules returns the canonical production rule set.
+// KillSwitchCheck runs first so a globally-paused system fails fast before
+// any DB-intensive checks (daily-limit, whitelist) are executed.
 func DefaultRules() []rules.Rule {
 	return []rules.Rule{
+		&rules.KillSwitchCheck{},
 		rules.AuthorizedSigner{},
 		rules.DailyLimit{},
 		rules.DestinationWhitelist{},

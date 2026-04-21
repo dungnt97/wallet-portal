@@ -20,4 +20,6 @@ type Querier interface {
 	GetWithdrawal(ctx context.Context, id pgtype.UUID) (GetWithdrawalRow, error)
 	// IsOperationalWallet: sweep fast-path — allows destination if it is a registered operational wallet.
 	IsOperationalWallet(ctx context.Context, arg IsOperationalWalletParams) (bool, error)
+	// GetKillSwitchEnabled: returns the current kill-switch enabled flag (singleton row id=1).
+	GetKillSwitchEnabled(ctx context.Context) (bool, error)
 }

@@ -195,3 +195,21 @@ func (q *Queries) IsOperationalWallet(ctx context.Context, arg IsOperationalWall
 	err := row.Scan(&isOperational)
 	return isOperational, err
 }
+
+const getKillSwitchEnabled = `-- name: GetKillSwitchEnabled :one
+SELECT enabled FROM system_kill_switch WHERE id = 1
+`
+
+// GetKillSwitchEnabled reads the enabled flag from the singleton kill-switch row.
+// Returns false if the row is missing (safe default — do not block on missing row).
+func (q *Queries) GetKillSwitchEnabled(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, getKillSwitchEnabled)
+	var enabled bool
+	err := row.Scan(&enabled)
+	if err != nil {
+		// pgx returns pgx.ErrNoRows when the singleton row is missing.
+		// Treat missing row as disabled (safe default — migration seeds the row).
+		return false, nil
+	}
+	return enabled, nil
+}

@@ -13,6 +13,7 @@ import type { AdminApiClientOptions } from '../../services/admin-api-client.js';
 import { isKillSwitchEnabled } from '../../services/kill-switch-db-query.js';
 import { WITHDRAWAL_EXECUTE_QUEUE_NAME } from '../withdrawal-execute.js';
 import type { WithdrawalExecuteJobData } from '../withdrawal-execute.js';
+import { startHeartbeat } from '../worker-heartbeat.js';
 
 const logger = pino({ name: 'withdrawal-execute-worker' });
 
@@ -82,6 +83,9 @@ export function startWithdrawalExecuteWorker(redis: IORedis, cfg: AppConfig): Wo
   // Shared DB client for kill-switch checks — one pool per worker process
   const db = makeDb(cfg.DATABASE_URL);
 
+  // Heartbeat writer — health endpoint reads worker:withdrawal-execute:heartbeat
+  const stopHeartbeat = startHeartbeat(redis, 'withdrawal-execute');
+
   const worker = new Worker<WithdrawalExecuteJobData>(
     WITHDRAWAL_EXECUTE_QUEUE_NAME,
     async (job) => {
@@ -149,6 +153,9 @@ export function startWithdrawalExecuteWorker(redis: IORedis, cfg: AppConfig): Wo
   worker.on('error', (err) => {
     logger.error({ err }, 'withdrawal_execute worker error');
   });
+
+  // Stop heartbeat when worker closes
+  worker.on('closing', () => stopHeartbeat());
 
   return worker;
 }

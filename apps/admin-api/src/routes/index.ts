@@ -8,6 +8,7 @@ import depositsRoutes from './deposits.routes.js';
 import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
+import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
@@ -35,6 +36,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
 
   // Ops routes — kill-switch toggle + health aggregator
   await app.register(opsKillSwitchRoutes);
+  await app.register(opsHealthRoutes);
 
   // Internal service-to-service routes (bearer token, D4) — paths include /internal prefix
   await app.register(internalRoutes, {

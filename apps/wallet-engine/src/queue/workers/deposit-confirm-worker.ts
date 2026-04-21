@@ -6,6 +6,7 @@ import pino from 'pino';
 import type { AppConfig } from '../../config/env.js';
 import { creditDeposit } from '../../services/admin-api-client.js';
 import { QUEUE_NAME } from '../deposit-confirm.js';
+import { startHeartbeat } from '../worker-heartbeat.js';
 
 const logger = pino({ name: 'deposit-confirm-worker' });
 
@@ -69,6 +70,9 @@ async function checkSolanaConfirmations(txHash: string, cfg: AppConfig): Promise
 export function startDepositConfirmWorker(redis: IORedis, cfg: AppConfig): Worker {
   // Dev-mode flag: skip RPC confirmation when watcher is disabled or job is simulated
   const watcherEnabled = cfg.WATCHER_ENABLED;
+
+  // Heartbeat writer — health endpoint reads worker:deposit-confirm:heartbeat
+  const stopHeartbeat = startHeartbeat(redis, 'deposit-confirm');
 
   const worker = new Worker<DepositConfirmJobData>(
     QUEUE_NAME,
@@ -151,6 +155,9 @@ export function startDepositConfirmWorker(redis: IORedis, cfg: AppConfig): Worke
   worker.on('error', (err) => {
     logger.error({ err }, 'deposit_confirm worker error');
   });
+
+  // Stop heartbeat when worker closes
+  worker.on('closing', () => stopHeartbeat());
 
   return worker;
 }

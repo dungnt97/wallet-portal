@@ -20,6 +20,7 @@ import { isKillSwitchEnabled } from '../../services/kill-switch-db-query.js';
 import { broadcastSweepEVM, buildAndSignSweepEVM } from '../../services/sweep-evm.js';
 import { broadcastSweepSolana, buildAndSignSweepSolana } from '../../services/sweep-solana.js';
 import { SWEEP_EXECUTE_QUEUE_NAME, type SweepExecuteJobData } from '../sweep-execute.js';
+import { startHeartbeat } from '../worker-heartbeat.js';
 
 const logger = pino({ name: 'sweep-execute-worker' });
 
@@ -152,6 +153,9 @@ export function startSweepExecuteWorker(
   // Shared DB client for kill-switch checks — one pool per worker process
   const db = makeDb(cfg.DATABASE_URL);
 
+  // Heartbeat writer — health endpoint reads worker:sweep-execute:heartbeat
+  const stopHeartbeat = startHeartbeat(redis, 'sweep-execute');
+
   const worker = new Worker<SweepExecuteJobData>(
     SWEEP_EXECUTE_QUEUE_NAME,
     async (job) => {
@@ -267,6 +271,9 @@ export function startSweepExecuteWorker(
   worker.on('error', (err) => {
     logger.error({ err }, 'sweep_execute worker error');
   });
+
+  // Stop heartbeat when worker closes
+  worker.on('closing', () => stopHeartbeat());
 
   return worker;
 }

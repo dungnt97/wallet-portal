@@ -1,11 +1,13 @@
-// API fetch wrapper — all requests go through /api proxy → admin-api :3001
-// Credentials: include ensures session cookie is forwarded on every request.
+// API fetch wrapper — base URL resolves dynamically from env-store so environment
+// switching takes effect immediately without a page reload.
+// All requests include credentials (session cookie).
 //
 // Step-up interception:
 //   When a response is 403 with body { code: "STEP_UP_REQUIRED" }, the client
 //   calls the registered onStepUpRequired callback (set by StepUpProvider),
 //   waits for it to resolve (user completes WebAuthn), then retries once.
 //   Callers see a transparent retry — they never need to handle this themselves.
+import { getActiveApiBase } from '@/stores/env-store';
 
 export class ApiError extends Error {
   /** Machine-readable code from the server response body */
@@ -78,17 +80,20 @@ async function fetchWithStepUp<T>(buildRequest: () => Request): Promise<T> {
   return retry.data;
 }
 
+/** Resolve full URL — uses active env profile base or '' for local proxy. */
+function apiUrl(path: string): string {
+  return `${getActiveApiBase()}/api${path}`;
+}
+
 export const api = {
   get<T>(path: string, init?: RequestInit): Promise<T> {
-    return fetchWithStepUp<T>(
-      () => new Request(`/api${path}`, { ...init, credentials: 'include' })
-    );
+    return fetchWithStepUp<T>(() => new Request(apiUrl(path), { ...init, credentials: 'include' }));
   },
 
   post<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
     return fetchWithStepUp<T>(
       () =>
-        new Request(`/api${path}`, {
+        new Request(apiUrl(path), {
           method: 'POST',
           headers: body !== undefined ? { 'content-type': 'application/json' } : {},
           credentials: 'include',
@@ -101,7 +106,7 @@ export const api = {
   patch<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
     return fetchWithStepUp<T>(
       () =>
-        new Request(`/api${path}`, {
+        new Request(apiUrl(path), {
           method: 'PATCH',
           headers: body !== undefined ? { 'content-type': 'application/json' } : {},
           credentials: 'include',
@@ -114,7 +119,7 @@ export const api = {
   delete<T>(path: string, init?: RequestInit): Promise<T> {
     return fetchWithStepUp<T>(
       () =>
-        new Request(`/api${path}`, {
+        new Request(apiUrl(path), {
           method: 'DELETE',
           credentials: 'include',
           ...init,

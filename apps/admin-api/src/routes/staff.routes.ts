@@ -4,12 +4,12 @@ import { StaffMember, StaffSigningKey } from '@wp/shared-types';
 // POST  /staff/me/logout-all            — revoke all own sessions
 // POST  /staff/invite                   — admin creates signed invite link for new staff
 // POST  /staff/sync-google-workspace    — trigger GW directory sync (admin-only)
-import { count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth, requirePerm } from '../auth/rbac.middleware.js';
-import { staffLoginHistory, staffMembers } from '../db/schema/index.js';
+import { staffLoginHistory, staffMembers, staffSigningKeys } from '../db/schema/index.js';
 import { updateProfile } from '../services/account-settings.service.js';
 import { inviteStaff } from '../services/staff-invite.service.js';
 import { StubError, syncGoogleWorkspace } from '../services/staff-sync-google.service.js';
@@ -28,6 +28,8 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         querystring: z.object({
           page: z.coerce.number().int().positive().default(1),
           limit: z.coerce.number().int().positive().max(100).default(20),
+          role: z.enum(['admin', 'treasurer', 'operator', 'viewer']).optional(),
+          status: z.enum(['active', 'suspended', 'offboarded', 'invited']).optional(),
         }),
         response: {
           200: z.object({
@@ -38,7 +40,44 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         },
       },
     },
-    async (_req, reply) => reply.code(200).send({ data: [], total: 0, page: 1 })
+    async (req, reply) => {
+      const { page, limit, role, status } = req.query;
+      const offset = (page - 1) * limit;
+
+      const conditions = [];
+      if (role) conditions.push(eq(staffMembers.role, role));
+      if (status) conditions.push(eq(staffMembers.status, status));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [rows, countRows] = await Promise.all([
+        app.db
+          .select()
+          .from(staffMembers)
+          .where(where)
+          .orderBy(desc(staffMembers.createdAt))
+          .limit(limit)
+          .offset(offset),
+        app.db.select({ value: count() }).from(staffMembers).where(where),
+      ]);
+
+      const total = Number(countRows[0]?.value ?? 0);
+      const data = rows.map((s) => ({
+        id: s.id,
+        email: s.email,
+        name: s.name,
+        role: s.role,
+        // StaffMember shared type only covers active/suspended/offboarded;
+        // treat 'invited' as 'active' for display purposes (invited staff haven't logged in yet)
+        status: (s.status === 'invited' ? 'active' : s.status) as
+          | 'active'
+          | 'suspended'
+          | 'offboarded',
+        lastLoginAt: s.lastLoginAt?.toISOString() ?? null,
+        createdAt: s.createdAt.toISOString(),
+      }));
+
+      return reply.code(200).send({ data, total, page });
+    }
   );
 
   r.post(
@@ -52,14 +91,58 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
           chain: z.enum(['bnb', 'sol']),
           address: z.string().min(1),
           tier: z.enum(['hot', 'cold']),
-          walletType: z.enum(['metamask', 'phantom', 'ledger', 'other']),
+          walletType: z.enum([
+            'metamask',
+            'phantom',
+            'ledger',
+            'trezor',
+            'hardware_via_metamask',
+            'other',
+          ]),
           hwAttested: z.boolean().default(false),
         }),
-        response: { 200: StaffSigningKey, 501: NOT_IMPL },
+        response: { 200: StaffSigningKey, 400: NOT_IMPL },
       },
     },
-    async (_req, reply) =>
-      reply.code(501).send({ code: 'NOT_IMPLEMENTED', message: 'Wired in P09' })
+    async (req, reply) => {
+      const { staffId, chain, address, tier, walletType, hwAttested } = req.body;
+
+      // Validate staff member exists
+      const member = await app.db.query.staffMembers.findFirst({
+        where: eq(staffMembers.id, staffId),
+      });
+      if (!member) {
+        return reply
+          .code(400)
+          .send({ code: 'NOT_FOUND', message: `Staff member ${staffId} not found` });
+      }
+
+      const [row] = await app.db
+        .insert(staffSigningKeys)
+        .values({ staffId, chain, address, tier, walletType, hwAttested })
+        .returning();
+
+      if (!row) throw new Error('INSERT returned no row');
+
+      // Normalise DB wallet_type variants not in the shared type to 'other'
+      const walletTypeNorm = (['metamask', 'phantom', 'ledger', 'other'] as const).includes(
+        row.walletType as 'metamask' | 'phantom' | 'ledger' | 'other'
+      )
+        ? (row.walletType as 'metamask' | 'phantom' | 'ledger' | 'other')
+        : ('other' as const);
+
+      return reply.code(200).send({
+        id: row.id,
+        staffId: row.staffId,
+        chain: row.chain,
+        address: row.address,
+        tier: row.tier,
+        walletType: walletTypeNorm,
+        hwAttested: row.hwAttested,
+        registeredAt: row.registeredAt.toISOString(),
+        revokedAt: row.revokedAt?.toISOString() ?? null,
+      });
+    }
   );
 
   // ── PATCH /staff/me — update own profile (name + locale_pref) ─────────────

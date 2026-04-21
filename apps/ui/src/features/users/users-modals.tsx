@@ -1,9 +1,11 @@
+import { api } from '@/api/client';
 import type { KycTier } from '@/api/users';
 import { useCreateUser } from '@/api/users';
-// Users page modals — invite staff + add end user (real API, Slice 8).
+// Users page modals — invite staff (wired to POST /staff/invite) + add end user (real API).
 import { Modal, useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { ROLES, type RoleId } from '@/lib/constants';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 interface Props {
@@ -11,26 +13,104 @@ interface Props {
   onClose: () => void;
 }
 
+interface InviteResult {
+  staffId: string;
+  inviteLink: string;
+  expiresAt: string;
+}
+
+function useInviteStaffMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { email: string; name: string; role: RoleId }) =>
+      api.post<InviteResult>('/staff/invite', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['staff'] });
+    },
+  });
+}
+
 export function InviteStaffModal({ open, onClose }: Props) {
   const toast = useToast();
+  const inviteMutation = useInviteStaffMutation();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<RoleId>('operator');
-  const submit = () => {
-    toast(`Invite sent to ${email}.`, 'success');
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+
+  const reset = () => {
     setEmail('');
     setName('');
     setRole('operator');
+    setInviteLink(null);
+    inviteMutation.reset();
+  };
+
+  const handleClose = () => {
+    reset();
     onClose();
   };
+
+  const submit = () => {
+    inviteMutation.mutate(
+      { email, name, role },
+      {
+        onSuccess: (result) => {
+          setInviteLink(result.inviteLink);
+          toast(`Invite sent to ${email}.`, 'success');
+        },
+        onError: (err) => {
+          toast((err as Error).message ?? 'Failed to send invite', 'error');
+        },
+      }
+    );
+  };
+
+  if (inviteLink) {
+    return (
+      <Modal
+        open={open}
+        onClose={handleClose}
+        title="Invite sent"
+        footer={
+          <button type="button" className="btn btn-accent" onClick={handleClose}>
+            Done
+          </button>
+        }
+      >
+        <div style={{ display: 'grid', gap: 12 }}>
+          <p className="text-sm text-muted">
+            Share this invite link with <strong>{email}</strong>. Expires in 72 hours.
+          </p>
+          <div
+            className="text-mono text-xs"
+            style={{
+              padding: 10,
+              background: 'var(--surface-2)',
+              borderRadius: 8,
+              wordBreak: 'break-all',
+            }}
+          >
+            {inviteLink}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Invite staff member"
       footer={
         <>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={handleClose}
+            disabled={inviteMutation.isPending}
+          >
             Cancel
           </button>
           <div className="spacer" />
@@ -38,9 +118,9 @@ export function InviteStaffModal({ open, onClose }: Props) {
             type="button"
             className="btn btn-accent"
             onClick={submit}
-            disabled={!email || !name}
+            disabled={!email || !name || inviteMutation.isPending}
           >
-            Send invite
+            {inviteMutation.isPending ? '…' : 'Send invite'}
           </button>
         </>
       }
@@ -82,6 +162,11 @@ export function InviteStaffModal({ open, onClose }: Props) {
             ))}
           </select>
         </label>
+        {inviteMutation.isError && (
+          <div className="text-xs" style={{ color: 'var(--error-text)' }}>
+            {(inviteMutation.error as Error).message}
+          </div>
+        )}
         <div
           className="text-xs text-muted"
           style={{

@@ -384,10 +384,17 @@ export interface MultisigOpRow {
   multisigAddr: string;
   requiredSigs: number;
   collectedSigs: number;
+  /** Real total active signers for this chain from staff_signing_keys (M6 fix). */
+  totalSigners?: number;
   expiresAt: string;
   status: 'pending' | 'collecting' | 'ready' | 'submitted' | 'confirmed' | 'expired' | 'failed';
   createdAt: string;
   updatedAt: string;
+  /** Populated when op is linked to a withdrawal (M6 fix). */
+  withdrawalAmount?: string | null;
+  withdrawalToken?: string | null;
+  withdrawalDestination?: string | null;
+  withdrawalNonce?: number | null;
 }
 
 export interface MultisigOpsPage {

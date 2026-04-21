@@ -273,6 +273,9 @@ function buildExecuteDb() {
 describe('Withdrawal E2E dev-mode happy path', () => {
   beforeEach(() => {
     mockCheckPolicy.mockResolvedValue({ allow: true, reasons: [] });
+    // M3 fix: SAFE_ADDRESS + SQUADS_MULTISIG_ADDRESS are now required (no silent fallback).
+    process.env.SAFE_ADDRESS = '0xSafeTestAddress0000000000000000000000001';
+    process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsTestPDA11111111111111111111111111111';
   });
 
   it('Phase 1 — createWithdrawal creates row + multisig op + emits socket event', async () => {

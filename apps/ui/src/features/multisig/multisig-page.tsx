@@ -46,13 +46,15 @@ function apiOpToDisplay(
     operationType: op.operationType,
     multisigAddr: op.multisigAddr,
     safeName,
-    // amount/token/destination not returned by /multisig-ops — shown as N/A for non-withdrawal ops
-    amount: 0,
-    token: null,
-    destination: op.multisigAddr,
-    nonce: 0,
+    // M6 fix: use real withdrawal fields when op is linked to a withdrawal;
+    // non-withdrawal ops (signer_add, rebalance, etc.) leave these null — UI shows N/A.
+    amount: op.withdrawalAmount != null ? Number(op.withdrawalAmount) : 0,
+    token: (op.withdrawalToken as 'USDT' | 'USDC' | null) ?? null,
+    destination: op.withdrawalDestination ?? op.multisigAddr,
+    nonce: op.withdrawalNonce ?? 0,
     required: op.requiredSigs,
-    total: op.requiredSigs + 1, // API doesn't return total; approximate as required + 1
+    // M6 fix: use real totalSigners from API (counted from staff_signing_keys)
+    total: op.totalSigners ?? op.requiredSigs,
     collected: op.collectedSigs,
     approvers: [],
     rejectedBy: null,

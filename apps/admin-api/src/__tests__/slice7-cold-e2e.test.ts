@@ -237,6 +237,9 @@ function buildApproveDb(collectedBefore: number, signingKeyId: string, alreadySi
 describe('Slice 7 Cold Withdrawal E2E', () => {
   beforeEach(() => {
     mockCheckPolicy.mockResolvedValue({ allow: true, reasons: [] });
+    // M3 fix: SAFE_ADDRESS + SQUADS_MULTISIG_ADDRESS are now required (no silent fallback).
+    process.env.SAFE_ADDRESS = '0xSafeTestAddress0000000000000000000000001';
+    process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsTestPDA11111111111111111111111111111';
   });
 
   // ── 7.1 Create cold withdrawal → time_locked ────────────────────────────────

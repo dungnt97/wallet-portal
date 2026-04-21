@@ -179,6 +179,10 @@ describe('createWithdrawal service', () => {
       updatedByStaffId: null,
       updatedAt: new Date().toISOString(),
     });
+    // M3 fix: SAFE_ADDRESS + SQUADS_MULTISIG_ADDRESS are now required (no silent fallback).
+    // Set test values so unit tests exercise the service without a deployed contract.
+    process.env.SAFE_ADDRESS = '0xSafeTestAddress0000000000000000000000001';
+    process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsTestPDA11111111111111111111111111111';
   });
 
   it('golden path — creates withdrawal + multisig op + emits socket event', async () => {

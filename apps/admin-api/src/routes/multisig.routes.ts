@@ -1,5 +1,5 @@
 import { MultisigOp } from '@wp/shared-types';
-import { eq } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 // Multisig routes — GET /multisig-ops, POST /multisig-ops/:id/submit-signature
 // POST /multisig-ops/:id/approve  — record signer approval (no hw signing key required)
 // POST /multisig-ops/:id/reject   — fail the op
@@ -41,15 +41,41 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
       const { page, limit, status } = req.query;
       const offset = (page - 1) * limit;
 
+      // LEFT JOIN withdrawals to get real amount/token/destination/nonce for withdrawal ops
       const rows = await app.db
-        .select()
+        .select({
+          op: schema.multisigOperations,
+          w: {
+            amount: schema.withdrawals.amount,
+            token: schema.withdrawals.token,
+            destinationAddr: schema.withdrawals.destinationAddr,
+            nonce: schema.withdrawals.nonce,
+          },
+        })
         .from(schema.multisigOperations)
+        .leftJoin(
+          schema.withdrawals,
+          eq(schema.multisigOperations.withdrawalId, schema.withdrawals.id)
+        )
         .where(status ? eq(schema.multisigOperations.status, status) : undefined)
         .limit(limit)
         .offset(offset)
         .orderBy(schema.multisigOperations.createdAt);
 
-      const data = rows.map((op) => ({
+      // Count total active signing keys per chain to supply real totalSigners
+      // (one query — chains may differ per op, so we fetch all and map by chain)
+      const signerCounts = await app.db
+        .select({
+          chain: schema.staffSigningKeys.chain,
+          total: count(),
+        })
+        .from(schema.staffSigningKeys)
+        .where(isNull(schema.staffSigningKeys.revokedAt))
+        .groupBy(schema.staffSigningKeys.chain);
+
+      const signersByChain = Object.fromEntries(signerCounts.map((r) => [r.chain, r.total]));
+
+      const data = rows.map(({ op, w }) => ({
         id: op.id,
         withdrawalId: op.withdrawalId ?? null,
         chain: op.chain,
@@ -57,10 +83,15 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
         multisigAddr: op.multisigAddr,
         requiredSigs: op.requiredSigs,
         collectedSigs: op.collectedSigs,
+        totalSigners: signersByChain[op.chain] ?? op.requiredSigs,
         expiresAt: op.expiresAt.toISOString(),
         status: op.status,
         createdAt: op.createdAt.toISOString(),
         updatedAt: op.updatedAt.toISOString(),
+        withdrawalAmount: w?.amount ?? null,
+        withdrawalToken: w?.token ?? null,
+        withdrawalDestination: w?.destinationAddr ?? null,
+        withdrawalNonce: w?.nonce ?? null,
       }));
 
       return reply.code(200).send({ data, total: data.length, page });

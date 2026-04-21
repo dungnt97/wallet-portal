@@ -1,6 +1,11 @@
 import { ApiError } from '@/api/client';
-import { useApproveWithdrawal, useExecuteWithdrawal } from '@/api/queries';
-// Withdrawal action handlers — real approve + execute mutations wired to admin-api.
+import {
+  useApproveWithdrawal,
+  useExecuteWithdrawal,
+  useRejectWithdrawal,
+  useSubmitWithdrawal,
+} from '@/api/queries';
+// Withdrawal action handlers — real approve + execute + reject + submit mutations wired to admin-api.
 // Signing flow integration: approve click → signing-flow.start → on done POST /approve.
 import { useAuth } from '@/auth/use-auth';
 import { useToast } from '@/components/overlays';
@@ -41,6 +46,8 @@ export function useWithdrawalActions(
   // Mutation hooks — keyed by active withdrawal id
   const approveMutation = useApproveWithdrawal(pendingSignWithdrawal?.id ?? selected?.id ?? 'none');
   const executeMutation = useExecuteWithdrawal(selected?.id ?? 'none');
+  const rejectMutation = useRejectWithdrawal(selected?.id ?? 'none');
+  const submitMutation = useSubmitWithdrawal(selected?.id ?? 'none');
 
   const list: WithdrawalRow[] = useMemo(() => {
     const base = data ?? [];
@@ -137,17 +144,28 @@ export function useWithdrawalActions(
     toast(t('withdrawals.signatureCancelled'), 'success');
   };
 
-  // ── Reject (without signing) ─────────────────────────────────────────────────
+  // ── Reject (without signing) — POST /withdrawals/:id/reject ─────────────────
   const onReject = (w: WithdrawalRow) => {
     if (!staff) return;
-    const updated: WithdrawalRow = {
-      ...w,
-      stage: 'failed',
-      multisig: { ...w.multisig, rejectedBy: staff.id },
-    };
-    addOverride(updated);
-    setSelected(updated);
-    toast(`${t('withdrawals.rejectBtn')} ${w.id.slice(0, 12)}`, 'success');
+    rejectMutation.mutate(
+      {},
+      {
+        onSuccess: () => {
+          const updated: WithdrawalRow = {
+            ...w,
+            stage: 'failed',
+            multisig: { ...w.multisig, rejectedBy: staff.id },
+          };
+          addOverride(updated);
+          setSelected(updated);
+          toast(`${t('withdrawals.rejectBtn')} ${w.id.slice(0, 12)}`, 'success');
+        },
+        onError: (err) => {
+          const msg = err instanceof ApiError ? err.message : String(err);
+          toast(t('withdrawals.approveError', { msg }), 'error');
+        },
+      }
+    );
   };
 
   // ── Execute: POST /withdrawals/:id/execute ───────────────────────────────────
@@ -166,12 +184,20 @@ export function useWithdrawalActions(
     });
   };
 
-  // ── Submit draft ─────────────────────────────────────────────────────────────
+  // ── Submit draft — POST /withdrawals/:id/submit ─────────────────────────────
   const onSubmitDraft = (w: WithdrawalRow) => {
-    const updated: WithdrawalRow = { ...w, stage: 'awaiting_signatures' };
-    addOverride(updated);
-    setSelected(updated);
-    toast(t('withdrawals.submitToMultisig'), 'success');
+    submitMutation.mutate(undefined, {
+      onSuccess: () => {
+        const updated: WithdrawalRow = { ...w, stage: 'awaiting_signatures' };
+        addOverride(updated);
+        setSelected(updated);
+        toast(t('withdrawals.submitToMultisig'), 'success');
+      },
+      onError: (err) => {
+        const msg = err instanceof ApiError ? err.message : String(err);
+        toast(t('withdrawals.approveError', { msg }), 'error');
+      },
+    });
   };
 
   // ── New withdrawal created callback ─────────────────────────────────────────

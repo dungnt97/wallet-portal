@@ -434,6 +434,113 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
     }
   );
 
+  // ── POST /withdrawals/:id/reject — treasurer rejects a pending withdrawal ────
+  r.post(
+    '/withdrawals/:id/reject',
+    {
+      preHandler: requirePerm('withdrawals.approve'),
+      schema: {
+        tags: ['withdrawals'],
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({
+          reason: z.string().min(1).max(500).optional(),
+        }),
+        response: {
+          200: z.object({ ok: z.boolean() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+      const withdrawal = await app.db.query.withdrawals.findFirst({
+        where: eq(schema.withdrawals.id, req.params.id),
+      });
+      if (!withdrawal) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `Withdrawal ${req.params.id} not found` });
+      }
+      if (!['pending', 'approved', 'time_locked'].includes(withdrawal.status)) {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `Cannot reject withdrawal in status '${withdrawal.status}'`,
+        });
+      }
+      await app.db
+        .update(schema.withdrawals)
+        .set({ status: 'cancelled', updatedAt: new Date() })
+        .where(eq(schema.withdrawals.id, req.params.id));
+
+      const { emitAudit } = await import('../services/audit.service.js');
+      await emitAudit(app.db, {
+        staffId,
+        action: 'withdrawal.rejected',
+        resourceType: 'withdrawal',
+        resourceId: req.params.id,
+        changes: {
+          status: { from: withdrawal.status, to: 'cancelled' },
+          reason: req.body.reason ?? null,
+        },
+      });
+
+      app.io.of('/stream').emit('withdrawal.rejected', {
+        withdrawalId: req.params.id,
+        rejectedBy: staffId,
+        reason: req.body.reason ?? null,
+      });
+      return reply.code(200).send({ ok: true });
+    }
+  );
+
+  // ── POST /withdrawals/:id/submit — promote draft→pending ──────────────────
+  r.post(
+    '/withdrawals/:id/submit',
+    {
+      preHandler: requirePerm('withdrawals.create'),
+      schema: {
+        tags: ['withdrawals'],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ ok: z.boolean(), status: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+      const withdrawal = await app.db.query.withdrawals.findFirst({
+        where: eq(schema.withdrawals.id, req.params.id),
+      });
+      if (!withdrawal) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `Withdrawal ${req.params.id} not found` });
+      }
+      // Only pending withdrawals without multisig op can be "submitted" (re-trigger multisig)
+      if (withdrawal.status !== 'pending') {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `Cannot submit withdrawal in status '${withdrawal.status}'; only pending withdrawals can be submitted`,
+        });
+      }
+
+      const { emitAudit } = await import('../services/audit.service.js');
+      await emitAudit(app.db, {
+        staffId,
+        action: 'withdrawal.submitted',
+        resourceType: 'withdrawal',
+        resourceId: req.params.id,
+        changes: { status: 'pending', submittedBy: staffId },
+      });
+
+      app.io.of('/stream').emit('withdrawal.submitted', { withdrawalId: req.params.id });
+      return reply.code(200).send({ ok: true, status: withdrawal.status });
+    }
+  );
+
   // ── POST /withdrawals/:id/cancel ──────────────────────────────────────────────
   r.post(
     '/withdrawals/:id/cancel',

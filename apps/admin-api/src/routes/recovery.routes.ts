@@ -19,6 +19,7 @@ import {
   RecoveryDisabledError,
   bumpTx,
 } from '../services/recovery-bump.service.js';
+import { SolanaCannotCancelError, cancelTx } from '../services/recovery-cancel.service.js';
 import { listStuckTxs } from '../services/recovery-stuck-scanner.service.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -157,6 +158,100 @@ const recoveryRoutes: FastifyPluginAsync = async (app) => {
         }
         if (err instanceof BumpRateLimitError) {
           return reply.code(429).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof GasOracleError) {
+          return reply.code(503).send({ code: err.code, message: err.message });
+        }
+        throw err;
+      }
+    }
+  );
+
+  // ── POST /recovery/:entityType/:entityId/cancel ───────────────────────────
+  r.post(
+    '/recovery/:entityType/:entityId/cancel',
+    {
+      preHandler: requirePerm('recovery.write'),
+      schema: {
+        tags: ['recovery'],
+        params: z.object({
+          entityType: z.enum(['withdrawal', 'sweep']),
+          entityId: z.string().uuid(),
+        }),
+        body: z.object({ idempotencyKey: z.string().min(1).max(128) }),
+        response: {
+          200: z.object({
+            ok: z.literal(true),
+            actionId: z.string().uuid(),
+            cancelTxHash: z.string(),
+          }),
+          403: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+          410: z.object({ code: z.string(), message: z.string(), remedy: z.string().optional() }),
+          503: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+      const { entityType, entityId } = req.params;
+      const { idempotencyKey } = req.body;
+
+      const makeNotify = (actionId: string, title: string, body: string) =>
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'treasurer',
+            eventType: 'recovery.cancel',
+            severity: 'critical',
+            title,
+            body,
+            dedupeKey: actionId,
+          },
+          app.emailQueue,
+          app.slackQueue
+        );
+
+      try {
+        const result = await cancelTx(
+          app.db,
+          { entityType, entityId, staffId, idempotencyKey },
+          ({ title, body, actionId }) => makeNotify(actionId, title, body)
+        );
+
+        app.io.of('/stream').emit('recovery.cancel.submitted', {
+          entityType,
+          entityId,
+          actionId: result.actionId,
+          cancelTxHash: result.cancelTxHash,
+        });
+
+        return reply.code(200).send({
+          ok: true,
+          actionId: result.actionId,
+          cancelTxHash: result.cancelTxHash,
+        });
+      } catch (err) {
+        if (err instanceof RecoveryDisabledError) {
+          return reply.code(503).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof SolanaCannotCancelError) {
+          return reply.code(410).send({
+            code: err.code,
+            message: err.message,
+            remedy: err.remedy,
+          });
+        }
+        if (err instanceof ColdTierNotSupportedError) {
+          return reply.code(403).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof NotFoundError) {
+          return reply.code(404).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof AlreadyFinalError) {
+          return reply.code(409).send({ code: err.code, message: err.message });
         }
         if (err instanceof GasOracleError) {
           return reply.code(503).send({ code: err.code, message: err.message });

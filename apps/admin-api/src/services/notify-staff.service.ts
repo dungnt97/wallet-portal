@@ -46,6 +46,9 @@ const EVENT_CATEGORY_MAP: Record<string, PrefCategory> = {
   'reconciliation.drift.critical': 'reconciliation',
   'reconciliation.drift.warning': 'reconciliation',
   'reconciliation.drift.none': 'reconciliation',
+  // Recovery actions (Slice 11) — bump/cancel map to withdrawal category for pref routing
+  'recovery.bump': 'withdrawal',
+  'recovery.cancel': 'withdrawal',
 };
 
 function getPrefCategory(eventType: string): PrefCategory | null {

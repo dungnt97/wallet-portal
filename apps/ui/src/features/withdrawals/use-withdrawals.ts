@@ -1,7 +1,8 @@
+// Withdrawals data hook — fetches from GET /withdrawals, falls back to
+// prototype fixtures when the API returns empty / errors.
+// Socket invalidation is kept here as a thin re-export of the dedicated listener.
 import { api } from '@/api/client';
 import { connectSocket, disconnectSocket } from '@/api/socket';
-// Withdrawals data hook — fetches from GET /withdrawals and falls back to
-// prototype fixtures when the API is empty / disabled.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { FIX_WITHDRAWALS, type FixWithdrawal } from '../_shared/fixtures';
@@ -28,25 +29,58 @@ export function useWithdrawals() {
   });
 }
 
-/** Subscribe to withdrawal.submitted / .approved / .executed events */
+/**
+ * Subscribe to all withdrawal + multisig Socket.io events and invalidate
+ * TanStack Query caches so the table updates live without manual refresh.
+ *
+ * Events handled (emitted by admin-api after each state transition):
+ *   withdrawal.created   — new row appeared
+ *   withdrawal.approved  — signature recorded / threshold met
+ *   withdrawal.executing — execute job enqueued
+ *   withdrawal.broadcast — tx submitted to network
+ *   withdrawal.confirmed — tx confirmed on-chain
+ *   withdrawal.cancelled — row cancelled
+ *   multisig.progress    — collected_sigs counter changed
+ */
 export function useWithdrawalsSocketListener(): void {
   const qc = useQueryClient();
+
   useEffect(() => {
     const socket = connectSocket();
-    const invalidate = () => {
+
+    const invalidateAll = () => {
       void qc.invalidateQueries({ queryKey: [WITHDRAWALS_QUERY_KEY] });
       void qc.invalidateQueries({ queryKey: ['multisig'] });
       void qc.invalidateQueries({ queryKey: ['dashboard'] });
     };
-    socket.on('withdrawals.submitted', invalidate);
-    socket.on('withdrawals.approved', invalidate);
-    socket.on('withdrawals.executed', invalidate);
-    socket.on('multisig.approval', invalidate);
+
+    // All withdrawal lifecycle events → full refetch
+    socket.on('withdrawal.created', invalidateAll);
+    socket.on('withdrawal.approved', invalidateAll);
+    socket.on('withdrawal.executing', invalidateAll);
+    socket.on('withdrawal.broadcast', invalidateAll);
+    socket.on('withdrawal.confirmed', invalidateAll);
+    socket.on('withdrawal.cancelled', invalidateAll);
+    socket.on('multisig.progress', invalidateAll);
+
+    // Legacy event names (from prototype socket listener — kept for compat)
+    socket.on('withdrawals.submitted', invalidateAll);
+    socket.on('withdrawals.approved', invalidateAll);
+    socket.on('withdrawals.executed', invalidateAll);
+    socket.on('multisig.approval', invalidateAll);
+
     return () => {
-      socket.off('withdrawals.submitted', invalidate);
-      socket.off('withdrawals.approved', invalidate);
-      socket.off('withdrawals.executed', invalidate);
-      socket.off('multisig.approval', invalidate);
+      socket.off('withdrawal.created', invalidateAll);
+      socket.off('withdrawal.approved', invalidateAll);
+      socket.off('withdrawal.executing', invalidateAll);
+      socket.off('withdrawal.broadcast', invalidateAll);
+      socket.off('withdrawal.confirmed', invalidateAll);
+      socket.off('withdrawal.cancelled', invalidateAll);
+      socket.off('multisig.progress', invalidateAll);
+      socket.off('withdrawals.submitted', invalidateAll);
+      socket.off('withdrawals.approved', invalidateAll);
+      socket.off('withdrawals.executed', invalidateAll);
+      socket.off('multisig.approval', invalidateAll);
       disconnectSocket();
     };
   }, [qc]);

@@ -385,7 +385,17 @@
     "treasurersNotified": "Treasurers will be notified",
     "treasurersNotifiedText": "Ben Foster, Hana Petersen, and Ana Müller will receive a sign request. Any 2 of 3 must approve before broadcast.",
     "emptyTitle": "No withdrawals",
-    "emptyHint": "New withdrawal requests appear here."
+    "emptyHint": "New withdrawal requests appear here.",
+    "createSuccess": "Withdrawal created — awaiting treasurer signatures.",
+    "createError": "Failed to create withdrawal: {{msg}}",
+    "policyBlocked": "Policy rejected: {{msg}}",
+    "approveSuccess": "Signature recorded ({{n}}/{{m}}).",
+    "approveThreshold": "Threshold met ({{n}}/{{m}}) — ready to execute.",
+    "approveError": "Approval failed: {{msg}}",
+    "executeQueued": "Broadcasting withdrawal…",
+    "executeError": "Execute failed: {{msg}}",
+    "broadcastReceived": "Withdrawal broadcast — tx: {{hash}}",
+    "confirmed": "Withdrawal confirmed on-chain."
   },
   "sweep": {
     "eyebrow": "Operations",

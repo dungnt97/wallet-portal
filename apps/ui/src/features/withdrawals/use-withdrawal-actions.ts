@@ -1,10 +1,12 @@
-// Withdrawal action handlers — extracted from `withdrawals-page.tsx` to keep
-// the page under 200 LOC and give the stubbed approval / reject / execute /
-// signing wiring a single owner. Consumes TanStack Query + SigningFlow +
-// local overrides. Returns stable callbacks + derived state.
+import { ApiError } from '@/api/client';
+import { useApproveWithdrawal, useExecuteWithdrawal } from '@/api/queries';
+// Withdrawal action handlers — real approve + execute mutations wired to admin-api.
+// Signing flow integration: approve click → signing-flow.start → on done POST /approve.
+// Local optimistic overrides remain for instant UI feedback before server round-trip.
 import { useAuth } from '@/auth/use-auth';
 import { useToast } from '@/components/overlays';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { FixWithdrawal } from '../_shared/fixtures';
 import { type useSigningFlow, withdrawalToOp } from '../signing';
 import { useWithdrawals } from './use-withdrawals';
@@ -12,12 +14,9 @@ import { useWithdrawals } from './use-withdrawals';
 type SigningFlow = ReturnType<typeof useSigningFlow>;
 
 export interface WithdrawalActions {
-  /** Unified withdrawal list (server data + local optimistic overrides). */
   list: FixWithdrawal[];
-  /** Currently-selected row for the detail sheet. */
   selected: FixWithdrawal | null;
   setSelected: (w: FixWithdrawal | null) => void;
-  /** Handlers for the detail sheet / sign flow host. */
   onApprove: (w: FixWithdrawal) => void;
   onReject: (w: FixWithdrawal) => void;
   onExecute: (w: FixWithdrawal) => void;
@@ -27,21 +26,22 @@ export interface WithdrawalActions {
   onSigningRejected: () => void;
 }
 
-/**
- * Encapsulates the stubbed withdrawal lifecycle: optimistic overrides,
- * signing flow co-ordination, toast messaging. Page stays declarative.
- */
 export function useWithdrawalActions(
   signingFlow: SigningFlow,
   onCreated: () => void
 ): WithdrawalActions {
   const { staff } = useAuth();
   const toast = useToast();
+  const { t } = useTranslation();
   const { data } = useWithdrawals();
 
   const [selected, setSelected] = useState<FixWithdrawal | null>(null);
   const [localOverrides, setLocalOverrides] = useState<Record<string, FixWithdrawal>>({});
   const [pendingSignWithdrawal, setPendingSignWithdrawal] = useState<FixWithdrawal | null>(null);
+
+  // Mutation hooks — keyed by selected withdrawal id; fallback to 'none' when idle
+  const approveMutation = useApproveWithdrawal(pendingSignWithdrawal?.id ?? selected?.id ?? 'none');
+  const executeMutation = useExecuteWithdrawal(selected?.id ?? 'none');
 
   const list: FixWithdrawal[] = useMemo(() => {
     const base = data ?? [];
@@ -50,40 +50,77 @@ export function useWithdrawalActions(
 
   const addOverride = (w: FixWithdrawal) => setLocalOverrides((prev) => ({ ...prev, [w.id]: w }));
 
+  // ── Approve: start signing flow ───────────────────────────────────────────────
   const onApprove = (w: FixWithdrawal) => {
     if (!staff) return;
     setPendingSignWithdrawal(w);
     signingFlow.start(withdrawalToOp(w));
   };
 
+  // ── After signing completes: POST /withdrawals/:id/approve ────────────────────
   const onSigningComplete = () => {
     const w = pendingSignWithdrawal;
     if (!w || !staff) return;
-    const nextCount = w.multisig.collected + 1;
-    const threshold = nextCount >= w.multisig.required;
-    const updated: FixWithdrawal = {
-      ...w,
-      stage: threshold ? 'completed' : 'awaiting_signatures',
-      multisig: {
-        ...w.multisig,
-        collected: nextCount,
-        approvers: [
-          ...w.multisig.approvers,
-          {
-            staffId: staff.id,
-            at: new Date().toISOString(),
-            txSig: signingFlow.state.signature?.signature.slice(0, 12) ?? 'sig…',
-          },
-        ],
+
+    const sig = signingFlow.state.signature;
+    if (!sig) {
+      toast(t('withdrawals.approveError', { msg: 'No signature captured' }), 'error');
+      setPendingSignWithdrawal(null);
+      return;
+    }
+
+    approveMutation.mutate(
+      {
+        signature: sig.signature,
+        signerAddress: sig.signer,
+        signedAt: sig.at,
+        multisigOpId: w.multisig
+          ? String((w as unknown as Record<string, unknown>).multisigOpId ?? '')
+          : '',
+        chain: w.chain,
       },
-      txHash: threshold ? (signingFlow.state.broadcast?.hash ?? w.txHash) : w.txHash,
-    };
-    addOverride(updated);
-    setSelected(updated);
-    setPendingSignWithdrawal(null);
-    toast(
-      threshold ? `${w.id} signed and broadcast on-chain.` : `${w.id} co-signature recorded.`,
-      'success'
+      {
+        onSuccess: (result) => {
+          const nextCount = result.op.collectedSigs;
+          const threshold = result.thresholdMet;
+          const updated: FixWithdrawal = {
+            ...w,
+            stage: threshold ? 'executing' : 'awaiting_signatures',
+            multisig: {
+              ...w.multisig,
+              collected: nextCount,
+              approvers: [
+                ...w.multisig.approvers,
+                {
+                  staffId: staff.id,
+                  at: new Date().toISOString(),
+                  txSig: sig.signature.slice(0, 12),
+                },
+              ],
+            },
+          };
+          addOverride(updated);
+          setSelected(updated);
+          setPendingSignWithdrawal(null);
+          toast(
+            threshold
+              ? t('withdrawals.approveThreshold', {
+                  n: result.op.collectedSigs,
+                  m: result.op.requiredSigs,
+                })
+              : t('withdrawals.approveSuccess', {
+                  n: result.op.collectedSigs,
+                  m: result.op.requiredSigs,
+                }),
+            'success'
+          );
+        },
+        onError: (err) => {
+          const msg = err instanceof ApiError ? err.message : String(err);
+          toast(t('withdrawals.approveError', { msg }), 'error');
+          setPendingSignWithdrawal(null);
+        },
+      }
     );
   };
 
@@ -98,9 +135,10 @@ export function useWithdrawalActions(
     };
     addOverride(updated);
     setSelected(updated);
-    toast(`Rejected ${w.id}.`, 'success');
+    toast(t('withdrawals.signatureCancelled'), 'success');
   };
 
+  // ── Reject (without signing) ──────────────────────────────────────────────────
   const onReject = (w: FixWithdrawal) => {
     if (!staff) return;
     const updated: FixWithdrawal = {
@@ -110,26 +148,38 @@ export function useWithdrawalActions(
     };
     addOverride(updated);
     setSelected(updated);
-    toast(`Rejected ${w.id}.`, 'success');
+    toast(`${t('withdrawals.rejectBtn')} ${w.id}`, 'success');
   };
 
+  // ── Execute: POST /withdrawals/:id/execute ────────────────────────────────────
   const onExecute = (w: FixWithdrawal) => {
-    const updated: FixWithdrawal = { ...w, stage: 'completed', txHash: `stub_${w.id}` };
-    addOverride(updated);
-    setSelected(updated);
+    toast(t('withdrawals.executeQueued'), 'success');
+    executeMutation.mutate(undefined, {
+      onSuccess: () => {
+        const updated: FixWithdrawal = { ...w, stage: 'executing' };
+        addOverride(updated);
+        setSelected(updated);
+      },
+      onError: (err) => {
+        const msg = err instanceof ApiError ? err.message : String(err);
+        toast(t('withdrawals.executeError', { msg }), 'error');
+      },
+    });
   };
 
+  // ── Submit draft (pre-multisig local action) ──────────────────────────────────
   const onSubmitDraft = (w: FixWithdrawal) => {
     const updated: FixWithdrawal = { ...w, stage: 'awaiting_signatures' };
     addOverride(updated);
     setSelected(updated);
-    toast(`${w.id} submitted to multisig.`, 'success');
+    toast(t('withdrawals.submitToMultisig'), 'success');
   };
 
+  // ── New withdrawal created callback ──────────────────────────────────────────
   const onNewSubmit = (w: FixWithdrawal) => {
     addOverride(w);
     onCreated();
-    toast(`Created ${w.id}.`, 'success');
+    toast(t('withdrawals.createSuccess'), 'success');
   };
 
   return {

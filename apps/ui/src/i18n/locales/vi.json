@@ -385,7 +385,17 @@
     "treasurersNotified": "Treasurer sẽ được thông báo",
     "treasurersNotifiedText": "Ben Foster, Hana Petersen và Ana Müller sẽ nhận yêu cầu ký. Bất kỳ 2/3 người duyệt là được broadcast.",
     "emptyTitle": "Chưa có withdrawal",
-    "emptyHint": "Yêu cầu withdrawal mới sẽ xuất hiện ở đây."
+    "emptyHint": "Yêu cầu withdrawal mới sẽ xuất hiện ở đây.",
+    "createSuccess": "Đã tạo lệnh rút tiền — đang chờ chữ ký thủ quỹ.",
+    "createError": "Tạo lệnh rút thất bại: {{msg}}",
+    "policyBlocked": "Chính sách từ chối: {{msg}}",
+    "approveSuccess": "Đã ghi nhận chữ ký ({{n}}/{{m}}).",
+    "approveThreshold": "Đủ ngưỡng ({{n}}/{{m}}) — sẵn sàng thực thi.",
+    "approveError": "Phê duyệt thất bại: {{msg}}",
+    "executeQueued": "Đang phát sóng lệnh rút tiền…",
+    "executeError": "Thực thi thất bại: {{msg}}",
+    "broadcastReceived": "Lệnh rút đã phát sóng — tx: {{hash}}",
+    "confirmed": "Lệnh rút đã xác nhận trên chuỗi."
   },
   "sweep": {
     "eyebrow": "Vận hành",

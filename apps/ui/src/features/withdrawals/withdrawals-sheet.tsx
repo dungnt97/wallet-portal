@@ -1,12 +1,13 @@
+// Withdrawal detail sheet — amount header, approval queue, details, action footer.
+// Execute button visible only when: threshold met (stage=executing) + time_lock expired.
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
 import { DetailSheet, useToast } from '@/components/overlays';
-// Withdrawal detail sheet — amount header, approval queue, details list, action footer.
-// Signing modals are stubbed here (toast only); full flow ships in Pass 4.
 import { I } from '@/icons';
 import { CHAINS, ROLES } from '@/lib/constants';
 import { fmtDateTime, fmtUSD, shortHash } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
+import { useTranslation } from 'react-i18next';
 import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
 import { ApprovalQueue } from './approval-queue';
 
@@ -29,25 +30,39 @@ export function WithdrawalSheet({
 }: Props) {
   const { staff, hasPerm } = useAuth();
   const toast = useToast();
+  const { t } = useTranslation();
   const canApprove = hasPerm('withdrawal.approve');
   const canExecute = hasPerm('withdrawal.execute');
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
+
   if (!withdrawal) return null;
   const w = withdrawal;
+
   const requester = TREASURERS.find((s) => s.id === w.requestedBy);
   const alreadyApproved = staff && w.multisig.approvers.some((a) => a.staffId === staff.id);
+
+  // Time-lock check: read from server field if present, otherwise allow execute
+  const timeLockExpiresAt = (w as unknown as Record<string, unknown>).timeLockExpiresAt as
+    | string
+    | undefined;
+  const timeLockActive = timeLockExpiresAt ? new Date(timeLockExpiresAt) > new Date() : false;
+
+  // Execute button: visible when stage=executing (threshold met) AND time-lock not active
+  const showExecute = w.stage === 'executing' && canExecute && !timeLockActive;
 
   const footer = (
     <>
       <button className="btn btn-ghost" onClick={onClose}>
-        Close
+        {t('withdrawals.close')}
       </button>
       <div className="spacer" />
+
       {w.stage === 'draft' && (
         <button className="btn btn-accent" onClick={() => onSubmitDraft(w)}>
-          Submit to multisig
+          {t('withdrawals.submitToMultisig')}
         </button>
       )}
+
       {w.stage === 'awaiting_signatures' && canApprove && !alreadyApproved && (
         <>
           <button
@@ -55,32 +70,45 @@ export function WithdrawalSheet({
             onClick={() => onReject(w)}
             style={{ color: 'var(--err-text)' }}
           >
-            <I.UserX size={12} /> Reject
+            <I.UserX size={12} /> {t('withdrawals.rejectBtn')}
           </button>
           <button className="btn btn-accent" onClick={() => onApprove(w)}>
-            <I.ShieldCheck size={12} /> Approve & sign
+            <I.ShieldCheck size={12} /> {t('withdrawals.approveSign')}
           </button>
         </>
       )}
-      {w.stage === 'executing' && canExecute && (
+
+      {showExecute && (
         <button
           className="btn btn-primary"
           onClick={() => {
             onExecute(w);
-            toast('Broadcasting (stub).', 'success');
+            toast(t('withdrawals.executeQueued'), 'success');
           }}
         >
-          <I.Send size={11} /> Execute on-chain
+          <I.Send size={11} /> {t('withdrawals.executeOnChain')}
         </button>
       )}
-      {w.stage === 'awaiting_signatures' && canApprove && alreadyApproved && (
-        <span className="approved-stamp">
-          <I.Check size={10} /> you signed
+
+      {w.stage === 'executing' && timeLockActive && (
+        <span className="text-xs text-muted" style={{ padding: '0 8px' }}>
+          <I.Lock size={11} />{' '}
+          {t('common.timeLockActive', {
+            defaultValue: 'Time-lock active until {{until}}',
+            until: timeLockExpiresAt ? new Date(timeLockExpiresAt).toLocaleString() : '…',
+          })}
         </span>
       )}
+
+      {w.stage === 'awaiting_signatures' && canApprove && alreadyApproved && (
+        <span className="approved-stamp">
+          <I.Check size={10} /> {t('withdrawals.youSigned')}
+        </span>
+      )}
+
       {w.stage === 'awaiting_signatures' && staff && !canApprove && (
-        <button className="btn btn-secondary" disabled>
-          <I.Lock size={12} /> Treasurers only
+        <button className="btn btn-secondary" disabled title={t('withdrawals.treasurersOnlyTip')}>
+          <I.Lock size={12} /> {t('withdrawals.treasurersOnly')}
         </button>
       )}
     </>
@@ -91,12 +119,16 @@ export function WithdrawalSheet({
       open={!!withdrawal}
       onClose={onClose}
       wide
-      title={`Withdrawal ${w.id}`}
-      subtitle={`${fmtUSD(w.amount)} ${w.token} on ${CHAINS[w.chain].name}`}
+      title={t('withdrawals.sheetTitle', { id: w.id })}
+      subtitle={t('withdrawals.sheetSub', {
+        amt: fmtUSD(w.amount),
+        token: w.token,
+        chain: CHAINS[w.chain].name,
+      })}
       footer={footer}
     >
       <div style={{ marginBottom: 20 }}>
-        <div className="text-xs text-muted">Amount</div>
+        <div className="text-xs text-muted">{t('withdrawals.dId')}</div>
         <div
           style={{
             fontSize: 28,
@@ -120,29 +152,29 @@ export function WithdrawalSheet({
         currentStaffId={staff?.id}
       />
 
-      <h4 className="section-head">Details</h4>
+      <h4 className="section-head">{t('withdrawals.details')}</h4>
       <dl className="dl">
-        <dt>ID</dt>
+        <dt>{t('withdrawals.dId')}</dt>
         <dd className="text-mono">{w.id}</dd>
-        <dt>Status</dt>
+        <dt>{t('withdrawals.dStatus')}</dt>
         <dd>
           <StatusBadge status={w.stage} />
         </dd>
-        <dt>Vault</dt>
-        <dd>{w.chain === 'bnb' ? 'BSC Treasury Safe' : 'Solana Squads Vault'}</dd>
-        <dt>Chain</dt>
+        <dt>{t('withdrawals.dVault')}</dt>
+        <dd>{w.chain === 'bnb' ? t('withdrawals.vaultBsc') : t('withdrawals.vaultSol')}</dd>
+        <dt>{t('withdrawals.dChain')}</dt>
         <dd>
           <ChainPill chain={w.chain} /> {CHAINS[w.chain].name}
         </dd>
-        <dt>Asset</dt>
+        <dt>{t('withdrawals.dAsset')}</dt>
         <dd>
           <TokenPill token={w.token} />
         </dd>
-        <dt>Destination</dt>
+        <dt>{t('withdrawals.dDest')}</dt>
         <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
           {w.destination}
         </dd>
-        <dt>Requested by</dt>
+        <dt>{t('withdrawals.dRequestedBy')}</dt>
         <dd className="hstack">
           {requester?.name || '—'}
           {requester && (
@@ -151,19 +183,29 @@ export function WithdrawalSheet({
             </span>
           )}
         </dd>
-        <dt>Created</dt>
+        <dt>{t('withdrawals.dCreated')}</dt>
         <dd>{fmtDateTime(w.createdAt)}</dd>
         {w.txHash && (
           <>
-            <dt>Tx hash</dt>
+            <dt>{t('withdrawals.dTxHash')}</dt>
             <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
               {w.txHash}
             </dd>
           </>
         )}
+        {timeLockExpiresAt && (
+          <>
+            <dt>Time-lock</dt>
+            <dd className="text-xs text-muted">
+              {timeLockActive
+                ? `Active until ${new Date(timeLockExpiresAt).toLocaleString()}`
+                : `Expired ${new Date(timeLockExpiresAt).toLocaleString()}`}
+            </dd>
+          </>
+        )}
         {showRiskFlags && (
           <>
-            <dt>Risk</dt>
+            <dt>{t('withdrawals.dRisk')}</dt>
             <dd>
               <Risk level={w.risk} />
             </dd>
@@ -171,7 +213,7 @@ export function WithdrawalSheet({
         )}
         {w.note && (
           <>
-            <dt>Memo</dt>
+            <dt>{t('withdrawals.dMemo')}</dt>
             <dd>{w.note}</dd>
           </>
         )}

@@ -16,3 +16,4 @@ export * from './transactions';
 export * from './audit';
 export * from './ledger';
 export * from './staff-webauthn-credentials';
+export * from './watcher-checkpoints';

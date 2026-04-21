@@ -1,0 +1,13 @@
+{
+  "extends": "../../packages/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Bundler",
+    "module": "ESNext"
+  },
+  "include": ["scripts/**/*.ts"]
+}

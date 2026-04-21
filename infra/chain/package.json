@@ -1,0 +1,22 @@
+{
+  "name": "@wp/chain-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy:safe-bnb-testnet": "tsx scripts/deploy-safe-bnb-testnet.ts",
+    "deploy:squads-devnet": "tsx scripts/deploy-squads-devnet.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@safe-global/protocol-kit": "^5",
+    "@solana/web3.js": "^1",
+    "@sqds/multisig": "^2",
+    "dotenv": "^16",
+    "ethers": "^6",
+    "viem": "^2"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

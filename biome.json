@@ -29,7 +29,7 @@
       ".claude/**",
       ".opencode/**",
       "claude/**",
-      "scripts/**",
+      "apps/*/scripts/**",
       "guide/**",
       "node_modules/**",
       "portable-manifest.json",
@@ -43,6 +43,16 @@
     ]
   },
   "overrides": [
+    {
+      "include": ["infra/chain/scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
     {
       "include": ["apps/ui/src/**/*.tsx", "apps/ui/src/**/*.ts"],
       "linter": {

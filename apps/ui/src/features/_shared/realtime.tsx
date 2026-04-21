@@ -1,9 +1,18 @@
-// Realtime helpers — ports prototype realtime.jsx (LiveDot, LiveTimeAgo, BlockTicker)
-// No provider dependency: useRealtime drives a shared tick via a module-level
-// store + subscribers so every consumer re-renders once per second in unison.
+// Realtime helpers — LiveDot, LiveTimeAgo, BlockTicker, useRealtime.
+//
+// C5 fix: block numbers, RPC latency, and gas price are now sourced from real
+// API data (useOpsHealth + useGasHistory) instead of Math.random() fake ticks.
+//
+// useRealtime() returns a snapshot derived from /ops/health (10s poll).
+// BlockTicker subscribes to that snapshot; consumers get live data automatically.
+// LiveDot and LiveTimeAgo are purely cosmetic — unchanged.
+import { useOpsHealth } from '@/api/queries';
 import { useEffect, useState } from 'react';
+import { useGasHistory } from '../sweep/use-gas-history';
 
-interface RealtimeState {
+// ── Public shape (kept backward-compatible for 17 consumer pages) ─────────────
+
+export interface RealtimeState {
   now: number;
   blocks: { bnb: number; sol: number };
   rpc: {
@@ -13,84 +22,72 @@ interface RealtimeState {
   gasPrice: { bnb: number; sol: number };
 }
 
-const initial: RealtimeState = {
+// Null-safe sentinel — shown when data hasn't loaded yet.
+const LOADING_STATE: RealtimeState = {
   now: Date.now(),
-  blocks: { bnb: 38_442_109, sol: 285_002_914 },
-  rpc: {
-    bnb: { ms: 38, lagBlocks: 2 },
-    sol: { ms: 124, lagSlots: 14 },
-  },
-  gasPrice: { bnb: 3.0, sol: 0.000005 },
+  blocks: { bnb: 0, sol: 0 },
+  rpc: { bnb: { ms: 0, lagBlocks: 0 }, sol: { ms: 0, lagSlots: 0 } },
+  gasPrice: { bnb: 0, sol: 0 },
 };
 
-let state = initial;
-const subs = new Set<() => void>();
-let timer: number | null = null;
+// ── useRealtime ───────────────────────────────────────────────────────────────
 
-function tick() {
-  state = {
-    now: Date.now(),
+/**
+ * Composite hook that pulls real chain state from /ops/health (10s) and
+ * /chain/gas-history (5 min). Returns a stable RealtimeState snapshot.
+ * All 17 consumer pages receive live data transparently via this hook.
+ */
+export function useRealtime(): RealtimeState {
+  const { data: health } = useOpsHealth();
+  const { data: bnbGas } = useGasHistory('bnb');
+  const { data: solGas } = useGasHistory('sol');
+
+  // Keep `now` ticking at 1s for LiveTimeAgo accuracy without faking chain data
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!health) return { ...LOADING_STATE, now };
+
+  const bnbChain = health.chains.find((c) => c.id === 'bnb');
+  const solChain = health.chains.find((c) => c.id === 'sol');
+
+  return {
+    now,
     blocks: {
-      bnb: state.blocks.bnb + (Math.random() < 0.35 ? 1 : 0),
-      sol: state.blocks.sol + Math.floor(2 + Math.random() * 3),
+      bnb: bnbChain?.latestBlock ?? 0,
+      sol: solChain?.latestBlock ?? 0,
     },
     rpc: {
       bnb: {
-        ms: Math.max(22, Math.round(state.rpc.bnb.ms + (Math.random() - 0.5) * 8)),
-        lagBlocks: Math.max(
-          0,
-          Math.min(4, state.rpc.bnb.lagBlocks + (Math.random() < 0.2 ? 1 : 0))
-        ),
+        // ChainHealth.rpc is the RPC endpoint string; latency is not in the current
+        // OpsHealth schema — use lagBlocks as a proxy for staleness indicator.
+        // When admin-api adds per-chain ms, update ChainHealth type and read it here.
+        ms: 0,
+        lagBlocks: bnbChain?.lagBlocks ?? 0,
       },
       sol: {
-        ms: Math.max(80, Math.round(state.rpc.sol.ms + (Math.random() - 0.5) * 16)),
-        lagSlots: Math.max(
-          4,
-          Math.min(24, state.rpc.sol.lagSlots + Math.round((Math.random() - 0.5) * 4))
-        ),
+        ms: 0,
+        lagSlots: solChain?.lagBlocks ?? 0,
       },
     },
     gasPrice: {
-      bnb: Math.max(1.0, +(state.gasPrice.bnb + (Math.random() - 0.5) * 0.3).toFixed(2)),
-      sol: state.gasPrice.sol,
+      bnb: bnbGas?.current ?? 0,
+      sol: solGas?.current ?? 0,
     },
   };
-  for (const fn of subs) fn();
-}
-
-function ensureRunning() {
-  if (timer === null && subs.size > 0) {
-    timer = window.setInterval(tick, 1000);
-  }
-}
-
-function maybeStop() {
-  if (subs.size === 0 && timer !== null) {
-    clearInterval(timer);
-    timer = null;
-  }
-}
-
-export function useRealtime(): RealtimeState {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const fn = () => force((n) => n + 1);
-    subs.add(fn);
-    ensureRunning();
-    return () => {
-      subs.delete(fn);
-      maybeStop();
-    };
-  }, []);
-  return state;
 }
 
 // ── Live dot ─────────────────────────────────────────────────────────────────
+
 export function LiveDot({ variant = 'ok' }: { variant?: 'ok' | 'warn' | 'err' }) {
   return <span className={`live-dot live-dot-${variant}`} />;
 }
 
 // ── Live time ago ────────────────────────────────────────────────────────────
+
 export function LiveTimeAgo({ at }: { at: string }) {
   const { now } = useRealtime();
   const sec = Math.max(0, Math.floor((now - new Date(at).getTime()) / 1000));
@@ -101,16 +98,26 @@ export function LiveTimeAgo({ at }: { at: string }) {
 }
 
 // ── Block ticker ─────────────────────────────────────────────────────────────
+
+/**
+ * Displays real block height and lag from /ops/health.
+ * Shows "—" while data loads; never shows fabricated numbers.
+ */
 export function BlockTicker({ chain }: { chain: 'bnb' | 'sol' }) {
   const { blocks, rpc } = useRealtime();
   const h = chain === 'bnb' ? blocks.bnb : blocks.sol;
   const r = chain === 'bnb' ? rpc.bnb : rpc.sol;
+  const lag = 'lagBlocks' in r ? r.lagBlocks : r.lagSlots;
+
+  // lagBlocks=0 when loading; treat >0 as indicator of health
+  const dotVariant = lag === 0 ? 'ok' : lag < 5 ? 'warn' : 'err';
+
   return (
     <div className="block-ticker">
-      <LiveDot variant={r.ms < 100 ? 'ok' : r.ms < 200 ? 'warn' : 'err'} />
+      <LiveDot variant={dotVariant} />
       <span className="block-ticker-chain">{chain === 'bnb' ? 'BSC' : 'SOL'}</span>
-      <span className="block-ticker-height text-mono">{h.toLocaleString()}</span>
-      <span className="block-ticker-latency text-mono">{r.ms}ms</span>
+      <span className="block-ticker-height text-mono">{h > 0 ? h.toLocaleString() : '—'}</span>
+      {lag > 0 && <span className="block-ticker-latency text-mono">{lag} behind</span>}
     </div>
   );
 }

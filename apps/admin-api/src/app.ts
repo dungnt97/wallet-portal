@@ -23,6 +23,7 @@ import {
   createEmailDigestWorker,
 } from './workers/notif-email-digest.worker.js';
 import { createEmailImmediateWorker } from './workers/notif-email-immediate.worker.js';
+import { createSlackWorker } from './workers/notif-slack.worker.js';
 
 export async function buildApp(cfg: Config) {
   const app = Fastify({
@@ -156,7 +157,11 @@ export async function buildApp(cfg: Config) {
     );
     await digestQueue.close();
 
-    app.log.info('Notification workers started (email-immediate, email-digest)');
+    // Slack worker (concurrency 5, processes notif_slack queue for critical events)
+    const slackWorker = createSlackWorker(cfg.SLACK_WEBHOOK_URL, redisOpts);
+    app.addHook('onClose', async () => slackWorker.close());
+
+    app.log.info('Notification workers started (email-immediate, email-digest, slack)');
   });
 
   return app;

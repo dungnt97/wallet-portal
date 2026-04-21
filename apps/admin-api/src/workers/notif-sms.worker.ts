@@ -2,9 +2,15 @@
 // Processes jobs from queue `notif_sms` (enqueued by notifyStaff for severity=critical + prefs.sms=true).
 // Concurrency: 5. Retries: 3 with exponential backoff.
 //
-// Dry-run mode (no Twilio creds):
-//   When TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM_NUMBER are absent,
-//   the worker logs the SMS payload and skips the API call. No error is raised.
+// Dry-run mode (no Twilio creds, non-production):
+//   When TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM_NUMBER are absent
+//   and NODE_ENV != production, the worker logs the SMS payload at info level and
+//   skips the API call. No error is raised.
+//
+// Production creds-missing behaviour:
+//   When creds are absent in production the job is dropped with an error-level log
+//   and the notif_sms_dropped_total{reason="creds_missing"} Prometheus counter is
+//   incremented so on-call alerts can fire.
 //
 // Production setup:
 //   TWILIO_ACCOUNT_SID=ACxxxxx
@@ -15,6 +21,7 @@ import { eq } from 'drizzle-orm';
 import type { RedisOptions } from 'ioredis';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
+import { notifSmsDroppedTotal } from '../telemetry/metrics.js';
 
 export const SMS_QUEUE = 'notif_sms';
 
@@ -87,12 +94,23 @@ export function createSmsWorker(db: Db, redisOpts: RedisOptions): Worker<SmsJobD
       const messageBody = `[${severity.toUpperCase()}] ${title}${body ? `\n${body}` : ''}`;
 
       if (!hasTwilioCreds()) {
-        // Dry-run — log and skip
-        console.info(
-          '[notif-sms] DRY_RUN to=%s body=%s',
-          staff.phoneNumber.replace(/\d(?=\d{4})/g, '*'),
-          messageBody
-        );
+        if (process.env.NODE_ENV === 'production') {
+          // Production: missing Twilio creds is an operator error — log at error
+          // level and increment the Prometheus counter so alerts can fire.
+          console.error(
+            '[notif-sms] Twilio creds missing in production — dropping SMS job %s (severity=%s)',
+            job.id,
+            severity
+          );
+          notifSmsDroppedTotal.inc({ reason: 'creds_missing' });
+        } else {
+          // Non-production dry-run — log payload at info level and skip silently.
+          console.info(
+            '[notif-sms] DRY_RUN to=%s body=%s',
+            staff.phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+            messageBody
+          );
+        }
         return;
       }
 

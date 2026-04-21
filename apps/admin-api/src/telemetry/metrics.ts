@@ -84,3 +84,13 @@ export const withdrawalOperationsTotal = new Counter({
   labelNames: ['status'],
   registers: [registry],
 });
+
+// SMS notifications dropped without delivery — incremented when a job is
+// discarded rather than sent. Reason label distinguishes known drop causes
+// (e.g. creds_missing, no_phone) from unexpected ones.
+export const notifSmsDroppedTotal = new Counter({
+  name: 'notif_sms_dropped_total',
+  help: 'Total SMS notification jobs dropped without delivery.',
+  labelNames: ['reason'],
+  registers: [registry],
+});

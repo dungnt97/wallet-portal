@@ -1,73 +1,143 @@
-// Audit log page — ports prototype page_audit.jsx.
-// Two tabs: Actions (filterable + paginated) and Sign-ins.
+// Audit log page — real data wiring replacing fixture stubs.
+// Actions tab: paginated + filtered real rows, hash verify badge, CSV export, socket live.
+// Sign-ins tab: fixture (out-of-scope per plan, real capture is auth slice work).
 import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AUDIT_LOG, FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
-import { downloadCSV } from '../_shared/helpers';
+import { FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
 import { LiveDot } from '../_shared/realtime';
+import { AuditDetailSheet } from './audit-detail-sheet';
 import { AuditKpiStrip } from './audit-kpi-strip';
+import { useAuditSocketListener } from './audit-socket-listener';
 import { AuditActionsTable, AuditLoginsTable } from './audit-tables';
+import { type AuditLogEntry, useAuditLogs, useAuditVerify } from './use-audit-logs';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 50;
+const EXPORT_ROW_CAP = 50_000;
+
 type Tab = 'actions' | 'logins';
+
+// Resource types for entity filter (mirrors DB resourceType values)
+const ENTITY_OPTIONS = [
+  'deposit',
+  'withdrawal',
+  'sweep',
+  'multisig',
+  'staff_member',
+  'user',
+  'kill_switch',
+  'rebalance',
+];
 
 export function AuditPage() {
   const { t } = useTranslation();
   const toast = useToast();
+
+  // Tab state
   const [tab, setTab] = useState<Tab>('actions');
-  const [actor, setActor] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+
+  // Filter state
+  const [entity, setEntity] = useState<string | undefined>();
+  const [action, setAction] = useState('');
   const [page, setPage] = useState(1);
+  const [from, setFrom] = useState<string | undefined>();
+  const [to, setTo] = useState<string | undefined>();
 
-  const actors = useMemo<string[]>(
-    () => [
-      'system',
-      ...Array.from(new Set(AUDIT_LOG.filter((l) => l.actor !== 'system').map((l) => l.actor))),
-    ],
-    []
-  );
-
-  const filtered = useMemo(
-    () =>
-      AUDIT_LOG.filter((l) => {
-        if (actor && l.actor !== actor) return false;
-        if (
-          search &&
-          !l.action.toLowerCase().includes(search.toLowerCase()) &&
-          !l.subject.toLowerCase().includes(search.toLowerCase())
-        )
-          return false;
-        return true;
-      }),
-    [actor, search]
-  );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: filter signature only
+  // Reset page on filter change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset
   useEffect(() => {
     setPage(1);
-  }, [actor, search]);
+  }, [entity, action, from, to]);
 
-  const doExport = () => {
-    if (tab === 'logins') {
-      downloadCSV(
-        'login-history.csv',
-        FIXTURE_LOGIN_HISTORY.map((l) => [l.name, l.email, l.role, l.ip, l.ua, l.at]),
-        ['name', 'email', 'role', 'ip', 'ua', 'at']
-      );
-      toast(`Exported ${FIXTURE_LOGIN_HISTORY.length} rows.`, 'success');
+  // Detail sheet state
+  const [selected, setSelected] = useState<AuditLogEntry | null>(null);
+
+  // Wire socket listener for live updates
+  useAuditSocketListener();
+
+  // Fetch audit logs
+  const queryParams = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      ...(entity !== undefined && { entity }),
+      ...(action !== '' && { action }),
+      ...(from !== undefined && { from }),
+      ...(to !== undefined && { to }),
+    }),
+    [page, entity, action, from, to]
+  );
+
+  const { data, isLoading } = useAuditLogs(queryParams);
+  const rows = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Verify chain for current page range (run when we have rows with timestamps)
+  const pageFrom = rows.length > 0 ? rows[rows.length - 1]?.createdAt : undefined;
+  const pageTo = rows.length > 0 ? rows[0]?.createdAt : undefined;
+  const { data: verifyData } = useAuditVerify(pageFrom, pageTo);
+
+  // Build id -> hashValid map from verify result
+  const hashValidity = useMemo<Map<string, boolean>>(() => {
+    const map = new Map<string, boolean>();
+    if (!verifyData) return map;
+    if (verifyData.verified) {
+      for (const row of rows) map.set(row.id, true);
     } else {
-      downloadCSV(
-        'audit-log.csv',
-        filtered.map((l) => [l.action, l.subject, l.actor, l.ip, l.timestamp, l.severity]),
-        ['action', 'subject', 'actor', 'ip', 'timestamp', 'severity']
-      );
-      toast(`Exported ${filtered.length} rows.`, 'success');
+      // Mark broken at brokenAt id and all rows after it (rows are DESC; walk ASC for chain order)
+      let broken = false;
+      const asc = [...rows].reverse();
+      for (const row of asc) {
+        if (row.id === verifyData.brokenAt) broken = true;
+        map.set(row.id, !broken);
+      }
     }
-  };
+    return map;
+  }, [verifyData, rows]);
+
+  // CSV export — triggers browser download of server-streamed CSV
+  const handleExport = useCallback(async () => {
+    if (total > EXPORT_ROW_CAP) {
+      toast(t('audit.export.tooManyRows', { max: EXPORT_ROW_CAP, found: total }), 'error');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (entity) params.set('entity', entity);
+    if (action) params.set('action', action);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    const url = `/api/audit-logs/export.csv?${params.toString()}`;
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (res.status === 429) {
+        const body = (await res.json()) as { found?: number };
+        toast(
+          t('audit.export.tooManyRows', { max: EXPORT_ROW_CAP, found: body.found ?? total }),
+          'error'
+        );
+        return;
+      }
+      if (!res.ok) throw new Error(res.statusText);
+
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const cd = res.headers.get('Content-Disposition') ?? '';
+      const fileMatch = /filename="([^"]+)"/.exec(cd);
+      a.download = fileMatch?.[1] ?? 'audit-export.csv';
+      a.href = objUrl;
+      a.click();
+      URL.revokeObjectURL(objUrl);
+      toast(t('audit.export.success', { n: total }), 'success');
+    } catch (_err) {
+      toast(t('common.error'), 'error');
+    }
+  }, [entity, action, from, to, total, toast, t]);
 
   return (
     <PageFrame
@@ -81,20 +151,20 @@ export function AuditPage() {
         <div className="policy-strip">
           <div className="policy-strip-item">
             <I.Shield size={11} />
-            <span className="text-muted">Log integrity:</span>
+            <span className="text-muted">{t('audit.filters.integrity')}</span>
             <span className="fw-600">SHA-256 chained</span>
             <LiveDot />
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Database size={11} />
-            <span className="text-muted">Retention:</span>
+            <span className="text-muted">{t('audit.filters.retention')}</span>
             <span className="fw-600">7 years</span>
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.External size={11} />
-            <span className="text-muted">Export:</span>
+            <span className="text-muted">{t('audit.filters.export')}</span>
             <span className="fw-600">SIEM + S3 Glacier</span>
           </div>
           <div className="spacer" />
@@ -104,11 +174,17 @@ export function AuditPage() {
         </div>
       }
       actions={
-        <button type="button" className="btn btn-secondary" onClick={doExport}>
-          <I.External size={13} /> {t('common.export')}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => void handleExport()}
+          disabled={tab === 'logins' || total > EXPORT_ROW_CAP}
+          title={total > EXPORT_ROW_CAP ? t('audit.export.disabled') : undefined}
+        >
+          <I.External size={13} /> {t('audit.export.btn')}
         </button>
       }
-      kpis={<AuditKpiStrip log={AUDIT_LOG} logins={FIXTURE_LOGIN_HISTORY} />}
+      kpis={<AuditKpiStrip total={total} isLoading={isLoading} />}
     >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
@@ -117,8 +193,12 @@ export function AuditPage() {
             onChange={(v) => setTab(v as Tab)}
             embedded
             tabs={[
-              { value: 'actions', label: 'Actions', count: AUDIT_LOG.length },
-              { value: 'logins', label: 'Sign-ins', count: FIXTURE_LOGIN_HISTORY.length },
+              { value: 'actions', label: t('audit.filters.tabActions'), count: total },
+              {
+                value: 'logins',
+                label: t('audit.filters.tabLogins'),
+                count: FIXTURE_LOGIN_HISTORY.length,
+              },
             ]}
           />
           <div className="spacer" />
@@ -127,24 +207,47 @@ export function AuditPage() {
               <div className="inline-search">
                 <I.Search size={13} />
                 <input
-                  placeholder="Search action or subject…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('audit.filters.actionPlaceholder')}
+                  value={action}
+                  onChange={(e) => setAction(e.target.value)}
                 />
               </div>
+
               <Filter
-                label="Actor"
-                value={actor ?? undefined}
-                active={!!actor}
+                label={t('audit.filters.entity')}
+                value={entity}
+                active={!!entity}
                 onClick={() => {
-                  const idx = actors.indexOf(actor ?? '');
-                  setActor(actors[(idx + 1) % actors.length] ?? null);
+                  const idx = entity ? ENTITY_OPTIONS.indexOf(entity) : -1;
+                  const next = ENTITY_OPTIONS[(idx + 1) % ENTITY_OPTIONS.length];
+                  setEntity(next);
                 }}
-                onClear={() => setActor(null)}
+                onClear={() => setEntity(undefined)}
               />
-              <Filter label="Severity" />
-              <Filter label="Date" />
-              <span className="text-xs text-muted text-mono">{filtered.length}</span>
+
+              <Filter
+                label={t('audit.filters.from')}
+                value={from ? from.slice(0, 10) : undefined}
+                active={!!from}
+                onClick={() => {
+                  const d = window.prompt(t('audit.filters.fromPrompt'), from ?? '');
+                  if (d) setFrom(new Date(d).toISOString());
+                }}
+                onClear={() => setFrom(undefined)}
+              />
+
+              <Filter
+                label={t('audit.filters.to')}
+                value={to ? to.slice(0, 10) : undefined}
+                active={!!to}
+                onClick={() => {
+                  const d = window.prompt(t('audit.filters.toPrompt'), to ?? '');
+                  if (d) setTo(new Date(d).toISOString());
+                }}
+                onClear={() => setTo(undefined)}
+              />
+
+              <span className="text-xs text-muted text-mono">{total}</span>
             </>
           )}
         </div>
@@ -153,16 +256,24 @@ export function AuditPage() {
           <AuditLoginsTable rows={FIXTURE_LOGIN_HISTORY} />
         ) : (
           <AuditActionsTable
-            rows={pageRows}
+            rows={rows}
             page={page}
             totalPages={totalPages}
-            total={filtered.length}
+            total={total}
             pageSize={PAGE_SIZE}
+            hashValidity={hashValidity}
             onPrev={() => setPage((p) => Math.max(1, p - 1))}
             onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onRowClick={setSelected}
           />
         )}
       </div>
+
+      <AuditDetailSheet
+        row={selected}
+        onClose={() => setSelected(null)}
+        hashValid={selected ? hashValidity.get(selected.id) : undefined}
+      />
     </PageFrame>
   );
 }

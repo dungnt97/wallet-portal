@@ -1,9 +1,12 @@
-// Audit log tables — actions table (paginated) + logins table.
+// Audit log tables — real-data actions table (paginated + expandable) + fixture logins table
+// Actions table: click row → detail sheet; hash badge per row from verifyChain result
 import { I } from '@/icons';
 import { ROLES, type RoleId } from '@/lib/constants';
 import { fmtDateTime } from '@/lib/format';
-import type { AuditEntry, LoginEvent } from '../_shared/fixtures';
+import { useTranslation } from 'react-i18next';
+import type { LoginEvent } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
+import type { AuditLogEntry } from './use-audit-logs';
 
 function actionIcon(action: string) {
   if (action.startsWith('sweep')) return <I.Sweep size={12} />;
@@ -18,14 +21,36 @@ function actionIcon(action: string) {
   return <I.Logs size={12} />;
 }
 
+interface HashBadgeProps {
+  valid: boolean | undefined;
+}
+
+function HashBadge({ valid }: HashBadgeProps) {
+  if (valid === undefined) {
+    return <span className="badge-tight muted">—</span>;
+  }
+  return valid ? (
+    <span className="badge-tight ok" title="Hash verified">
+      <span className="dot" />✓
+    </span>
+  ) : (
+    <span className="badge-tight danger" title="Hash mismatch">
+      <span className="dot" />✗
+    </span>
+  );
+}
+
 interface ActionsTableProps {
-  rows: AuditEntry[];
+  rows: AuditLogEntry[];
   page: number;
   totalPages: number;
   total: number;
   pageSize: number;
+  /** Map of row.id → hash validity from verifyChain; empty map = not yet verified */
+  hashValidity?: Map<string, boolean>;
   onPrev: () => void;
   onNext: () => void;
+  onRowClick: (row: AuditLogEntry) => void;
 }
 
 export function AuditActionsTable({
@@ -34,45 +59,59 @@ export function AuditActionsTable({
   totalPages,
   total,
   pageSize,
+  hashValidity = new Map(),
   onPrev,
   onNext,
+  onRowClick,
 }: ActionsTableProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <table className="table table-tight">
         <thead>
           <tr>
-            <th>Action</th>
-            <th>Subject</th>
-            <th>Actor</th>
-            <th>IP</th>
-            <th className="num">Timestamp</th>
+            <th>{t('audit.table.action')}</th>
+            <th>{t('audit.table.entity')}</th>
+            <th>{t('audit.table.actor')}</th>
+            <th>{t('audit.table.ip')}</th>
+            <th style={{ textAlign: 'center' }}>{t('audit.table.hash')}</th>
+            <th className="num">{t('audit.table.when')}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((l) => (
-            <tr key={l.id}>
+          {rows.length === 0 && (
+            <tr>
+              <td
+                colSpan={6}
+                className="text-sm text-muted"
+                style={{ textAlign: 'center', padding: 40 }}
+              >
+                {t('common.empty')}
+              </td>
+            </tr>
+          )}
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              onClick={() => onRowClick(row)}
+              style={{ cursor: 'pointer' }}
+              className="hoverable"
+            >
               <td>
                 <div className="hstack">
-                  <span
-                    style={{
-                      color: l.severity === 'warn' ? 'var(--warn-text)' : 'var(--text-muted)',
-                    }}
-                  >
-                    {actionIcon(l.action)}
-                  </span>
-                  <span className="text-mono text-xs fw-500">{l.action}</span>
-                  {l.severity === 'warn' && (
-                    <span className="badge-tight warn">
-                      <span className="dot" />
-                      warn
-                    </span>
-                  )}
+                  <span style={{ color: 'var(--text-muted)' }}>{actionIcon(row.action)}</span>
+                  <span className="text-mono text-xs fw-500">{row.action}</span>
                 </div>
               </td>
-              <td className="text-sm">{l.subject}</td>
+              <td className="text-sm text-mono">
+                {row.resourceType}
+                {row.resourceId && (
+                  <span className="text-muted"> · {row.resourceId.slice(0, 8)}…</span>
+                )}
+              </td>
               <td>
-                {l.actor === 'system' ? (
+                {!row.staffId ? (
                   <span className="badge muted">
                     <I.Lightning size={10} />
                     system
@@ -80,15 +119,24 @@ export function AuditActionsTable({
                 ) : (
                   <div className="hstack">
                     <div className="avatar" style={{ width: 18, height: 18, fontSize: 8 }}>
-                      {l.actor.slice(0, 2).toUpperCase()}
+                      {row.actorName
+                        ? row.actorName
+                            .split(' ')
+                            .map((p) => p[0])
+                            .join('')
+                            .toUpperCase()
+                        : '?'}
                     </div>
-                    <span className="text-sm">{l.actor}</span>
+                    <span className="text-sm">{row.actorEmail ?? row.staffId.slice(0, 8)}</span>
                   </div>
                 )}
               </td>
-              <td className="text-mono text-xs text-muted">{l.ip}</td>
+              <td className="text-mono text-xs text-muted">{row.ipAddr ?? '—'}</td>
+              <td style={{ textAlign: 'center' }}>
+                <HashBadge valid={hashValidity.get(row.id)} />
+              </td>
               <td className="num text-xs text-muted">
-                <LiveTimeAgo at={l.timestamp} />
+                <LiveTimeAgo at={row.createdAt} />
               </td>
             </tr>
           ))}
@@ -96,19 +144,22 @@ export function AuditActionsTable({
       </table>
       <div className="pagination">
         <span>
-          Showing {total === 0 ? 0 : (page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)}{' '}
-          of {total}
+          {t('audit.table.showing', {
+            from: total === 0 ? 0 : (page - 1) * pageSize + 1,
+            to: Math.min(page * pageSize, total),
+            total,
+          })}
         </span>
         <div className="spacer" />
         <button type="button" disabled={page <= 1} onClick={onPrev}>
-          <I.ChevronLeft size={12} /> Prev
+          <I.ChevronLeft size={12} /> {t('common.back')}
         </button>
         <span>
           <span className="text-mono">{page}</span> /{' '}
           <span className="text-mono">{totalPages}</span>
         </span>
         <button type="button" disabled={page >= totalPages} onClick={onNext}>
-          Next <I.ChevronRight size={12} />
+          {t('common.next')} <I.ChevronRight size={12} />
         </button>
       </div>
     </>
@@ -120,15 +171,17 @@ interface LoginsTableProps {
 }
 
 export function AuditLoginsTable({ rows }: LoginsTableProps) {
+  const { t } = useTranslation();
+
   return (
     <table className="table table-tight">
       <thead>
         <tr>
-          <th>Staff</th>
-          <th>Role</th>
-          <th>IP</th>
-          <th>User agent</th>
-          <th className="num">When</th>
+          <th>{t('users.colUser')}</th>
+          <th>{t('users.colRole')}</th>
+          <th>{t('audit.table.ip')}</th>
+          <th>UA</th>
+          <th className="num">{t('audit.table.when')}</th>
         </tr>
       </thead>
       <tbody>
@@ -139,7 +192,7 @@ export function AuditLoginsTable({ rows }: LoginsTableProps) {
               className="text-sm text-muted"
               style={{ textAlign: 'center', padding: 40 }}
             >
-              No sign-in events recorded in this session.
+              {t('common.empty')}
             </td>
           </tr>
         )}

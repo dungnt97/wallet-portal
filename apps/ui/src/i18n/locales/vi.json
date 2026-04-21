@@ -573,7 +573,55 @@
     "colAction": "Hành động",
     "colTarget": "Đối tượng",
     "colIp": "IP",
-    "exportCsv": "Xuất CSV"
+    "exportCsv": "Xuất CSV",
+    "filters": {
+      "tabActions": "Thao tác",
+      "tabLogins": "Đăng nhập",
+      "entity": "Loại đối tượng",
+      "actor": "Người thực hiện",
+      "actionLabel": "Hành động",
+      "actionPlaceholder": "Lọc theo hành động…",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "fromPrompt": "Nhập ngày ISO (vd. 2026-01-01)",
+      "toPrompt": "Nhập ngày ISO (vd. 2026-12-31)",
+      "integrity": "Toàn vẹn log:",
+      "retention": "Lưu trữ:",
+      "export": "Xuất:"
+    },
+    "table": {
+      "action": "Hành động",
+      "entity": "Đối tượng",
+      "actor": "Người thực hiện",
+      "ip": "IP",
+      "hash": "Hash",
+      "when": "Lúc",
+      "showing": "Hiển thị {{from}}–{{to}} / {{total}}"
+    },
+    "detail": {
+      "title": "{{action}}",
+      "actor": "Người thực hiện",
+      "system": "Hệ thống",
+      "resource": "Tài nguyên",
+      "entity": "Loại",
+      "entityId": "ID đối tượng",
+      "action": "Hành động",
+      "payload": "Dữ liệu thay đổi",
+      "hashChain": "Chuỗi hash",
+      "prevHash": "prev_hash",
+      "hash": "hash"
+    },
+    "export": {
+      "btn": "Xuất CSV",
+      "success": "Đã xuất {{n}} dòng.",
+      "tooManyRows": "Quá nhiều dòng ({{found}}). Giới hạn xuất là {{max}}. Hãy thu hẹp bộ lọc.",
+      "disabled": "Số dòng vượt giới hạn xuất — hãy lọc lại"
+    },
+    "verify": {
+      "ok": "Chuỗi hash hợp lệ",
+      "broken": "Chuỗi hash bị phá vỡ tại dòng {{id}}",
+      "checking": "Đang xác minh…"
+    }
   },
   "signers": {
     "title": "Signers",

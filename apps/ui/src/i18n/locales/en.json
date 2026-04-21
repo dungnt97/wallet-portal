@@ -573,7 +573,55 @@
     "colAction": "Action",
     "colTarget": "Target",
     "colIp": "IP",
-    "exportCsv": "Export CSV"
+    "exportCsv": "Export CSV",
+    "filters": {
+      "tabActions": "Actions",
+      "tabLogins": "Sign-ins",
+      "entity": "Entity",
+      "actor": "Actor",
+      "actionLabel": "Action",
+      "actionPlaceholder": "Filter by action…",
+      "from": "From",
+      "to": "To",
+      "fromPrompt": "Enter ISO date (e.g. 2026-01-01)",
+      "toPrompt": "Enter ISO date (e.g. 2026-12-31)",
+      "integrity": "Log integrity:",
+      "retention": "Retention:",
+      "export": "Export:"
+    },
+    "table": {
+      "action": "Action",
+      "entity": "Entity",
+      "actor": "Actor",
+      "ip": "IP",
+      "hash": "Hash",
+      "when": "When",
+      "showing": "Showing {{from}}–{{to}} of {{total}}"
+    },
+    "detail": {
+      "title": "{{action}}",
+      "actor": "Actor",
+      "system": "System",
+      "resource": "Resource",
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "action": "Action",
+      "payload": "Payload (changes)",
+      "hashChain": "Hash chain",
+      "prevHash": "prev_hash",
+      "hash": "hash"
+    },
+    "export": {
+      "btn": "Export CSV",
+      "success": "Exported {{n}} rows.",
+      "tooManyRows": "Too many rows ({{found}}). Max export is {{max}}. Narrow your filters.",
+      "disabled": "Row count exceeds export limit — narrow filters first"
+    },
+    "verify": {
+      "ok": "Chain verified",
+      "broken": "Chain broken at row {{id}}",
+      "checking": "Verifying…"
+    }
   },
   "signers": {
     "title": "Signers",

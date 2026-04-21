@@ -1,19 +1,16 @@
 // Audit KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+// Accepts real total count from API instead of fixture arrays.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
-import type { AuditEntry, LoginEvent } from '../_shared/fixtures';
+import { FIXTURE_LOGIN_HISTORY } from '../_shared/fixtures';
 
 interface Props {
-  log: AuditEntry[];
-  logins: LoginEvent[];
+  /** Total audit log rows from the real API */
+  total: number;
+  isLoading?: boolean;
 }
 
-export function AuditKpiStrip({ log, logins }: Props) {
-  const warn = log.filter((l) => l.severity === 'warn').length;
-  const byActor = new Map<string, number>();
-  for (const l of log) byActor.set(l.actor, (byActor.get(l.actor) ?? 0) + 1);
-  const topActor = [...byActor.entries()].sort((a, b) => b[1] - a[1])[0];
-
+export function AuditKpiStrip({ total, isLoading }: Props) {
   return (
     <KpiStrip
       items={[
@@ -22,10 +19,10 @@ export function AuditKpiStrip({ log, logins }: Props) {
           label: (
             <>
               <I.Logs size={10} />
-              Events · 24h
+              Events (all)
             </>
           ),
-          value: log.length,
+          value: isLoading ? '…' : total,
           foot: (
             <>
               <span className="text-xs text-muted text-mono">all actions</span>
@@ -37,23 +34,33 @@ export function AuditKpiStrip({ log, logins }: Props) {
           ),
         },
         {
-          key: 'warn',
+          key: 'chain',
           label: (
             <>
-              <I.AlertTri size={10} />
-              Warnings
+              <I.Shield size={10} />
+              Chain integrity
             </>
           ),
-          value: warn,
+          value: 'SHA-256',
+          valueStyle: { fontSize: 13 },
           foot: (
+            <span className="badge-tight ok">
+              <span className="dot" />
+              tamper-evident
+            </span>
+          ),
+        },
+        {
+          key: 'retention',
+          label: (
             <>
-              <span className="text-xs text-muted">severity ≥ warn</span>
-              <span className={`badge-tight ${warn > 0 ? 'warn' : 'ok'}`}>
-                <span className="dot" />
-                {warn > 0 ? 'Review' : 'Clean'}
-              </span>
+              <I.Database size={10} />
+              Retention
             </>
           ),
+          value: '7 yrs',
+          valueStyle: { fontSize: 16 },
+          foot: <span className="text-xs text-muted">append-only</span>,
         },
         {
           key: 'logins',
@@ -63,7 +70,7 @@ export function AuditKpiStrip({ log, logins }: Props) {
               Logins · session
             </>
           ),
-          value: logins.length,
+          value: FIXTURE_LOGIN_HISTORY.length,
           foot: (
             <>
               <span className="text-xs text-muted">MFA enforced</span>
@@ -72,22 +79,6 @@ export function AuditKpiStrip({ log, logins }: Props) {
                 2FA
               </span>
             </>
-          ),
-        },
-        {
-          key: 'top-actor',
-          label: (
-            <>
-              <I.Users size={10} />
-              Top actor
-            </>
-          ),
-          value: topActor ? topActor[0] : '—',
-          valueStyle: { fontSize: 16 },
-          foot: (
-            <span className="text-xs text-muted text-mono">
-              {topActor ? topActor[1] : 0} events
-            </span>
           ),
         },
       ]}

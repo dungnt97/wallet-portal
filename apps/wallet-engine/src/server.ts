@@ -15,6 +15,7 @@ import { startColdTimelockBroadcastWorker } from './queue/workers/cold-timelock-
 import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
 import { startSweepExecuteWorker } from './queue/workers/sweep-execute-worker.js';
 import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
+import internalDerivePlugin from './routes/internal-derive.js';
 import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
 import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
 import {
@@ -106,6 +107,14 @@ async function start(): Promise<void> {
   fastify.get('/metrics', async (_req, reply) => {
     const body = await metricsRegistry.metrics();
     return reply.code(200).header('Content-Type', metricsRegistry.contentType).send(body);
+  });
+
+  // ── Internal HD derive route (bearer-protected, idempotent) ──────────────
+  await fastify.register(internalDerivePlugin, {
+    db,
+    bearerToken: cfg.SVC_BEARER_TOKEN,
+    hdMnemonicBnb: cfg.HD_MASTER_XPUB_BNB,
+    hdSeedSolana: cfg.HD_MASTER_SEED_SOLANA,
   });
 
   // ── HTTP instrumentation hooks ────────────────────────────────────────────

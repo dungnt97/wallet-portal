@@ -157,8 +157,8 @@ export async function cancelTx(
   const chainId = process.env.BNB_CHAIN_ID ?? '56';
   // Hot-safe address = destination of the 0-value cancel tx (self-send from hot-safe).
   // Fail-closed: if HOT_SAFE_ADDRESS_BNB is not configured, refuse to cancel.
-  const hotSafeAddress = process.env.HOT_SAFE_ADDRESS_BNB;
-  if (!hotSafeAddress) {
+  const hotSafeAddress = process.env.HOT_SAFE_ADDRESS_BNB?.trim();
+  if (!hotSafeAddress || hotSafeAddress === 'undefined') {
     throw new Error('HOT_SAFE_ADDRESS_NOT_CONFIGURED: set HOT_SAFE_ADDRESS_BNB env var');
   }
 

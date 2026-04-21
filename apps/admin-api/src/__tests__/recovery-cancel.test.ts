@@ -93,7 +93,8 @@ describe('cancelTx', () => {
   });
 
   afterEach(() => {
-    process.env.HOT_SAFE_ADDRESS_BNB = undefined;
+    // biome-ignore lint/performance/noDelete: env var cleanup requires delete; assigning undefined leaves the string "undefined"
+    delete process.env.HOT_SAFE_ADDRESS_BNB;
   });
 
   it('throws RecoveryDisabledError when RECOVERY_ENABLED=false', async () => {
@@ -197,7 +198,8 @@ describe('cancelTx', () => {
   });
 
   it('throws error when HOT_SAFE_ADDRESS_BNB not configured (fail-closed)', async () => {
-    process.env.HOT_SAFE_ADDRESS_BNB = undefined;
+    // biome-ignore lint/performance/noDelete: see afterEach — must use delete to properly unset env var
+    delete process.env.HOT_SAFE_ADDRESS_BNB;
     const db = makeMockDb();
     await expect(
       cancelTx(

@@ -1,11 +1,18 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-// Deposits routes — GET /deposits, GET /deposits/:id
+// Deposits routes — GET /deposits, GET /deposits/:id, GET /deposits/export.csv
 // Internal credit endpoint lives in internal.routes.ts (bearer auth, D4)
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
+import {
+  countDepositsForExport,
+  queryDepositsForExport,
+  streamDepositCsv,
+} from '../services/deposit-csv.service.js';
+
+const CSV_ROW_CAP = 50_000;
 
 // Wire-compatible shape for UI consumption
 const DepositShape = z.object({
@@ -77,6 +84,59 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
       }));
 
       return reply.code(200).send({ data, total, page, limit });
+    }
+  );
+
+  // GET /deposits/export.csv — streaming CSV with filters + 50k cap
+  // Must be registered BEFORE /deposits/:id to avoid route conflict
+  r.get(
+    '/deposits/export.csv',
+    {
+      preHandler: requirePerm('deposits.read'),
+      schema: {
+        tags: ['deposits'],
+        querystring: z.object({
+          chain: z.enum(['bnb', 'sol']).optional(),
+          userId: z.string().uuid().optional(),
+          status: z.enum(['pending', 'credited', 'swept', 'failed', 'reorg_pending']).optional(),
+          from: z.string().datetime().optional(),
+          to: z.string().datetime().optional(),
+        }),
+      },
+    },
+    async (req, reply) => {
+      const { chain, userId, status, from, to } = req.query;
+      const filterParams = {
+        ...(chain !== undefined && { chain }),
+        ...(userId !== undefined && { userId }),
+        ...(status !== undefined && { status }),
+        ...(from !== undefined && { from }),
+        ...(to !== undefined && { to }),
+      };
+
+      const rowCount = await countDepositsForExport(app.db, filterParams);
+      if (rowCount > CSV_ROW_CAP) {
+        return reply
+          .code(429)
+          .header('Retry-After', '0')
+          .header('Content-Type', 'application/json')
+          .send({ error: 'too_many_rows', max: CSV_ROW_CAP, found: rowCount });
+      }
+
+      const fromLabel = from ? from.slice(0, 10) : 'all';
+      const toLabel = to ? to.slice(0, 10) : 'now';
+      const filename = `deposits-${fromLabel}-to-${toLabel}.csv`;
+
+      reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="${filename}"`)
+        .header('Transfer-Encoding', 'chunked');
+
+      const rows = await queryDepositsForExport(app.db, filterParams);
+      streamDepositCsv(rows, (chunk) => {
+        reply.raw.write(chunk);
+      });
+      reply.raw.end();
     }
   );
 

@@ -7,7 +7,7 @@ import { I } from '@/icons';
 import { ROLES } from '@/lib/constants';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { downloadCSV } from '../_shared/helpers';
+import { triggerCsvDownload } from '../_shared/csv-export-trigger';
 import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { SigningFlowHost, useSigningFlow } from '../signing';
 import { NewWithdrawalForm } from './new-withdrawal-form';
@@ -63,35 +63,11 @@ export function WithdrawalsPage() {
   };
 
   const doExport = () => {
-    downloadCSV(
-      'withdrawals.csv',
-      filtered.map((w) => [
-        w.id,
-        w.chain,
-        w.token,
-        w.amount,
-        w.destination,
-        w.requestedBy,
-        w.stage,
-        w.multisig.collected,
-        w.multisig.required,
-        w.createdAt,
-        w.txHash || '',
-      ]),
-      [
-        'id',
-        'chain',
-        'token',
-        'amount',
-        'destination',
-        'requester',
-        'stage',
-        'collected',
-        'required',
-        'created',
-        'hash',
-      ]
-    );
+    const params = new URLSearchParams();
+    if (tab === 'pending') params.set('status', 'pending');
+    else if (tab === 'completed') params.set('status', 'completed');
+    else if (tab === 'failed') params.set('status', 'failed');
+    triggerCsvDownload(`/api/withdrawals/export.csv?${params.toString()}`);
     toast(t('withdrawals.exportedRows', { n: filtered.length }), 'success');
   };
 

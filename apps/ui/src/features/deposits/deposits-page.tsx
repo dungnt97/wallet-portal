@@ -6,8 +6,8 @@ import { CHAINS } from '@/lib/constants';
 // hook (falls back to fixtures when API empty). Keeps socket listener.
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { triggerCsvDownload } from '../_shared/csv-export-trigger';
 import { FIX_DEPOSITS, type FixDeposit } from '../_shared/fixtures';
-import { downloadCSV } from '../_shared/helpers';
 import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
 import { DepositsKpiStrip } from './deposits-kpi-strip';
 import { DepositsPolicyStrip } from './deposits-policy-strip';
@@ -97,21 +97,11 @@ export function DepositsPage() {
   };
 
   const doExport = () => {
-    downloadCSV(
-      'deposits.csv',
-      filtered.map((d) => [
-        d.id,
-        d.userName,
-        d.chain,
-        d.token,
-        d.amount,
-        d.address,
-        d.txHash,
-        d.status,
-        d.detectedAt,
-      ]),
-      ['id', 'user', 'chain', 'token', 'amount', 'address', 'hash', 'status', 'detected']
-    );
+    const params = new URLSearchParams();
+    if (tab !== 'all') params.set('status', tab);
+    if (chainFilter) params.set('chain', chainFilter);
+    if (tokenFilter) params.set('token', tokenFilter);
+    triggerCsvDownload(`/api/deposits/export.csv?${params.toString()}`);
     toast(t('deposits.exportedRows', { n: filtered.length }), 'success');
   };
 

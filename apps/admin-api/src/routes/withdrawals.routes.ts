@@ -1,12 +1,19 @@
 import { Withdrawal } from '@wp/shared-types';
 import { eq } from 'drizzle-orm';
-// Withdrawals routes — full CRUD + approve + execute (wired in Slice 1)
+// Withdrawals routes — full CRUD + approve + execute + CSV export
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
 import { notifyStaff } from '../services/notify-staff.service.js';
+import {
+  countWithdrawalsForExport,
+  queryWithdrawalsForExport,
+  streamWithdrawalCsv,
+} from '../services/withdrawal-csv.service.js';
+
+const CSV_ROW_CAP = 50_000;
 import {
   ConflictError as ApproveConflictError,
   NotFoundError as ApproveNotFoundError,
@@ -35,6 +42,71 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
     bearerToken: process.env.SVC_BEARER_TOKEN ?? '',
     timeoutMs: 2_000,
   });
+
+  // ── GET /withdrawals/export.csv — streaming CSV with filters + 50k cap ───────
+  // Must be registered BEFORE /withdrawals/:id to avoid route conflict
+  r.get(
+    '/withdrawals/export.csv',
+    {
+      preHandler: requirePerm('withdrawals.read'),
+      schema: {
+        tags: ['withdrawals'],
+        querystring: z.object({
+          chain: z.enum(['bnb', 'sol']).optional(),
+          tier: z.enum(['hot', 'cold']).optional(),
+          status: z
+            .enum([
+              'pending',
+              'approved',
+              'time_locked',
+              'executing',
+              'broadcast',
+              'cancelling',
+              'completed',
+              'cancelled',
+              'failed',
+            ])
+            .optional(),
+          from: z.string().datetime().optional(),
+          to: z.string().datetime().optional(),
+        }),
+      },
+    },
+    async (req, reply) => {
+      const { chain, tier, status, from, to } = req.query;
+      const filterParams = {
+        ...(chain !== undefined && { chain }),
+        ...(tier !== undefined && { tier }),
+        ...(status !== undefined && { status }),
+        ...(from !== undefined && { from }),
+        ...(to !== undefined && { to }),
+      };
+
+      const rowCount = await countWithdrawalsForExport(app.db, filterParams);
+      if (rowCount > CSV_ROW_CAP) {
+        return reply
+          .code(429)
+          .header('Retry-After', '0')
+          .header('Content-Type', 'application/json')
+          .send({ error: 'too_many_rows', max: CSV_ROW_CAP, found: rowCount });
+      }
+
+      const fromLabel = from ? from.slice(0, 10) : 'all';
+      const toLabel = to ? to.slice(0, 10) : 'now';
+      const filename = `withdrawals-${fromLabel}-to-${toLabel}.csv`;
+
+      reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="${filename}"`)
+        .header('Transfer-Encoding', 'chunked');
+
+      const rows = await queryWithdrawalsForExport(app.db, filterParams);
+      streamWithdrawalCsv(rows, (chunk) => {
+        reply.raw.write(chunk);
+      });
+      reply.raw.end();
+    }
+  );
 
   // ── GET /withdrawals ──────────────────────────────────────────────────────────
   r.get(

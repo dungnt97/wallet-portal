@@ -1,7 +1,7 @@
 // Port of ~/Documents/portal/src/page_dashboard.jsx (sub-sections) — visual fidelity verified 2026-04-20.
 // Dashboard panel components — System status / Gas wallets / SLA / Compliance / Alerts.
 // Split from dashboard-page.tsx to keep each file under 200 LOC.
-import { type OpsHealth, useOpsHealth } from '@/api/queries';
+import { type OpsHealth, useComplianceSummary, useOpsHealth, useSlaSummary } from '@/api/queries';
 import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
 import type { NotificationPayload } from '@wp/shared-types';
@@ -182,33 +182,127 @@ function SLACell({ label, target, actual, pct, ok = true }: SLAProps) {
   );
 }
 
-// SLA targets are contractual/operational targets — not derived from real-time data.
-// Real SLA tracking would require a dedicated time-series endpoint (not in scope).
+/** Format seconds into human-readable string, e.g. 75 → "1m 15s" */
+function fmtSec(sec: number | null): string {
+  if (sec === null) return '—';
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+/** Compute compliance % bar: actual/target capped 0-100 */
+function slaBarPct(actualSec: number | null, targetSec: number): number {
+  if (actualSec === null) return 0;
+  // For latency metrics: lower is better; bar shows proximity to target
+  const ratio = Math.min(actualSec / targetSec, 1);
+  return Math.round((1 - ratio) * 100);
+}
+
 export function SLAGrid() {
+  const { data: sla, isLoading } = useSlaSummary();
+
+  if (isLoading) {
+    return (
+      <div className="sla-grid">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="sla-cell skeleton-row" />
+        ))}
+      </div>
+    );
+  }
+
+  const depositSec = sla?.depositCreditP50Sec ?? null;
+  const sweepSec = sla?.sweepConfirmP50Sec ?? null;
+
   return (
     <div className="sla-grid">
-      <SLACell label="Deposit credit time" target="< 60s" actual="38s" pct={92} />
-      <SLACell label="Sweep latency" target="< 5m" actual="3m 12s" pct={88} />
-      <SLACell label="Withdrawal TAT" target="< 2h" actual="1h 04m" pct={96} />
-      <SLACell label="RPC uptime" target="99.9%" actual="99.97%" pct={99} />
-      <SLACell label="Reconciliation" target="100%" actual="100%" pct={100} />
-      <SLACell label="Job retries" target="< 2%" actual="0.8%" pct={94} />
+      <SLACell
+        label="Deposit credit (p50)"
+        target="< 60s"
+        actual={fmtSec(depositSec)}
+        pct={slaBarPct(depositSec, 60)}
+        ok={depositSec === null || depositSec < 60}
+      />
+      <SLACell
+        label="Sweep confirm (p50)"
+        target="< 5m"
+        actual={fmtSec(sweepSec)}
+        pct={slaBarPct(sweepSec, 300)}
+        ok={sweepSec === null || sweepSec < 300}
+      />
+      <SLACell
+        label="Pending deposits"
+        target="< 50"
+        actual={String(sla?.pendingDeposits ?? '—')}
+        pct={Math.min(100, Math.round(((sla?.pendingDeposits ?? 0) / 50) * 100))}
+        ok={(sla?.pendingDeposits ?? 0) < 50}
+      />
+      <SLACell
+        label="Pending sweeps"
+        target="< 20"
+        actual={String(sla?.pendingSweeps ?? '—')}
+        pct={Math.min(100, Math.round(((sla?.pendingSweeps ?? 0) / 20) * 100))}
+        ok={(sla?.pendingSweeps ?? 0) < 20}
+      />
+      <SLACell
+        label="24h deposits"
+        target="real-time"
+        actual={String(sla?.depositsLast24h ?? '—')}
+        pct={100}
+      />
     </div>
   );
 }
 
-// Compliance checks are currently policy-only (AML, sanctions) — no live API endpoint
-// provides these aggregates. Retains static display until a /compliance/summary
-// endpoint is implemented.
 export function ComplianceList() {
-  const rows: { label: string; value: string; meta: string; variant: 'ok' | 'warn' }[] = [
-    { label: 'AML screening', value: '0 hits', meta: '240 addrs scanned · last 6m', variant: 'ok' },
-    { label: 'Sanctions', value: 'Clear', meta: 'updated 2h ago', variant: 'ok' },
-    { label: 'Travel rule', value: 'N/A', meta: 'all transfers < $3k threshold', variant: 'ok' },
-    { label: 'Chainalysis risk', value: 'Low', meta: 'weighted avg · 240 addrs', variant: 'ok' },
-    { label: 'Suspicious', value: '1 flag', meta: 'usr_1m5 · under review', variant: 'warn' },
-    { label: 'KYC expiring', value: '3 users', meta: 'auto-renewal notices sent', variant: 'warn' },
-  ];
+  const { data: comp, isLoading } = useComplianceSummary();
+
+  if (isLoading) {
+    return (
+      <div className="compliance-list">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="compliance-row skeleton-row" />
+        ))}
+      </div>
+    );
+  }
+
+  const rows: { label: string; value: string; meta: string; variant: 'ok' | 'warn' }[] = comp
+    ? [
+        {
+          label: 'KYC None',
+          value: String(comp.kycNone),
+          meta: `of ${comp.totalUsers} total users`,
+          variant: comp.kycNone > comp.totalUsers * 0.3 ? 'warn' : 'ok',
+        },
+        {
+          label: 'KYC Basic (T1)',
+          value: String(comp.kycBasic),
+          meta: `${comp.totalUsers > 0 ? Math.round((comp.kycBasic / comp.totalUsers) * 100) : 0}% of users`,
+          variant: 'ok',
+        },
+        {
+          label: 'KYC Enhanced (T3)',
+          value: String(comp.kycEnhanced),
+          meta: `${comp.totalUsers > 0 ? Math.round((comp.kycEnhanced / comp.totalUsers) * 100) : 0}% of users`,
+          variant: 'ok',
+        },
+        {
+          label: 'Risk: High / Frozen',
+          value: `${comp.riskHigh + comp.riskFrozen}`,
+          meta: `high: ${comp.riskHigh} · frozen: ${comp.riskFrozen}`,
+          variant: comp.riskHigh + comp.riskFrozen > 0 ? 'warn' : 'ok',
+        },
+        {
+          label: 'Suspended users',
+          value: String(comp.suspendedUsers),
+          meta: `active: ${comp.activeUsers}`,
+          variant: comp.suspendedUsers > 0 ? 'warn' : 'ok',
+        },
+      ]
+    : [];
+
   return (
     <div className="compliance-list">
       {rows.map((c, i) => (

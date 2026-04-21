@@ -474,6 +474,12 @@ export interface TransactionsParams {
   type?: TxType;
   chain?: 'bnb' | 'sol';
   status?: TxStatus;
+  /** Filter by token / asset */
+  token?: 'USDT' | 'USDC';
+  /** ISO datetime — only transactions on or after this date */
+  dateFrom?: string;
+  /** ISO datetime — only transactions on or before this date */
+  dateTo?: string;
 }
 
 /** GET /transactions — unified ledger (deposits + withdrawals + sweeps) */
@@ -484,6 +490,9 @@ export function useTransactions(params: TransactionsParams = {}) {
   if (params.type) qs.set('type', params.type);
   if (params.chain) qs.set('chain', params.chain);
   if (params.status) qs.set('status', params.status);
+  if (params.token) qs.set('token', params.token);
+  if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+  if (params.dateTo) qs.set('dateTo', params.dateTo);
   const q = qs.toString();
   return useQuery({
     queryKey: queryKeys.transactions(params as Record<string, unknown>),
@@ -857,6 +866,81 @@ export function useWallets(
       api
         .get<WalletsPage>(`/wallets${q ? `?${q}` : ''}`)
         .catch(() => ({ data: [] as WalletRow[], total: 0, page: 1 })),
+    staleTime: 60_000,
+  });
+}
+
+// ---- Ops SLA summary ----
+
+export interface SlaSummary {
+  depositCreditP50Sec: number | null;
+  sweepConfirmP50Sec: number | null;
+  depositsLast24h: number;
+  sweepsLast24h: number;
+  withdrawalsLast24h: number;
+  pendingDeposits: number;
+  pendingSweeps: number;
+  pendingWithdrawals: number;
+}
+
+/** GET /ops/sla-summary — latency aggregates + queue depths from DB */
+export function useSlaSummary() {
+  return useQuery({
+    queryKey: ['ops', 'sla-summary'] as const,
+    queryFn: () => api.get<SlaSummary>('/ops/sla-summary').catch(() => null),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+}
+
+// ---- Ops compliance summary ----
+
+export interface ComplianceSummary {
+  kycNone: number;
+  kycBasic: number;
+  kycEnhanced: number;
+  riskLow: number;
+  riskMedium: number;
+  riskHigh: number;
+  riskFrozen: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  totalUsers: number;
+}
+
+/** GET /ops/compliance-summary — KYC + risk tier distribution from users table */
+export function useComplianceSummary() {
+  return useQuery({
+    queryKey: ['ops', 'compliance-summary'] as const,
+    queryFn: () => api.get<ComplianceSummary>('/ops/compliance-summary').catch(() => null),
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+  });
+}
+
+// ---- Signers stats ----
+
+export interface SignerStatRow {
+  staffId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastActiveAt: string | null;
+  sigCount30d: number;
+  oldestKeyAgeDays: number | null;
+  evmAddr: string | null;
+  solAddr: string | null;
+}
+
+/** GET /signers/stats — enriched signer stats (last active, sig counts, key age) */
+export function useSignersStats() {
+  return useQuery({
+    queryKey: ['signers', 'stats'] as const,
+    queryFn: () =>
+      api
+        .get<{ data: SignerStatRow[] }>('/signers/stats')
+        .catch(() => ({ data: [] as SignerStatRow[] })),
     staleTime: 60_000,
   });
 }

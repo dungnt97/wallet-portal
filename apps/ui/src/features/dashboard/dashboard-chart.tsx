@@ -7,6 +7,26 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 import { useMemo, useState } from 'react';
 import { AreaChart, Sparkline, makeSeries } from '../_shared/charts';
 
+/** Build x-axis date labels for the given range, ending with "Today" */
+function buildAxisLabels(range: '24h' | '7d' | '30d' | '90d'): string[] {
+  const days = range === '24h' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
+  const labels: string[] = [];
+  const now = new Date();
+  // Pick a reasonable number of visible tick points (max 7)
+  const ticks = Math.min(days, 7);
+  const step = days / (ticks - 1);
+  for (let i = 0; i < ticks - 1; i++) {
+    const d = new Date(now.getTime() - (days - i * step) * 24 * 60 * 60 * 1000);
+    if (range === '24h') {
+      labels.push(d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }));
+    } else {
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+  }
+  labels.push('Today');
+  return labels;
+}
+
 type Range = '24h' | '7d' | '30d' | '90d';
 type Metric = 'aum' | 'deposits' | 'withdrawals';
 
@@ -23,24 +43,31 @@ export function DashboardChart() {
   const pendingDepositsValue = Number(metrics?.pendingDepositsValue ?? 0);
   const pendingWithdrawals = metrics?.pendingWithdrawals ?? 0;
 
-  // Cosmetic trend series — scaled to real totals so proportions are meaningful
+  // Cosmetic trend series — scaled to real totals so proportions are meaningful.
+  // Point count varies by range so axis ticks align.
+  const pointCount = range === '24h' ? 24 : range === '7d' ? 42 : range === '30d' ? 60 : 90;
   const aumSeries = useMemo(
-    () => makeSeries(42, 60, 0.12, 0.035).map((v) => v * Math.max(total, 1) * 0.92),
-    [total]
+    () => makeSeries(42, pointCount, 0.12, 0.035).map((v) => v * Math.max(total, 1) * 0.92),
+    [total, pointCount]
   );
   const depSeries = useMemo(
-    () => makeSeries(101, 48, 0.04, 0.1).map((v) => v * Math.max(pendingDepositsValue, 80_000)),
-    [pendingDepositsValue]
+    () =>
+      makeSeries(101, pointCount, 0.04, 0.1).map((v) => v * Math.max(pendingDepositsValue, 80_000)),
+    [pendingDepositsValue, pointCount]
   );
   const wdSeries = useMemo(
     () =>
-      makeSeries(207, 48, 0.02, 0.09).map((v) => v * Math.max(pendingWithdrawals * 5000, 50_000)),
-    [pendingWithdrawals]
+      makeSeries(207, pointCount, 0.02, 0.09).map(
+        (v) => v * Math.max(pendingWithdrawals * 5000, 50_000)
+      ),
+    [pendingWithdrawals, pointCount]
   );
 
   const series = metric === 'aum' ? aumSeries : metric === 'deposits' ? depSeries : wdSeries;
   const stroke =
     metric === 'aum' ? 'var(--accent)' : metric === 'deposits' ? 'var(--ok)' : 'var(--info)';
+
+  const axisLabels = useMemo(() => buildAxisLabels(range), [range]);
 
   const tabs = [
     {
@@ -97,13 +124,9 @@ export function DashboardChart() {
       <div className="pro-card-body">
         <AreaChart data={series} height={180} stroke={stroke} label={metric} />
         <div className="chart-axis">
-          <span>Apr 15</span>
-          <span>Apr 16</span>
-          <span>Apr 17</span>
-          <span>Apr 18</span>
-          <span>Apr 19</span>
-          <span>Apr 20</span>
-          <span>Today</span>
+          {axisLabels.map((lbl) => (
+            <span key={lbl}>{lbl}</span>
+          ))}
         </div>
       </div>
     </div>

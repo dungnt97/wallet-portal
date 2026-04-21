@@ -10,7 +10,13 @@ const WALLET_FIXTURES = [
     purpose: 'operational' as const,
     multisigAddr: '0xHOT0SAFE00000000000000000000000000000001',
     derivationPath: null,
-    policyConfig: { dailyLimitUsd: 1_000_000, timeLockSeconds: 0 },
+    // bandFloorUsd / bandCeilingUsd define the target range for hot-wallet balance rebalance logic
+    policyConfig: {
+      dailyLimitUsd: 1_000_000,
+      timeLockSeconds: 0,
+      bandFloorUsd: 400_000,
+      bandCeilingUsd: 750_000,
+    },
   },
   {
     chain: 'bnb' as const,
@@ -19,7 +25,14 @@ const WALLET_FIXTURES = [
     purpose: 'cold_reserve' as const,
     multisigAddr: '0xCOLD0SAFE0000000000000000000000000000002',
     derivationPath: null,
-    policyConfig: { dailyLimitUsd: 5_000_000, timeLockSeconds: 172800, hwRequired: true },
+    policyConfig: {
+      dailyLimitUsd: 5_000_000,
+      timeLockSeconds: 172800,
+      hwRequired: true,
+      multisigType: 'gnosis_safe',
+      signerLabel: 'Gnosis Safe · 3/5 signers',
+      geographicLabel: 'HSM · Zürich vault',
+    },
   },
   {
     chain: 'sol' as const,
@@ -28,7 +41,13 @@ const WALLET_FIXTURES = [
     purpose: 'operational' as const,
     multisigAddr: 'HotSquadsAddressAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     derivationPath: null,
-    policyConfig: { dailyLimitUsd: 1_000_000, timeLockSeconds: 0 },
+    // bandFloorUsd / bandCeilingUsd define the target range for hot-wallet balance rebalance logic
+    policyConfig: {
+      dailyLimitUsd: 1_000_000,
+      timeLockSeconds: 0,
+      bandFloorUsd: 200_000,
+      bandCeilingUsd: 500_000,
+    },
   },
   {
     chain: 'sol' as const,
@@ -37,7 +56,14 @@ const WALLET_FIXTURES = [
     purpose: 'cold_reserve' as const,
     multisigAddr: 'ColdSquadsAddressBBBBBBBBBBBBBBBBBBBBBBBBBBB',
     derivationPath: null,
-    policyConfig: { dailyLimitUsd: 5_000_000, timeLockSeconds: 172800, hwRequired: true },
+    policyConfig: {
+      dailyLimitUsd: 5_000_000,
+      timeLockSeconds: 172800,
+      hwRequired: true,
+      multisigType: 'squads',
+      signerLabel: 'Squads · 3/5 signers',
+      geographicLabel: 'HSM · Singapore vault',
+    },
   },
 ] as const;
 

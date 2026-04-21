@@ -48,7 +48,10 @@
     "clearSelection": "Bỏ chọn",
     "copyFailed": "Sao chép thất bại",
     "done": "Xong",
-    "timeLockActive": "Khoá thời gian đang hoạt động"
+    "timeLockActive": "Khoá thời gian đang hoạt động",
+    "today": "Hôm nay",
+    "last7d": "7 ngày qua",
+    "last30d": "30 ngày qua"
   },
   "sidebar": {
     "brandName": "Wallet Portal",
@@ -509,6 +512,7 @@
     "tierStandard": "Chuẩn",
     "tierFast": "Nhanh",
     "tierPriority": "Ưu tiên",
+    "loadingCandidates": "Đang tải danh sách địa chỉ…",
     "broadcast": {
       "started": "Đang phát giao dịch sweep…",
       "toast": "Sweep {{id}} đã phát lên mạng"

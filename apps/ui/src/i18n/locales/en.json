@@ -48,7 +48,10 @@
     "clearSelection": "Clear selection",
     "copyFailed": "Copy failed",
     "done": "Done",
-    "timeLockActive": "Time-lock active"
+    "timeLockActive": "Time-lock active",
+    "today": "Today",
+    "last7d": "Last 7d",
+    "last30d": "Last 30d"
   },
   "sidebar": {
     "brandName": "Wallet Portal",
@@ -509,6 +512,7 @@
     "tierStandard": "Standard",
     "tierFast": "Fast",
     "tierPriority": "Priority",
+    "loadingCandidates": "Loading candidates…",
     "broadcast": {
       "started": "Sweep started — broadcasting transaction…",
       "toast": "Sweep {{id}} broadcast to network"

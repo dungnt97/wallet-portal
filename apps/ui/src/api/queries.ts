@@ -426,6 +426,8 @@ export interface StaffMemberRow {
   status: 'active' | 'suspended';
   /** Initials derived client-side */
   initials: string;
+  /** ISO-8601 timestamp of last successful login — from staffMembers.lastLoginAt */
+  lastLoginAt: string | null;
 }
 
 export interface StaffListPage {
@@ -975,5 +977,55 @@ export function useSignersStats() {
         .get<{ data: SignerStatRow[] }>('/signers/stats')
         .catch(() => ({ data: [] as SignerStatRow[] })),
     staleTime: 60_000,
+  });
+}
+
+// ---- Multisig sync status ----
+
+export type MultisigChainSyncStatus = 'synced' | 'stale' | 'error';
+
+export interface MultisigChainSync {
+  status: MultisigChainSyncStatus;
+  lastSyncAt: string; // ISO-8601
+  nonce?: number; // BNB only
+}
+
+export interface MultisigSyncStatus {
+  bnb: MultisigChainSync;
+  sol: MultisigChainSync;
+}
+
+/** Fallback when wallet-engine is unreachable */
+function syncStatusFallback(): MultisigSyncStatus {
+  const lastSyncAt = new Date().toISOString();
+  return {
+    bnb: { status: 'error', lastSyncAt },
+    sol: { status: 'error', lastSyncAt },
+  };
+}
+
+/** GET /multisig/sync-status — real Safe nonce + Squads PDA reachability (60s cache) */
+export function useMultisigSyncStatus() {
+  return useQuery({
+    queryKey: ['multisig', 'sync-status'] as const,
+    queryFn: () =>
+      api.get<MultisigSyncStatus>('/multisig/sync-status').catch(() => syncStatusFallback()),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
+/** POST /multisig/sync-refresh — bust wallet-engine cache + re-probe both chains */
+export function useRefreshMultisigSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<MultisigSyncStatus>('/multisig/sync-refresh').catch(() => syncStatusFallback()),
+    onSuccess: (data) => {
+      // Update the sync-status cache immediately with fresh probe result
+      qc.setQueryData(['multisig', 'sync-status'], data);
+      // Also invalidate multisig ops list so nonce/state refreshes
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
+    },
   });
 }

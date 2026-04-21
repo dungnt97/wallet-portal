@@ -5,6 +5,26 @@ import { ChainPill } from '@/components/custody';
 import { fmtCompact, shortHash } from '@/lib/format';
 import { LiveDot } from '../_shared/realtime';
 
+// ── Presence helpers ──────────────────────────────────────────────────────────
+
+type PresenceStatus = 'online' | 'away' | 'offline';
+
+/** Derive presence from lastLoginAt timestamp.
+ *  online: < 5 min, away: < 30 min, offline: otherwise or null */
+function getPresence(lastLoginAt: string | null): PresenceStatus {
+  if (!lastLoginAt) return 'offline';
+  const ageMs = Date.now() - new Date(lastLoginAt).getTime();
+  if (ageMs < 5 * 60 * 1000) return 'online';
+  if (ageMs < 30 * 60 * 1000) return 'away';
+  return 'offline';
+}
+
+function presenceToDotVariant(p: PresenceStatus): 'ok' | 'warn' | 'err' | undefined {
+  if (p === 'online') return 'ok';
+  if (p === 'away') return 'warn';
+  return undefined; // muted / default grey
+}
+
 interface VaultCardProps {
   chain: 'bnb' | 'sol';
   name: string;
@@ -141,7 +161,15 @@ export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeam
               <div className="fw-500 text-sm truncate">{t.name}</div>
               <div className="text-xs text-muted truncate text-mono">{t.email}</div>
               <div className="text-xs text-faint" style={{ marginTop: 2 }}>
-                <LiveDot variant="ok" /> online
+                {(() => {
+                  const presence = getPresence(t.lastLoginAt ?? null);
+                  return (
+                    <>
+                      <LiveDot variant={presenceToDotVariant(presence)} />
+                      {presence}
+                    </>
+                  );
+                })()}
               </div>
             </div>
             <span className="role-pill role-treasurer">Treasurer</span>

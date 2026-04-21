@@ -9,9 +9,19 @@ interface Props {
   failedCount: number;
   /** Active treasurer count from real /staff API — defaults to '…' while loading */
   treasurerCount: number | null;
+  /**
+   * Count of treasurers with lastLoginAt < 5 min ago.
+   * null = loading; undefined = not provided (shows '…' in badge).
+   */
+  onlineTreasurerCount: number | null;
 }
 
-export function MultisigKpiStrip({ ops, failedCount, treasurerCount }: Props) {
+export function MultisigKpiStrip({
+  ops,
+  failedCount,
+  treasurerCount,
+  onlineTreasurerCount,
+}: Props) {
   const collecting = ops.filter((o) => o.status === 'collecting');
   const ready = ops.filter((o) => o.status === 'ready');
 
@@ -69,10 +79,16 @@ export function MultisigKpiStrip({ ops, failedCount, treasurerCount }: Props) {
           value: treasurerCount ?? '…',
           foot: (
             <>
-              <span className="text-xs text-muted">all active</span>
-              <span className="badge-tight ok">
+              <span className="text-xs text-muted">
+                {onlineTreasurerCount === null ? '…' : `${onlineTreasurerCount} online`}
+              </span>
+              <span
+                className={`badge-tight ${
+                  onlineTreasurerCount === null ? 'muted' : onlineTreasurerCount > 0 ? 'ok' : 'warn'
+                }`}
+              >
                 <span className="dot" />
-                online
+                {onlineTreasurerCount === null ? '…' : onlineTreasurerCount > 0 ? 'active' : 'idle'}
               </span>
             </>
           ),

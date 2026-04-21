@@ -6,6 +6,8 @@ import {
   useColdBalances,
   useExecuteMultisigOp,
   useMultisigOps,
+  useMultisigSyncStatus,
+  useRefreshMultisigSync,
   useRejectMultisigOp,
   useStaffList,
   useWallets,
@@ -68,12 +70,13 @@ export function MultisigPage() {
   useWithdrawalsSocketListener();
 
   const [tab, setTab] = useState<Tab>('pending');
-  const [syncing, setSyncing] = useState(false);
   const [selected, setSelected] = useState<MultisigOpDisplay | null>(null);
   const [overrides, setOverrides] = useState<Record<string, MultisigOpDisplay>>({});
 
   // Real data
   const { data: opsPage } = useMultisigOps({ limit: 50 });
+  const { data: syncStatus } = useMultisigSyncStatus();
+  const refreshSync = useRefreshMultisigSync();
   const { data: staffPage } = useStaffList({ limit: 100 });
   const { data: coldBalances } = useColdBalances();
   // Vault addresses from wallet registry (operational wallets per chain)
@@ -107,6 +110,16 @@ export function MultisigPage() {
     [staffPage]
   );
 
+  /** Count of treasurers with lastLoginAt < 5 min ago (online presence) */
+  const onlineTreasurerCount = useMemo<number | null>(() => {
+    if (!staffPage) return null;
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    return treasurers.filter((t) => {
+      if (!t.lastLoginAt) return false;
+      return new Date(t.lastLoginAt).getTime() > fiveMinAgo;
+    }).length;
+  }, [staffPage, treasurers]);
+
   const bnbBalance = useMemo(() => {
     if (!coldBalances) return 0;
     return coldBalances
@@ -131,14 +144,16 @@ export function MultisigPage() {
   const list = tab === 'pending' ? pending : failed;
 
   const doSync = () => {
-    setSyncing(true);
-    void Promise.all([
-      qc.invalidateQueries({ queryKey: ['multisig'] }),
-      qc.invalidateQueries({ queryKey: ['cold'] }),
-      qc.invalidateQueries({ queryKey: ['wallets'] }),
-    ]).then(() => {
-      setSyncing(false);
-      toast(t('multisig.synced', 'Cache refreshed from local DB.'), 'success');
+    refreshSync.mutate(undefined, {
+      onSuccess: () => {
+        // Invalidate cold + wallets after sync-refresh so balances re-fetch too
+        void qc.invalidateQueries({ queryKey: ['cold'] });
+        void qc.invalidateQueries({ queryKey: ['wallets'] });
+        toast(t('multisig.synced', 'RPC re-probed — sync status updated.'), 'success');
+      },
+      onError: () => {
+        toast(t('multisig.syncFailed', 'Sync probe failed — check RPC connectivity.'), 'error');
+      },
     });
   };
 
@@ -230,15 +245,36 @@ export function MultisigPage() {
           <div className="policy-strip-item">
             <I.Database size={11} />
             <span className="text-muted">BSC Safe:</span>
-            <LiveDot />
-            <span className="fw-600">synced</span>
+            <LiveDot
+              variant={
+                syncStatus?.bnb.status === 'synced'
+                  ? 'ok'
+                  : syncStatus?.bnb.status === 'stale'
+                    ? 'warn'
+                    : 'err'
+              }
+            />
+            <span className="fw-600">
+              {syncStatus?.bnb.status ?? '…'}
+              {syncStatus?.bnb.nonce !== undefined && (
+                <span className="text-faint text-xs"> #{syncStatus.bnb.nonce}</span>
+              )}
+            </span>
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Database size={11} />
             <span className="text-muted">SOL Squads:</span>
-            <LiveDot />
-            <span className="fw-600">synced</span>
+            <LiveDot
+              variant={
+                syncStatus?.sol.status === 'synced'
+                  ? 'ok'
+                  : syncStatus?.sol.status === 'stale'
+                    ? 'warn'
+                    : 'err'
+              }
+            />
+            <span className="fw-600">{syncStatus?.sol.status ?? '…'}</span>
           </div>
           <div className="spacer" />
           <BlockTicker chain="bnb" />
@@ -248,12 +284,34 @@ export function MultisigPage() {
       actions={
         <>
           <span className="meta-hint text-xs text-muted">
-            <LiveDot /> last sync <LiveTimeAgo at={new Date(Date.now() - 18000).toISOString()} />
+            <LiveDot
+              variant={
+                syncStatus?.bnb.status === 'synced' && syncStatus?.sol.status === 'synced'
+                  ? 'ok'
+                  : syncStatus?.bnb.status === 'error' || syncStatus?.sol.status === 'error'
+                    ? 'err'
+                    : 'warn'
+              }
+            />{' '}
+            last sync{' '}
+            {syncStatus ? (
+              <LiveTimeAgo
+                at={
+                  syncStatus.bnb.lastSyncAt < syncStatus.sol.lastSyncAt
+                    ? syncStatus.bnb.lastSyncAt
+                    : syncStatus.sol.lastSyncAt
+                }
+              />
+            ) : (
+              '…'
+            )}
           </span>
-          <button className="btn btn-secondary" onClick={doSync} disabled={syncing}>
+          <button className="btn btn-secondary" onClick={doSync} disabled={refreshSync.isPending}>
             <I.Refresh
               size={13}
-              style={syncing ? { animation: 'spin 700ms linear infinite' } : undefined}
+              style={
+                refreshSync.isPending ? { animation: 'spin 700ms linear infinite' } : undefined
+              }
             />
             {t('common.retry')}
           </button>
@@ -264,6 +322,7 @@ export function MultisigPage() {
           ops={ops}
           failedCount={failed.length}
           treasurerCount={staffPage ? treasurers.length : null}
+          onlineTreasurerCount={onlineTreasurerCount}
         />
       }
     >

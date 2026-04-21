@@ -11,6 +11,7 @@ import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
+import rebalanceRoutes from './rebalance.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
 import usersRoutes from './users.routes.js';
@@ -26,6 +27,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
 
   // Admin routes (session-protected via per-route preHandler)
   await app.register(coldRoutes);
+  await app.register(rebalanceRoutes);
   await app.register(dashboardRoutes);
   await app.register(depositsRoutes);
   await app.register(withdrawalsRoutes);

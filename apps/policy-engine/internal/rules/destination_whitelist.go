@@ -23,6 +23,26 @@ func (DestinationWhitelist) AppliesTo(req EvaluateRequest) bool {
 }
 
 func (DestinationWhitelist) Check(ctx context.Context, req EvaluateRequest, q db.Querier) (bool, string, error) {
+	// Hot-to-cold rebalance fast-path: destination must be a registered cold_reserve wallet
+	// scoped by (chain, address) with tier=cold AND purpose=cold_reserve.
+	// This bypasses the standard destination_whitelist check — the cold wallet registry
+	// is the authoritative allowlist for rebalance operations.
+	// Other rules (authorized_signer, daily_limit, kill_switch) still run independently.
+	if req.OperationType == "hot_to_cold" {
+		isCold, err := q.IsColdReserveWallet(ctx, db.IsColdReserveWalletParams{
+			Column1: db.Chain(req.Chain),
+			Address: req.DestinationAddr,
+		})
+		if err != nil {
+			return false, "failed to verify cold reserve wallet: " + err.Error(), nil
+		}
+		if isCold {
+			return true, "", nil
+		}
+		redacted := safePrefix(req.DestinationAddr, 6) + "..." + safeSuffix(req.DestinationAddr, 4)
+		return false, "rebalance destination is not a registered cold_reserve wallet: " + redacted, nil
+	}
+
 	// Sweep fast-path: destination is a registered operational/cold_reserve wallet → allow.
 	// This covers the hot_safe sweep target without requiring whitelist seeding.
 	if req.OperationType == "sweep" {

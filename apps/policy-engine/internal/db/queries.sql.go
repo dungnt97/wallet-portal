@@ -213,3 +213,27 @@ func (q *Queries) GetKillSwitchEnabled(ctx context.Context) (bool, error) {
 	}
 	return enabled, nil
 }
+
+const isColdReserveWallet = `-- name: IsColdReserveWallet :one
+SELECT EXISTS(
+    SELECT 1 FROM wallets
+    WHERE chain = $1::chain
+      AND address = $2
+      AND tier = 'cold'
+      AND purpose = 'cold_reserve'
+) AS is_cold_reserve
+`
+
+type IsColdReserveWalletParams struct {
+	Column1 Chain  `json:"column_1"`
+	Address string `json:"address"`
+}
+
+// Rebalance fast-path: true when destination is a registered cold_reserve wallet on the
+// given chain with tier=cold. Scoped by (chain, address) to prevent cross-chain matching.
+func (q *Queries) IsColdReserveWallet(ctx context.Context, arg IsColdReserveWalletParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isColdReserveWallet, arg.Column1, arg.Address)
+	var isColdReserve bool
+	err := row.Scan(&isColdReserve)
+	return isColdReserve, err
+}

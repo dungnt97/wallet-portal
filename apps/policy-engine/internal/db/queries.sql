@@ -55,3 +55,18 @@ SELECT EXISTS(
       AND address = $2
       AND purpose IN ('operational', 'cold_reserve')
 ) AS is_operational;
+
+-- name: GetKillSwitchEnabled :one
+-- GetKillSwitchEnabled reads the enabled flag from the singleton kill-switch row.
+SELECT enabled FROM system_kill_switch WHERE id = 1;
+
+-- name: IsColdReserveWallet :one
+-- Rebalance fast-path: true when destination is a registered cold_reserve wallet on the
+-- given chain with tier=cold. Scoped by (chain, address) to prevent cross-chain matching.
+SELECT EXISTS(
+    SELECT 1 FROM wallets
+    WHERE chain = $1::chain
+      AND address = $2
+      AND tier = 'cold'
+      AND purpose = 'cold_reserve'
+) AS is_cold_reserve;

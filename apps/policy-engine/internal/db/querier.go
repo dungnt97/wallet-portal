@@ -22,4 +22,7 @@ type Querier interface {
 	IsOperationalWallet(ctx context.Context, arg IsOperationalWalletParams) (bool, error)
 	// GetKillSwitchEnabled: returns the current kill-switch enabled flag (singleton row id=1).
 	GetKillSwitchEnabled(ctx context.Context) (bool, error)
+	// IsColdReserveWallet: rebalance fast-path — allows destination when it is a registered
+	// cold_reserve wallet scoped by (chain, address) with tier=cold.
+	IsColdReserveWallet(ctx context.Context, arg IsColdReserveWalletParams) (bool, error)
 }

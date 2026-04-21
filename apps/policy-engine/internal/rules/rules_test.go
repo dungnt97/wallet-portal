@@ -37,6 +37,9 @@ type fakeQuerier struct {
 
 	killSwitchEnabled    bool
 	killSwitchEnabledErr error
+
+	isColdReserveWallet    bool
+	isColdReserveWalletErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -87,6 +90,10 @@ func (f *fakeQuerier) IsOperationalWallet(_ context.Context, _ db.IsOperationalW
 
 func (f *fakeQuerier) GetKillSwitchEnabled(_ context.Context) (bool, error) {
 	return f.killSwitchEnabled, f.killSwitchEnabledErr
+}
+
+func (f *fakeQuerier) IsColdReserveWallet(_ context.Context, _ db.IsColdReserveWalletParams) (bool, error) {
+	return f.isColdReserveWallet, f.isColdReserveWalletErr
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────
@@ -285,6 +292,57 @@ func TestDestinationWhitelist(t *testing.T) {
 			name:     "sweep — DB error checking operational wallet — fail closed",
 			req:      rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb", OperationType: "sweep"},
 			querier:  &fakeQuerier{isOperationalWalletErr: errors.New("db down")},
+			wantPass: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			pass, reason, _ := rule.Check(ctx, tc.req, tc.querier)
+			if pass != tc.wantPass {
+				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
+			}
+		})
+	}
+}
+
+// ── DestinationWhitelist hot_to_cold fast-path tests ─────────────────────────
+
+func TestDestinationWhitelist_HotToCold(t *testing.T) {
+	rule := rules.DestinationWhitelist{}
+	ctx := context.Background()
+
+	coldAddr := "0xCOLD0SAFE0000000000000000000000000000002"
+	unknownAddr := "0xunknown000000000000000000000000000000099"
+
+	tests := []struct {
+		name     string
+		req      rules.EvaluateRequest
+		querier  *fakeQuerier
+		wantPass bool
+	}{
+		{
+			name:     "hot_to_cold — destination is registered cold_reserve — allowed (whitelist bypassed)",
+			req:      rules.EvaluateRequest{OperationType: "hot_to_cold", DestinationAddr: coldAddr, Chain: "bnb"},
+			querier:  &fakeQuerier{isColdReserveWallet: true},
+			wantPass: true,
+		},
+		{
+			name:     "hot_to_cold — destination not a cold_reserve wallet — denied",
+			req:      rules.EvaluateRequest{OperationType: "hot_to_cold", DestinationAddr: unknownAddr, Chain: "bnb"},
+			querier:  &fakeQuerier{isColdReserveWallet: false},
+			wantPass: false,
+		},
+		{
+			name:     "hot_to_cold — DB error — fail closed",
+			req:      rules.EvaluateRequest{OperationType: "hot_to_cold", DestinationAddr: coldAddr, Chain: "bnb"},
+			querier:  &fakeQuerier{isColdReserveWalletErr: errors.New("db down")},
+			wantPass: false,
+		},
+		{
+			name:     "standard withdrawal — cold address NOT in whitelist — denied (no fast-path)",
+			req:      rules.EvaluateRequest{OperationType: "withdrawal", DestinationAddr: coldAddr, Chain: "bnb"},
+			querier:  &fakeQuerier{whitelistCount: 5, whitelisted: false},
 			wantPass: false,
 		},
 	}

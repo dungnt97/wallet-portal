@@ -16,6 +16,7 @@ import socketPlugin from './plugins/socket.plugin.js';
 import swaggerPlugin from './plugins/swagger.plugin.js';
 import telemetryPlugin from './plugins/telemetry.plugin.js';
 import routes from './routes/index.js';
+import { resumeInFlightCeremonies } from './services/ceremony-resume.service.js';
 import { startColdTimelockScheduler } from './services/cold-timelock-scheduler.js';
 import {
   DIGEST_JOB_NAME,
@@ -117,6 +118,16 @@ export async function buildApp(cfg: Config) {
       slackQueue: app.slackQueue,
     });
     app.addHook('onClose', async () => stopScheduler());
+
+    // Signer ceremony resume — re-enqueue orphaned in_progress ceremony jobs + alert on stale partials.
+    // Safe: idempotent by BullMQ jobId; runs asynchronously so boot is not blocked.
+    resumeInFlightCeremonies(
+      app.db,
+      app.ceremonyQueue,
+      app.io,
+      app.emailQueue,
+      app.slackQueue
+    ).catch((err: unknown) => app.log.error({ err }, 'Ceremony resume scan error'));
 
     // Build Redis connection opts from ioredis instance (BullMQ needs plain options)
     const redisOpts = {

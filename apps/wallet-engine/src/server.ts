@@ -2,50 +2,50 @@
 // OTel MUST be imported first — instruments pg, ioredis, HTTP before any other require
 import './telemetry/otel.js';
 import 'dotenv/config';
-import { initSentry } from './telemetry/sentry.js';
+import { trace } from '@opentelemetry/api';
 import Fastify from 'fastify';
 import pino from 'pino';
-import { trace } from '@opentelemetry/api';
-import {
-  registry as metricsRegistry,
-  httpRequestsTotal,
-  httpRequestDurationSeconds,
-} from './telemetry/metrics.js';
-import { loadConfig, bnbRpcUrls, solanaRpcUrls } from './config/env.js';
+import { bnbRpcUrls, loadConfig, solanaRpcUrls } from './config/env.js';
 import { makeDb } from './db/client.js';
-import { makeBnbPool, destroyBnbPool } from './rpc/bnb-pool.js';
-import { makeSolanaPool, solanaCall, destroySolanaPool } from './rpc/solana-pool.js';
-import { startBnbWatcher } from './watcher/bnb-watcher.js';
-import { startSolanaWatcher } from './watcher/solana-watcher.js';
-import { startAddressRegistry } from './watcher/address-registry.js';
-import { detectBnbDeposits } from './watcher/deposit-detector.js';
-import { getRedisConnection, closeRedisConnection } from './queue/connection.js';
+import { closeRedisConnection, getRedisConnection } from './queue/connection.js';
 import { makeDepositConfirmQueue } from './queue/deposit-confirm.js';
+import { makeWithdrawalExecuteQueue } from './queue/withdrawal-execute.js';
 import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
+import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
+import { destroyBnbPool, makeBnbPool } from './rpc/bnb-pool.js';
+import { destroySolanaPool, makeSolanaPool, solanaCall } from './rpc/solana-pool.js';
+import {
+  httpRequestDurationSeconds,
+  httpRequestsTotal,
+  registry as metricsRegistry,
+} from './telemetry/metrics.js';
+import { initSentry } from './telemetry/sentry.js';
+import { startAddressRegistry } from './watcher/address-registry.js';
+import { startBnbWatcher } from './watcher/bnb-watcher.js';
+import { detectBnbDeposits } from './watcher/deposit-detector.js';
+import { startSolanaWatcher } from './watcher/solana-watcher.js';
 
 // Pino logger with OTel trace context injection
 function makeLogger(level: string) {
   const isDev = (process.env.NODE_ENV ?? 'development') !== 'production';
-  return pino(
-    {
-      name: 'wallet-engine',
-      level,
-      // Inject active OTel span IDs into every log record
-      formatters: {
-        log(obj: Record<string, unknown>) {
-          const span = trace.getActiveSpan();
-          if (span) {
-            const ctx = span.spanContext();
-            return { ...obj, trace_id: ctx.traceId, span_id: ctx.spanId };
-          }
-          return obj;
-        },
+  return pino({
+    name: 'wallet-engine',
+    level,
+    // Inject active OTel span IDs into every log record
+    formatters: {
+      log(obj: Record<string, unknown>) {
+        const span = trace.getActiveSpan();
+        if (span) {
+          const ctx = span.spanContext();
+          return { ...obj, trace_id: ctx.traceId, span_id: ctx.spanId };
+        }
+        return obj;
       },
-      ...(isDev && {
-        transport: { target: 'pino-pretty', options: { colorize: true } },
-      }),
     },
-  );
+    ...(isDev && {
+      transport: { target: 'pino-pretty', options: { colorize: true } },
+    }),
+  });
 }
 
 async function start(): Promise<void> {
@@ -68,6 +68,7 @@ async function start(): Promise<void> {
   const db = makeDb(cfg.DATABASE_URL);
   const redis = getRedisConnection(cfg.REDIS_URL);
   const depositQueue = makeDepositConfirmQueue(redis);
+  const withdrawalExecuteQueue = makeWithdrawalExecuteQueue(redis);
 
   // ── Health endpoints ──────────────────────────────────────────────────────
   fastify.get('/health', async () => ({ status: 'ok' }));
@@ -138,10 +139,7 @@ async function start(): Promise<void> {
 
   // --- Address registry ---
   const { registry, stop: stopRegistry } = await startAddressRegistry(db);
-  logger.info(
-    { bnb: registry.bnb.size, sol: registry.sol.size },
-    'Loaded watched addresses',
-  );
+  logger.info({ bnb: registry.bnb.size, sol: registry.sol.size }, 'Loaded watched addresses');
 
   // --- BNB block watcher ---
   let lastBnbBlock = -1;
@@ -156,7 +154,7 @@ async function start(): Promise<void> {
       blockNumber,
       registry.bnb,
       cfg.USDT_BNB_ADDRESS,
-      cfg.USDC_BNB_ADDRESS,
+      cfg.USDC_BNB_ADDRESS
     );
   });
 
@@ -173,6 +171,10 @@ async function start(): Promise<void> {
   const depositWorker = startDepositConfirmWorker(redis, cfg);
   logger.info('deposit_confirm worker started');
 
+  // --- Start BullMQ withdrawal execute worker ---
+  const withdrawalExecuteWorker = startWithdrawalExecuteWorker(redis, cfg);
+  logger.info('withdrawal_execute worker started');
+
   // --- Graceful shutdown ---
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal — closing wallet-engine');
@@ -180,7 +182,9 @@ async function start(): Promise<void> {
     await solWatcher.stop();
     stopRegistry();
     await depositWorker.close();
+    await withdrawalExecuteWorker.close();
     await depositQueue.close();
+    await withdrawalExecuteQueue.close();
     await closeRedisConnection();
     await destroyBnbPool(bnbPool);
     await destroySolanaPool(solPool);

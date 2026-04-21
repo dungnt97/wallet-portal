@@ -1,34 +1,54 @@
-import { ChainPill, PageFrame, TokenPill } from '@/components/custody';
-import { useToast } from '@/components/overlays';
+// Reconciliation page — live snapshot list, drift drilldown, timeline, manual trigger.
+// Replaces the fixture-based prototype with real API data via TanStack Query.
+import { PageFrame } from '@/components/custody';
+import { Modal, useToast } from '@/components/overlays';
+import { DriftDrilldown } from '@/features/reconciliation/drift-drilldown';
+import { DriftTimelineChart } from '@/features/reconciliation/drift-timeline-chart';
+import { SnapshotList } from '@/features/reconciliation/snapshot-list';
+import {
+  useSnapshotDetail,
+  useSnapshotList,
+  useTriggerSnapshot,
+} from '@/features/reconciliation/use-reconciliation';
 import { I } from '@/icons';
-import { fmtCompact, fmtUSD } from '@/lib/format';
-// Reconciliation page — internal ledger vs on-chain truth. Prove-of-reserves view.
-// Ports prototype page_ops_extras.jsx PageRecon.
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RECON_ROWS, type ReconRow } from '../_shared/fixtures';
 import { ReconPolicyStrip } from './recon-policy-strip';
 
 export function ReconPage() {
   const { t } = useTranslation();
-  const [rows] = useState<ReconRow[]>(RECON_ROWS);
-  const [running, setRunning] = useState(false);
   const toast = useToast();
 
-  const totalInternal = rows.reduce((s, r) => s + r.internal, 0);
-  const totalOnchain = rows.reduce((s, r) => s + r.onchain, 0);
-  const drifts = rows.filter((r) => r.status !== 'match');
-  const driftAmt = Math.abs(totalInternal - totalOnchain);
-  const coverage = ((rows.filter((r) => r.status === 'match').length / rows.length) * 100).toFixed(
-    1
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [triggerOpen, setTriggerOpen] = useState(false);
+  const [triggerScope, setTriggerScope] = useState<'all' | 'hot' | 'cold' | 'users'>('all');
+  const [triggerChain, setTriggerChain] = useState<'' | 'bnb' | 'sol'>('');
 
-  const runScan = () => {
-    setRunning(true);
-    setTimeout(() => {
-      setRunning(false);
-      toast('Scan complete — 2 drifts detected', 'success');
-    }, 1600);
+  const { data: listData, isLoading: listLoading } = useSnapshotList(1);
+  const { data: detailData, isLoading: detailLoading } = useSnapshotDetail(selectedId);
+  const triggerMutation = useTriggerSnapshot();
+
+  const snapshots = listData?.data ?? [];
+  const isRunning = snapshots.some((s) => s.status === 'running');
+
+  const handleTrigger = () => {
+    triggerMutation.mutate(
+      {
+        scope: triggerScope,
+        ...(triggerChain ? { chain: triggerChain } : {}),
+      },
+      {
+        onSuccess: () => {
+          toast(t('recon.runStarted', 'Reconciliation snapshot enqueued'), 'success');
+          setTriggerOpen(false);
+        },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Failed to start reconciliation';
+          toast(msg, 'error');
+          setTriggerOpen(false);
+        },
+      }
+    );
   };
 
   return (
@@ -41,136 +61,110 @@ export function ReconPage() {
       title={t('recon.title')}
       policyStrip={<ReconPolicyStrip />}
       actions={
-        <>
-          <button className="btn btn-secondary" onClick={runScan} disabled={running}>
-            <I.Refresh size={12} /> {running ? 'Scanning…' : 'Run scan now'}
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => toast('Report generated.', 'success')}
-          >
-            <I.External size={12} /> Export report
-          </button>
-        </>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setTriggerOpen(true)}
+          disabled={isRunning || triggerMutation.isPending}
+        >
+          <I.Refresh size={12} />
+          {isRunning ? 'Running…' : t('recon.runRecon', 'Run scan now')}
+        </button>
       }
     >
-      <div className="kpi-strip">
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Database size={10} />
-            Internal ledger
-          </div>
-          <div className="kpi-mini-value">${fmtCompact(totalInternal)}</div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted">postgres · custody_db</span>
-          </div>
+      {/* Timeline chart — all completed snapshots */}
+      {snapshots.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <DriftTimelineChart snapshots={snapshots} />
         </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Network size={10} />
-            On-chain truth
-          </div>
-          <div className="kpi-mini-value">${fmtCompact(totalOnchain)}</div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted">indexed via Web3 node</span>
-          </div>
+      )}
+
+      {/* Two-panel layout: list (left) + detail (right) */}
+      <div
+        style={{ display: 'grid', gridTemplateColumns: selectedId ? '1fr 1.4fr' : '1fr', gap: 14 }}
+      >
+        <div>
+          {listLoading ? (
+            <div className="card pro-card" style={{ padding: 24 }}>
+              <p className="text-muted text-sm">Loading snapshots…</p>
+            </div>
+          ) : (
+            <SnapshotList
+              snapshots={snapshots}
+              selectedId={selectedId}
+              onSelect={(id) => setSelectedId((prev) => (prev === id ? null : id))}
+            />
+          )}
         </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.AlertTri size={10} />
-            Drift
+
+        {selectedId && (
+          <div>
+            {detailLoading || !detailData ? (
+              <div className="card pro-card" style={{ padding: 24 }}>
+                <p className="text-muted text-sm">Loading drift details…</p>
+              </div>
+            ) : (
+              <DriftDrilldown snapshot={detailData.snapshot} drifts={detailData.drifts} />
+            )}
           </div>
-          <div
-            className="kpi-mini-value"
-            style={{ color: driftAmt === 0 ? 'var(--ok-text)' : 'var(--err-text)' }}
-          >
-            ${fmtUSD(driftAmt)}
-          </div>
-          <div className="kpi-mini-foot">
-            <span className="text-xs text-muted">{drifts.length} accounts flagged</span>
-          </div>
-        </div>
-        <div className="kpi-mini">
-          <div className="kpi-mini-label">
-            <I.Shield size={10} />
-            Coverage
-          </div>
-          <div className="kpi-mini-value">{coverage}%</div>
-          <div className="kpi-mini-foot">
-            <span className="badge-tight ok">
-              <span className="dot" />
-              Healthy
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
-      <div className="card pro-card" style={{ marginTop: 14 }}>
-        <div className="pro-card-header">
-          <h3 className="card-title">Per-account reconciliation</h3>
-          <div className="spacer" />
-          <span className="text-xs text-muted text-mono">{rows.length} accounts</span>
+      {/* Manual trigger modal */}
+      <Modal
+        open={triggerOpen}
+        title="Run reconciliation snapshot"
+        onClose={() => setTriggerOpen(false)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 320 }}>
+          <div>
+            <label className="label-sm" htmlFor="recon-scope">
+              Scope
+            </label>
+            <select
+              id="recon-scope"
+              className="input-sm"
+              value={triggerScope}
+              onChange={(e) => setTriggerScope(e.target.value as typeof triggerScope)}
+            >
+              <option value="all">All (hot + cold + users)</option>
+              <option value="hot">Hot safes only</option>
+              <option value="cold">Cold safes only</option>
+              <option value="users">User addresses only</option>
+            </select>
+          </div>
+          <div>
+            <label className="label-sm" htmlFor="recon-chain">
+              Chain (optional)
+            </label>
+            <select
+              id="recon-chain"
+              className="input-sm"
+              value={triggerChain}
+              onChange={(e) => setTriggerChain(e.target.value as typeof triggerChain)}
+            >
+              <option value="">All chains</option>
+              <option value="bnb">BNB Chain</option>
+              <option value="sol">Solana</option>
+            </select>
+          </div>
+          <div className="modal-actions">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setTriggerOpen(false)}
+              disabled={triggerMutation.isPending}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleTrigger}
+              disabled={triggerMutation.isPending}
+            >
+              {triggerMutation.isPending ? 'Enqueueing…' : 'Run now'}
+            </button>
+          </div>
         </div>
-        <table className="table table-tight">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Chain</th>
-              <th>Asset</th>
-              <th className="num">Internal ledger</th>
-              <th className="num">On-chain</th>
-              <th className="num">Drift</th>
-              <th>Status</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const drift = r.internal - r.onchain;
-              return (
-                <tr key={r.id}>
-                  <td className="text-sm fw-500">{r.account}</td>
-                  <td>
-                    <ChainPill chain={r.chain} />
-                  </td>
-                  <td>
-                    <TokenPill token={r.token} />
-                  </td>
-                  <td className="num text-mono">${fmtUSD(r.internal)}</td>
-                  <td className="num text-mono">${fmtUSD(r.onchain)}</td>
-                  <td
-                    className="num text-mono"
-                    style={{
-                      color:
-                        drift === 0
-                          ? 'var(--text-faint)'
-                          : drift > 0
-                            ? 'var(--err-text)'
-                            : 'var(--warn-text)',
-                    }}
-                  >
-                    {drift === 0 ? '—' : (drift > 0 ? '+' : '') + fmtUSD(drift)}
-                  </td>
-                  <td>
-                    {r.status === 'match' ? (
-                      <span className="badge-tight ok">
-                        <span className="dot" />
-                        Match
-                      </span>
-                    ) : (
-                      <span className="badge-tight err">
-                        <span className="dot" />
-                        Drift
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-xs text-muted">{r.note ?? '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      </Modal>
     </PageFrame>
   );
 }

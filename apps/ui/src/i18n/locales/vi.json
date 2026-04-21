@@ -743,7 +743,8 @@
     "runRecon": "Chạy đối soát",
     "lastRun": "Lần chạy gần nhất",
     "healthy": "Ổn",
-    "drift": "Phát hiện sai lệch"
+    "drift": "Phát hiện sai lệch",
+    "runStarted": "Đã xếp hàng chụp đối soát"
   },
   "notifs": {
     "title": "Thông báo",

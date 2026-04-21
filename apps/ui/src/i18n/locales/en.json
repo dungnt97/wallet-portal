@@ -743,7 +743,8 @@
     "runRecon": "Run reconciliation",
     "lastRun": "Last run",
     "healthy": "Healthy",
-    "drift": "Drift detected"
+    "drift": "Drift detected",
+    "runStarted": "Reconciliation snapshot enqueued"
   },
   "notifs": {
     "title": "Notifications",

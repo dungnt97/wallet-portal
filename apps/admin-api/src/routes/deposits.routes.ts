@@ -1,16 +1,23 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 // Deposits routes — GET /deposits, GET /deposits/:id, GET /deposits/export.csv
+// POST /deposits/manual-credit — admin + WebAuthn step-up override
 // Internal credit endpoint lives in internal.routes.ts (bearer auth, D4)
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
+import { requireStepUp } from '../auth/require-step-up.middleware.js';
 import * as schema from '../db/schema/index.js';
 import {
   countDepositsForExport,
   queryDepositsForExport,
   streamDepositCsv,
 } from '../services/deposit-csv.service.js';
+import {
+  NotFoundError as ManualNotFoundError,
+  ValidationError as ManualValidationError,
+  manualCredit,
+} from '../services/deposit-manual-credit.service.js';
 
 const CSV_ROW_CAP = 50_000;
 
@@ -137,6 +144,61 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
         reply.raw.write(chunk);
       });
       reply.raw.end();
+    }
+  );
+
+  // POST /deposits/manual-credit — admin override credit (admin role + WebAuthn step-up)
+  // Must be registered BEFORE /deposits/:id to avoid the /:id route swallowing the segment
+  r.post(
+    '/deposits/manual-credit',
+    {
+      preHandler: [requirePerm('deposits.manage'), requireStepUp()],
+      schema: {
+        tags: ['deposits'],
+        body: z.object({
+          userId: z.string().uuid(),
+          chain: z.enum(['bnb', 'sol']),
+          token: z.enum(['USDT', 'USDC']),
+          amount: z.string().regex(/^\d+(\.\d+)?$/, 'amount must be a positive decimal string'),
+          reason: z.string().min(20).max(1000),
+        }),
+        response: {
+          201: z.object({
+            depositId: z.string().uuid(),
+            userId: z.string().uuid(),
+            chain: z.enum(['bnb', 'sol']),
+            token: z.enum(['USDT', 'USDC']),
+            amount: z.string(),
+            creditedBy: z.string().uuid(),
+            createdAt: z.string(),
+          }),
+          400: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: requirePerm ensures session.staff exists
+      const staffId = req.session.staff!.id;
+      try {
+        const result = await manualCredit(app.db, app.io, app.emailQueue, app.slackQueue, {
+          userId: req.body.userId,
+          chain: req.body.chain,
+          token: req.body.token,
+          amount: req.body.amount,
+          reason: req.body.reason,
+          staffId,
+        });
+        return reply.code(201).send(result);
+      } catch (err) {
+        if (err instanceof ManualValidationError) {
+          return reply.code(400).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof ManualNotFoundError) {
+          return reply.code(404).send({ code: err.code, message: err.message });
+        }
+        throw err;
+      }
     }
   );
 

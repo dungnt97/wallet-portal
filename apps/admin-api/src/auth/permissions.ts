@@ -10,6 +10,7 @@ export type Permission =
   | 'dashboard.read'
   | 'deposits.read'
   | 'deposits.credit'
+  | 'deposits.manage'
   | 'withdrawals.read'
   | 'withdrawals.create'
   | 'withdrawals.approve'
@@ -40,6 +41,7 @@ export const PERMS: Record<Permission, Role[]> = {
   'dashboard.read': ['admin', 'treasurer', 'operator', 'viewer'],
   'deposits.read': ['admin', 'treasurer', 'operator', 'viewer'],
   'deposits.credit': ['admin', 'operator'],
+  'deposits.manage': ['admin'],
   'withdrawals.read': ['admin', 'treasurer', 'operator', 'viewer'],
   'withdrawals.create': ['admin', 'operator'],
   'withdrawals.approve': ['admin', 'treasurer'],

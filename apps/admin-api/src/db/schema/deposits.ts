@@ -1,6 +1,8 @@
 // deposits table — inbound transfers detected by wallet-engine block watcher
-import { integer, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+// manual=true marks admin-override credits (migration 0020)
+import { boolean, integer, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { chainEnum, depositStatusEnum, tokenEnum } from './enums';
+import { staffMembers } from './staff';
 import { users } from './users';
 
 /**
@@ -21,6 +23,12 @@ export const deposits = pgTable('deposits', {
   confirmedBlocks: integer('confirmed_blocks').notNull().default(0),
   /** On-chain transaction hash — null until detected */
   txHash: text('tx_hash'),
+  /** true for admin-override manual credits (migration 0020) */
+  manual: boolean('manual').notNull().default(false),
+  /** Admin's justification for manual credit — required when manual=true */
+  reason: text('reason'),
+  /** Staff member who applied the manual credit — null for on-chain deposits */
+  creditedBy: uuid('credited_by').references(() => staffMembers.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

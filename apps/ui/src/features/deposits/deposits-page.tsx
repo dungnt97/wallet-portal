@@ -13,6 +13,7 @@ import { DepositsKpiStrip } from './deposits-kpi-strip';
 import { DepositsPolicyStrip } from './deposits-policy-strip';
 import { DepositSheet } from './deposits-sheet';
 import { DepositsTable } from './deposits-table';
+import { ManualCreditModal } from './manual-credit-modal';
 import { useDepositSocketListener } from './socket-listener';
 import { type Deposit, useDeposits } from './use-deposits';
 
@@ -52,6 +53,7 @@ export function DepositsPage() {
   const [selected, setSelected] = useState<FixDeposit | null>(null);
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
+  const [manualCreditOpen, setManualCreditOpen] = useState(false);
 
   useDepositSocketListener();
 
@@ -141,6 +143,9 @@ export function DepositsPage() {
           <button className="btn btn-secondary" onClick={doExport}>
             <I.External size={13} /> {t('deposits.exportCsv')}
           </button>
+          <button className="btn btn-accent" onClick={() => setManualCreditOpen(true)}>
+            <I.Plus size={13} /> {t('deposits.manualCredit.title')}
+          </button>
         </>
       }
       kpis={<DepositsKpiStrip deposits={deposits} />}
@@ -211,6 +216,7 @@ export function DepositsPage() {
       </div>
 
       <DepositSheet deposit={selected} onClose={() => setSelected(null)} />
+      <ManualCreditModal open={manualCreditOpen} onClose={() => setManualCreditOpen(false)} />
     </PageFrame>
   );
 }

@@ -1,16 +1,20 @@
 // Wallet sign popup — drives real EIP-712 (wagmi) or Ed25519 (wallet-adapter) signing.
 // Falls back to mock when VITE_AUTH_DEV_MODE=true.
-// Ported from prototype signing_modals.jsx WalletSignPopup.
+//
+// C3 fix: EVM path now uses evmBuildSafeTx (protocol-kit) to produce the real
+//         SafeTxData + safeTxHash before signing. Value/data/nonce are correct.
+// C4 fix: Solana path builds real SPL/SOL transfer instruction; missing PDA
+//         throws instead of silently returning a fake hash.
 import { I } from '@/icons';
 import { shortHash } from '@/lib/format';
 import {
   useConnection as useSolanaConnection,
   useWallet as useSolanaWallet,
 } from '@solana/wallet-adapter-react';
-import { TransactionMessage } from '@solana/web3.js';
 import { useEffect, useState } from 'react';
 import { useSignTypedData, useAccount as useWagmiAccount } from 'wagmi';
 import { evmBroadcastViaSafe, evmSign, getSafeTxServiceUrl } from './evm-adapter';
+import { buildEvmSafeTxTypedData } from './evm-safe-tx-builder';
 import {
   IS_DEV_MODE,
   type SignedSignature,
@@ -20,6 +24,7 @@ import {
 } from './signing-flow';
 import type { BroadcastResult } from './signing-flow-types';
 import { getSquadsMultisigPda, solanaProposeSquads, solanaSign } from './solana-adapter';
+import { buildSolanaTransferInstruction } from './solana-transfer-builder';
 import { type WalletKind, WalletMark } from './wallet-marks';
 
 interface Props {
@@ -66,7 +71,6 @@ export function WalletSignPopup({
   } = useSolanaWallet();
   const { connection } = useSolanaConnection();
 
-  // Determine if the required wallet is connected for this op's chain
   const needsEvm = op?.chain === 'bnb';
   const needsSol = op?.chain === 'sol';
   const walletMissing = (needsEvm && !evmConnected) || (needsSol && !solConnected);
@@ -81,7 +85,6 @@ export function WalletSignPopup({
   if (!open || !op) return null;
 
   const resolvedKind: WalletKind = op.chain === 'sol' ? 'phantom' : walletKind;
-
   const brand =
     resolvedKind === 'metamask'
       ? 'MetaMask'
@@ -111,7 +114,6 @@ export function WalletSignPopup({
 
     try {
       if (IS_DEV_MODE) {
-        // ── Dev-mode path: mock sign only (broadcast handled by signing-flow)
         const result = await mockSign(op);
         setStatus('done');
         setTimeout(() => {
@@ -122,60 +124,24 @@ export function WalletSignPopup({
       }
 
       if (op.chain === 'bnb') {
-        // ── Real EVM path
         if (!evmAddress) throw new Error('EVM wallet not connected');
 
-        // Build minimal EIP-712 typed data from op (full build requires protocol-kit + RPC)
-        // Safe address may not be deployed yet — warn gracefully
         const safeAddress = (op.safeAddress ?? import.meta.env.VITE_SAFE_ADDRESS_BNB_TESTNET) as
           | string
           | undefined;
         if (!safeAddress) {
-          console.warn(
-            '[wallet-sign-popup] VITE_SAFE_ADDRESS_BNB_TESTNET not set — using placeholder'
+          throw new Error(
+            'Safe address not configured. Set VITE_SAFE_ADDRESS_BNB_TESTNET or pass op.safeAddress.'
           );
         }
 
-        const typedData = {
-          domain: {
-            name: 'Safe',
-            version: '1.4.1',
-            chainId: 97,
-            verifyingContract: (safeAddress ??
-              '0x0000000000000000000000000000000000000000') as `0x${string}`,
-          },
-          primaryType: 'SafeTx' as const,
-          types: {
-            SafeTx: [
-              { name: 'to', type: 'address' },
-              { name: 'value', type: 'uint256' },
-              { name: 'data', type: 'bytes' },
-              { name: 'operation', type: 'uint8' },
-              { name: 'safeTxGas', type: 'uint256' },
-              { name: 'baseGas', type: 'uint256' },
-              { name: 'gasPrice', type: 'uint256' },
-              { name: 'gasToken', type: 'address' },
-              { name: 'refundReceiver', type: 'address' },
-              { name: 'nonce', type: 'uint256' },
-            ],
-          },
-          message: {
-            to: op.destination as `0x${string}`,
-            value: '0',
-            data: '0x' as `0x${string}`,
-            operation: 0,
-            safeTxGas: '0',
-            baseGas: '0',
-            gasPrice: '0',
-            gasToken: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-            refundReceiver: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-            nonce: op.nonce ?? 0,
-          },
-        };
+        // C3 fix: build real Safe tx via protocol-kit; gets correct nonce, value, data
+        const { safeTxHash, typedData } = await buildEvmSafeTxTypedData({
+          safeAddress: safeAddress as `0x${string}`,
+          op,
+        });
 
-        // Cast signTypedDataAsync: wagmi's overloaded type is not assignable to our
-        // generic (args: unknown) => Promise<`0x${string}`> signature, but the runtime
-        // shape is compatible — we pass a well-typed object that wagmi accepts.
+        // Cast: wagmi overloaded type is not directly assignable; runtime shape matches
         const evmResult = await evmSign(
           { typedData, fromAddress: evmAddress as `0x${string}` },
           signTypedDataAsync as (args: unknown) => Promise<`0x${string}`>
@@ -189,11 +155,9 @@ export function WalletSignPopup({
 
         setStatus('done');
 
-        // Broadcast via Safe Tx Service (fire and forget from UI perspective)
         setTimeout(() => {
           onSigned(signed);
           onClose();
-          // Real broadcast: submit to Safe Tx Service
           void (async () => {
             try {
               const SafeApiKit = (await import('@safe-global/api-kit')).default;
@@ -201,10 +165,11 @@ export function WalletSignPopup({
                 txServiceUrl: getSafeTxServiceUrl(),
                 chainId: BigInt(97),
               });
+              // C3 fix: use the real safeTxHash (keccak256 of SafeTx message), not signature
               const broadcastResult = await evmBroadcastViaSafe(
                 {
-                  safeAddress: (safeAddress ?? '0x0') as `0x${string}`,
-                  safeTxHash: evmResult.signature, // using sig as pseudo-hash for now
+                  safeAddress: safeAddress as `0x${string}`,
+                  safeTxHash,
                   signatures: [{ signer: evmResult.signer, data: evmResult.signature }],
                 },
                 apiKit
@@ -218,12 +183,19 @@ export function WalletSignPopup({
           })();
         }, 480);
       } else if (op.chain === 'sol') {
-        // ── Real Solana path
         if (!solPubKey || !solSignMessage || !solWallet?.adapter) {
           throw new Error('Solana wallet not connected');
         }
 
-        // Encode the op as bytes to sign (UTF-8 JSON)
+        // C4 fix: reject if PDA not configured — do NOT fake success
+        const multisigPda = getSquadsMultisigPda();
+        if (!multisigPda) {
+          throw new Error(
+            'Squads not configured: VITE_SQUADS_MULTISIG_PDA_DEVNET is not set. ' +
+              'Contact your administrator.'
+          );
+        }
+
         const msgBytes = new TextEncoder().encode(
           JSON.stringify({
             id: op.id,
@@ -235,11 +207,9 @@ export function WalletSignPopup({
         );
 
         const solResult = await solanaSign({ message: msgBytes }, solSignMessage);
-        // Replace placeholder signer with actual public key
-        const actualSigner = solPubKey;
 
         const signed: SignedSignature = {
-          signer: actualSigner.toBase58(),
+          signer: solPubKey.toBase58(),
           signature: Buffer.from(solResult.signature).toString('base64'),
           at: solResult.signedAt.toISOString(),
         };
@@ -249,20 +219,21 @@ export function WalletSignPopup({
         setTimeout(() => {
           onSigned(signed);
           onClose();
-          // Propose on Squads if PDA is configured
           void (async () => {
             try {
-              const multisigPda = getSquadsMultisigPda();
-              if (!multisigPda) {
-                console.warn('[wallet-sign-popup] Squads PDA not set — skipping proposal');
-                onBroadcastComplete?.(makeBroadcastResult(signed.signature));
-                return;
-              }
+              // C4 fix: build real transfer instruction for the proposal
+              const transferIx = buildSolanaTransferInstruction({
+                op,
+                fromPubkey: solPubKey,
+              });
+
+              const { TransactionMessage } = await import('@solana/web3.js');
               const txMsg = new TransactionMessage({
                 payerKey: solPubKey,
                 recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-                instructions: [],
+                instructions: [transferIx],
               });
+
               const proposeResult = await solanaProposeSquads(
                 { multisigPda, creator: solPubKey, transactionMessage: txMsg, memo: op.id },
                 connection,
@@ -281,7 +252,6 @@ export function WalletSignPopup({
       const msg = err instanceof Error ? err.message : 'Signing failed';
       setStatus('idle');
       console.error('[wallet-sign-popup] sign error:', msg);
-      // Surface error without crashing — user can retry
     }
   }
 
@@ -299,7 +269,6 @@ export function WalletSignPopup({
         </div>
 
         {status === 'no-wallet' ? (
-          /* ── No wallet connected for this chain ── */
           <div
             style={{
               padding: '24px 20px',

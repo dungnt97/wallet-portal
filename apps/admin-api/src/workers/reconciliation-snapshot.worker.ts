@@ -40,7 +40,7 @@ export interface ReconRunJobData {
  * These are orphaned from a previous crash/restart.
  */
 export async function recoverStaleSnapshots(db: Db): Promise<void> {
-  const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+  const cutoffIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   const updated = await db
     .update(schema.reconciliationSnapshots)
     .set({
@@ -50,7 +50,7 @@ export async function recoverStaleSnapshots(db: Db): Promise<void> {
     })
     .where(
       sql`${schema.reconciliationSnapshots.status} = 'running'
-          AND ${schema.reconciliationSnapshots.createdAt} < ${cutoff}`
+          AND ${schema.reconciliationSnapshots.createdAt} < ${cutoffIso}::timestamptz`
     )
     .returning({ id: schema.reconciliationSnapshots.id });
 

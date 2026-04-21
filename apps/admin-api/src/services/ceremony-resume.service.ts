@@ -8,7 +8,7 @@
 //
 // Called once from app.ts addHook('onReady').
 import type { Queue } from 'bullmq';
-import { and, inArray, lt } from 'drizzle-orm';
+import { and, inArray, sql } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
@@ -104,14 +104,14 @@ export async function resumeInFlightCeremonies(
     }
 
     // 2. Find stale partial ceremonies (one chain done, other failed, older than 1h)
-    const staleThreshold = new Date(Date.now() - PARTIAL_STALE_MS);
+    const staleThresholdIso = new Date(Date.now() - PARTIAL_STALE_MS).toISOString();
     const partialStale = await db
       .select()
       .from(schema.signerCeremonies)
       .where(
         and(
           inArray(schema.signerCeremonies.status, ['partial']),
-          lt(schema.signerCeremonies.updatedAt, staleThreshold)
+          sql`${schema.signerCeremonies.updatedAt} < ${staleThresholdIso}::timestamptz`
         )
       );
 

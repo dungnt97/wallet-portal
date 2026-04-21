@@ -34,6 +34,10 @@ type EvaluateRequest struct {
 
 	// WithdrawalID is optional; populated when a withdrawal record already exists.
 	WithdrawalID string `json:"withdrawal_id"`
+
+	// UserID is the end-user UUID whose funds are being moved.
+	// Used by daily_limit to fetch user risk_tier for the limit multiplier.
+	UserID string `json:"user_id"`
 }
 
 // RuleResult is the outcome of a single rule evaluation.

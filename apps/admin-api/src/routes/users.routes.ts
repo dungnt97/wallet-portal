@@ -18,6 +18,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
+import { requireStepUp } from '../auth/require-step-up.middleware.js';
 import type { Config } from '../config/env.js';
 import * as schema from '../db/schema/index.js';
 import { getUserAddresses } from '../services/user-addresses-query.service.js';
@@ -38,6 +39,7 @@ import {
   NotFoundError as RetryNotFoundError,
   retryDeriveUserAddresses,
 } from '../services/user-retry-derive.service.js';
+import { updateRiskTier } from '../services/user-risk.service.js';
 
 // Shared error response schema
 const ErrSchema = z.object({ code: z.string(), message: z.string() });
@@ -335,6 +337,51 @@ const usersRoutes: FastifyPluginAsync<{ cfg?: Config }> = async (app, opts) => {
           return reply.code(502).send({ code: err.code, message: err.message });
         }
         throw err;
+      }
+    }
+  );
+  // ── PATCH /users/:id/risk — update risk tier (admin + WebAuthn step-up) ────
+  r.patch(
+    '/users/:id/risk',
+    {
+      preHandler: [requirePerm('users.manage'), requireStepUp()],
+      schema: {
+        tags: ['users'],
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({
+          tier: z.enum(['low', 'medium', 'high', 'frozen']),
+          reason: z.string().min(5).max(500),
+        }),
+        response: {
+          200: z.object({
+            userId: z.string().uuid(),
+            riskTier: z.enum(['low', 'medium', 'high', 'frozen']),
+            riskReason: z.string(),
+            riskUpdatedAt: z.string().datetime(),
+            riskUpdatedBy: z.string().uuid(),
+          }),
+          400: ErrSchema,
+          404: ErrSchema,
+        },
+      },
+    },
+    async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: requirePerm preHandler ensures session.staff exists
+      const staffId = req.session.staff!.id;
+      try {
+        const result = await updateRiskTier(app.db, {
+          userId: req.params.id,
+          tier: req.body.tier,
+          reason: req.body.reason,
+          staffId,
+        });
+        return reply.code(200).send(result);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg.includes('not found')) {
+          return reply.code(404).send({ code: 'NOT_FOUND', message: msg });
+        }
+        return reply.code(400).send({ code: 'VALIDATION_ERROR', message: msg });
       }
     }
   );

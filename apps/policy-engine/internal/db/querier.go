@@ -32,4 +32,7 @@ type Querier interface {
 	// 'partial' has an active chain state for the given chain key ("bnb" or "solana").
 	// Used by ceremony_gate rule to block withdrawals/sweeps during owner-management ops.
 	HasActiveCeremony(ctx context.Context, chainKey string) (bool, error)
+	// GetUserRiskTier: returns the risk_tier for an end-user.
+	// Used by daily_limit rule to apply a multiplier (frozen=block, high=0.2x, etc.).
+	GetUserRiskTier(ctx context.Context, userID pgtype.UUID) (string, error)
 }

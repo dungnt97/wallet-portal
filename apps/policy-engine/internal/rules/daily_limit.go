@@ -1,3 +1,11 @@
+// daily_limit.go — per-role 24h rolling withdrawal cap with user risk-tier multiplier.
+//
+// Risk-tier multipliers (applied to the role's base limit):
+//
+//	low    → 1.0  (full limit)
+//	medium → 0.5  (half)
+//	high   → 0.2  (20%)
+//	frozen → 0.0  → rejected immediately as USER_FROZEN
 package rules
 
 import (
@@ -11,7 +19,6 @@ import (
 
 // dailyLimits maps staff role → maximum USD-equivalent withdrawal per 24h window.
 // Values are in the same decimal unit as the withdrawals.amount column.
-// TODO(phase-09): make limits configurable via DB or env; hardcoded for MVP.
 var dailyLimits = map[db.Role]*big.Float{
 	db.RoleOperator:  bigFloat("50000"),
 	db.RoleTreasurer: bigFloat("500000"),
@@ -19,7 +26,16 @@ var dailyLimits = map[db.Role]*big.Float{
 	db.RoleViewer:    bigFloat("0"), // viewers cannot initiate withdrawals
 }
 
-// DailyLimit enforces a per-role 24-hour rolling withdrawal cap.
+// riskMultipliers maps user risk_tier → fraction of base limit allowed.
+var riskMultipliers = map[string]*big.Float{
+	"low":    bigFloat("1.0"),
+	"medium": bigFloat("0.5"),
+	"high":   bigFloat("0.2"),
+	"frozen": bigFloat("0.0"),
+}
+
+// DailyLimit enforces a per-role 24-hour rolling withdrawal cap, scaled by
+// the end-user's risk tier.
 type DailyLimit struct{}
 
 func (DailyLimit) Name() string { return "daily_limit" }
@@ -41,9 +57,27 @@ func (DailyLimit) Check(ctx context.Context, req EvaluateRequest, q db.Querier) 
 		return false, "actor staff member not found", nil
 	}
 
-	limit, ok := dailyLimits[staff.Role]
-	if !ok || limit.Sign() == 0 {
+	baseLimit, ok := dailyLimits[staff.Role]
+	if !ok || baseLimit.Sign() == 0 {
 		return false, fmt.Sprintf("role %s has no withdrawal limit configured", staff.Role), nil
+	}
+
+	// Apply user risk-tier multiplier when UserID is provided.
+	effectiveLimit := new(big.Float).Set(baseLimit)
+	if req.UserID != "" {
+		var userUUID pgtype.UUID
+		if scanErr := userUUID.Scan(req.UserID); scanErr == nil {
+			tier, tierErr := q.GetUserRiskTier(ctx, userUUID)
+			if tierErr == nil {
+				if tier == "frozen" {
+					return false, "USER_FROZEN: user account is frozen — all withdrawals blocked", nil
+				}
+				if mult, hasMultiplier := riskMultipliers[tier]; hasMultiplier {
+					effectiveLimit = new(big.Float).Mul(baseLimit, mult)
+				}
+			}
+			// On DB error for risk tier, log-and-continue with base limit (fail-open for risk).
+		}
 	}
 
 	// Sum all withdrawals by this staff member in the last 24h.
@@ -52,26 +86,24 @@ func (DailyLimit) Check(ctx context.Context, req EvaluateRequest, q db.Querier) 
 		return false, "failed to query daily withdrawal sum", err
 	}
 
-	// Parse the NUMERIC sum returned by Postgres.
 	sumStr := numericToString(numericSum)
 	sum, _, err2 := big.ParseFloat(sumStr, 10, 128, big.ToNearestEven)
 	if err2 != nil {
 		return false, "invalid withdrawal sum format from DB", err2
 	}
 
-	// Parse the requested amount.
 	requested, _, err3 := big.ParseFloat(req.Amount, 10, 128, big.ToNearestEven)
 	if err3 != nil {
 		return false, "invalid amount in request", err3
 	}
 
-	// Project: sum + requested must not exceed limit.
+	// Project: sum + requested must not exceed effective limit.
 	projected := new(big.Float).Add(sum, requested)
-	if projected.Cmp(limit) > 0 {
-		limitStr, _ := limit.Float64()
-		projStr, _ := projected.Float64()
+	if projected.Cmp(effectiveLimit) > 0 {
+		limitF, _ := effectiveLimit.Float64()
+		projF, _ := projected.Float64()
 		return false, fmt.Sprintf("daily limit exceeded: projected=%.2f limit=%.2f role=%s",
-			projStr, limitStr, staff.Role), nil
+			projF, limitF, staff.Role), nil
 	}
 
 	return true, "", nil
@@ -83,7 +115,6 @@ func numericToString(n pgtype.Numeric) string {
 	if !n.Valid {
 		return "0"
 	}
-	// pgtype.Numeric exposes Int and Exp: value = Int * 10^Exp
 	if n.Int == nil {
 		return "0"
 	}

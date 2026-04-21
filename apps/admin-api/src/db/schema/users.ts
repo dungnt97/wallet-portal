@@ -1,14 +1,25 @@
 // users + user_addresses tables
 import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { chainEnum, kycTierEnum, tierEnum, userStatusEnum } from './enums';
+import { staffMembers } from './staff.js';
+
+export type RiskTier = 'low' | 'medium' | 'high' | 'frozen';
 
 /** End-users whose funds are held in custody */
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   kycTier: kycTierEnum('kyc_tier').notNull().default('none'),
-  /** Risk score 0-100: 0 = lowest risk, 100 = highest risk */
+  /** Legacy numeric score 0-100 — superseded by risk_tier (migration 0019) */
   riskScore: integer('risk_score').notNull().default(0),
+  /** Categorical risk tier — used by policy engine daily_limit multiplier */
+  riskTier: text('risk_tier').$type<RiskTier>().notNull().default('low'),
+  /** Reason text for the most recent tier change */
+  riskReason: text('risk_reason'),
+  /** Timestamp of last risk tier update */
+  riskUpdatedAt: timestamp('risk_updated_at', { withTimezone: true }),
+  /** Staff member who last updated the risk tier */
+  riskUpdatedBy: uuid('risk_updated_by').references(() => staffMembers.id),
   status: userStatusEnum('status').notNull().default('active'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

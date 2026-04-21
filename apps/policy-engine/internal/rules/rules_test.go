@@ -51,6 +51,9 @@ type fakeQuerier struct {
 
 	hasActiveCeremony    bool
 	hasActiveCeremonyErr error
+
+	userRiskTier    string
+	userRiskTierErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -113,6 +116,16 @@ func (f *fakeQuerier) GetApprovalsForWithdrawal(_ context.Context, _ pgtype.UUID
 
 func (f *fakeQuerier) HasActiveCeremony(_ context.Context, _ string) (bool, error) {
 	return f.hasActiveCeremony, f.hasActiveCeremonyErr
+}
+
+func (f *fakeQuerier) GetUserRiskTier(_ context.Context, _ pgtype.UUID) (string, error) {
+	if f.userRiskTierErr != nil {
+		return "low", f.userRiskTierErr
+	}
+	if f.userRiskTier == "" {
+		return "low", nil
+	}
+	return f.userRiskTier, nil
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────

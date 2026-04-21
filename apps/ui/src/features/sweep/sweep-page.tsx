@@ -1,47 +1,63 @@
-import { connectSocket, disconnectSocket } from '@/api/socket';
 import { PageFrame, Segmented } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
-import { useQueryClient } from '@tanstack/react-query';
-// Sweep page — prototype visual port. Uses fixtures until /sweeps endpoint lands.
-import { useEffect, useMemo, useState } from 'react';
+// Sweep page — real candidates via useSweepCandidates, trigger via useSweepTrigger.
+// Fixture fallback removed: empty state shown when no candidates above threshold.
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  FIX_DEPOSIT_ADDRESSES,
-  type FixSweepAddr,
-  INITIAL_SWEEP_BATCHES,
-} from '../_shared/fixtures';
+import type { FixSweepAddr } from '../_shared/fixtures';
+import { INITIAL_SWEEP_BATCHES } from '../_shared/fixtures';
 import { GasMonitor } from './gas-monitor';
 import { SweepAddressTable, SweepCart } from './sweep-address-table';
 import { type Batch, SweepBatchHistory } from './sweep-batch-history';
 import { SweepConfirmModal } from './sweep-confirm-modal';
 import { SweepKpiStrip } from './sweep-kpi-strip';
 import { SweepPolicyStrip } from './sweep-policy-strip';
+import { useSweepSocketListener } from './sweep-socket-listener';
+import { useSweepCandidates } from './use-sweep-candidates';
+import { useSweepTrigger } from './use-sweep-trigger';
+
+/** Map API SweepCandidate → FixSweepAddr shape expected by SweepAddressTable */
+function toTableRow(c: {
+  userAddressId: string;
+  userId: string;
+  chain: 'bnb' | 'sol';
+  address: string;
+  creditedUsdt: string;
+  creditedUsdc: string;
+}): FixSweepAddr {
+  return {
+    id: c.userAddressId,
+    userId: c.userId,
+    userName: `${c.address.slice(0, 8)}…`,
+    chain: c.chain,
+    address: c.address,
+    balanceUSDT: Number(c.creditedUsdt),
+    balanceUSDC: Number(c.creditedUsdc),
+    gasBalance: 0,
+    lastDepositAt: new Date().toISOString(),
+  };
+}
 
 export function SweepPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  const qc = useQueryClient();
   const [chain, setChain] = useState<'bnb' | 'sol'>('bnb');
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [executing, setExecuting] = useState(false);
-  const [batches, setBatches] = useState<Batch[]>(INITIAL_SWEEP_BATCHES);
+  const [batches] = useState<Batch[]>(INITIAL_SWEEP_BATCHES);
 
-  useEffect(() => {
-    const socket = connectSocket();
-    const handler = () => {
-      void qc.invalidateQueries({ queryKey: ['sweep'] });
-      void qc.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-    socket.on('sweep.completed', handler);
-    return () => {
-      socket.off('sweep.completed', handler);
-      disconnectSocket();
-    };
-  }, [qc]);
+  // ── Real data ───────────────────────────────────────────────────────────────
+  const { data: candidatesRes, isLoading } = useSweepCandidates(chain);
+  const trigger = useSweepTrigger();
 
-  const filtered = useMemo(() => FIX_DEPOSIT_ADDRESSES.filter((a) => a.chain === chain), [chain]);
+  // ── Live updates via Socket.io ──────────────────────────────────────────────
+  useSweepSocketListener();
+
+  // ── Derived state ───────────────────────────────────────────────────────────
+  const candidates = candidatesRes?.data ?? [];
+  const filtered: FixSweepAddr[] = useMemo(() => candidates.map(toTableRow), [candidates]);
+
   const selectedAddrs = filtered.filter((a) => selected.includes(a.id));
   const totalUSDT = selectedAddrs.reduce((s, a) => s + a.balanceUSDT, 0);
   const totalUSDC = selectedAddrs.reduce((s, a) => s + a.balanceUSDC, 0);
@@ -57,25 +73,17 @@ export function SweepPage() {
   const selectAboveThreshold = () =>
     setSelected(filtered.filter((a) => a.balanceUSDT + a.balanceUSDC > 500).map((a) => a.id));
 
-  const executeBatch = () => {
-    setExecuting(true);
-    setTimeout(() => {
-      const newBatch: Batch = {
-        id: `b_${8113 + batches.length}`,
-        chain,
-        addresses: selectedAddrs.length,
-        total,
-        fee: estFee,
-        status: 'completed',
-        createdAt: new Date().toISOString(),
-        executedAt: new Date().toISOString(),
-      };
-      setBatches([newBatch, ...batches]);
+  // ── Execute sweep batch ─────────────────────────────────────────────────────
+  const executeBatch = async () => {
+    try {
+      const result = await trigger.mutateAsync({ candidate_ids: selected });
       setSelected([]);
       setConfirmOpen(false);
-      setExecuting(false);
-      toast(t('sweep.toastBroadcast', { id: newBatch.id }), 'success');
-    }, 1800);
+      const count = result.created.length;
+      toast(t('sweep.broadcast.toast', { id: `(${count})` }), 'success');
+    } catch {
+      toast(t('sweep.error.generic'), 'error');
+    }
   };
 
   return (
@@ -124,39 +132,45 @@ export function SweepPage() {
         </div>
       </div>
 
-      <div className="sweep-grid">
-        <SweepAddressTable
-          rows={filtered}
-          chain={chain}
-          selected={selected}
-          onToggle={toggleSelect}
-          onToggleAll={toggleAll}
-          selectAboveThreshold={selectAboveThreshold}
-        />
-        <SweepCart
-          selected={selectedAddrs as FixSweepAddr[]}
-          totalUSDT={totalUSDT}
-          totalUSDC={totalUSDC}
-          total={total}
-          estFee={estFee}
-          chain={chain}
-          onExecute={() => setConfirmOpen(true)}
-        />
-      </div>
+      {isLoading ? (
+        <div className="text-muted text-sm" style={{ padding: '24px 0' }}>
+          Loading candidates…
+        </div>
+      ) : (
+        <div className="sweep-grid">
+          <SweepAddressTable
+            rows={filtered}
+            chain={chain}
+            selected={selected}
+            onToggle={toggleSelect}
+            onToggleAll={toggleAll}
+            selectAboveThreshold={selectAboveThreshold}
+          />
+          <SweepCart
+            selected={selectedAddrs}
+            totalUSDT={totalUSDT}
+            totalUSDC={totalUSDC}
+            total={total}
+            estFee={estFee}
+            chain={chain}
+            onExecute={() => setConfirmOpen(true)}
+          />
+        </div>
+      )}
 
       <SweepBatchHistory batches={batches} />
 
       <SweepConfirmModal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        executing={executing}
+        executing={trigger.isPending}
         chain={chain}
         addressesCount={selectedAddrs.length}
         totalUSDT={totalUSDT}
         totalUSDC={totalUSDC}
         total={total}
         estFee={estFee}
-        onConfirm={executeBatch}
+        onConfirm={() => void executeBatch()}
       />
     </PageFrame>
   );

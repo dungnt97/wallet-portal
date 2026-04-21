@@ -473,7 +473,20 @@
     "tierSlow": "Slow",
     "tierStandard": "Standard",
     "tierFast": "Fast",
-    "tierPriority": "Priority"
+    "tierPriority": "Priority",
+    "broadcast": {
+      "started": "Sweep started — broadcasting transaction…",
+      "toast": "Sweep {{id}} broadcast to network"
+    },
+    "confirmed": {
+      "toast": "Sweep {{id}} confirmed on-chain"
+    },
+    "error": {
+      "policy_rejected": "Sweep rejected by policy engine",
+      "not_found": "Sweep not found",
+      "conflict": "Address already has an active sweep",
+      "generic": "Sweep failed — please retry"
+    }
   },
   "multisig": {
     "eyebrow": "Signing",

@@ -473,7 +473,20 @@
     "tierSlow": "Chậm",
     "tierStandard": "Chuẩn",
     "tierFast": "Nhanh",
-    "tierPriority": "Ưu tiên"
+    "tierPriority": "Ưu tiên",
+    "broadcast": {
+      "started": "Đang phát giao dịch sweep…",
+      "toast": "Sweep {{id}} đã phát lên mạng"
+    },
+    "confirmed": {
+      "toast": "Sweep {{id}} đã xác nhận trên chuỗi"
+    },
+    "error": {
+      "policy_rejected": "Sweep bị từ chối bởi chính sách",
+      "not_found": "Không tìm thấy sweep",
+      "conflict": "Địa chỉ đã có sweep đang xử lý",
+      "generic": "Sweep thất bại — vui lòng thử lại"
+    }
   },
   "multisig": {
     "eyebrow": "Ký",

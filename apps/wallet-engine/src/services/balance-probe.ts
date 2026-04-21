@@ -131,3 +131,117 @@ export async function probeSolanaBalance(
   logger.debug({ walletAddr, tokenSymbol, total: total.toString() }, 'Solana balance fetched');
   return total;
 }
+
+// ── Batch probe helper ────────────────────────────────────────────────────────
+
+export interface ProbeRequest {
+  chain: 'bnb' | 'sol';
+  address: string;
+  token: 'USDT' | 'USDC';
+}
+
+export interface ProbeResult {
+  chain: 'bnb' | 'sol';
+  address: string;
+  token: 'USDT' | 'USDC';
+  /** Balance in token minor units (bigint string). null = probe failed. */
+  balanceMinor: string | null;
+  stale: boolean;
+}
+
+export interface ProbeBatchConfig {
+  rpcBnb: string;
+  rpcSolana: string;
+  solanaConnection: Connection;
+  usdtBnbAddr: string;
+  usdcBnbAddr: string;
+  usdtSolMint: string;
+  usdcSolMint: string;
+}
+
+/**
+ * Batch-probe on-chain balances for an arbitrary set of (chain, address, token) tuples.
+ * Respects concurrency limit via p-limit to avoid RPC rate-limits.
+ * Uses Promise.allSettled — a failed probe surfaces as balanceMinor=null + stale=true
+ * rather than crashing the entire snapshot.
+ */
+export async function probeBatch(
+  redis: IORedis,
+  requests: ProbeRequest[],
+  cfg: ProbeBatchConfig,
+  concurrency = 20
+): Promise<ProbeResult[]> {
+  // Inline p-limit via a simple semaphore to avoid adding a new dependency
+  let active = 0;
+  const queue: Array<() => void> = [];
+
+  function acquire(): Promise<void> {
+    return new Promise((resolve) => {
+      if (active < concurrency) {
+        active++;
+        resolve();
+      } else {
+        queue.push(() => {
+          active++;
+          resolve();
+        });
+      }
+    });
+  }
+
+  function release(): void {
+    active--;
+    const next = queue.shift();
+    if (next) next();
+  }
+
+  const probeOne = async (req: ProbeRequest): Promise<ProbeResult> => {
+    await acquire();
+    try {
+      let balanceMinor: bigint;
+      if (req.chain === 'bnb') {
+        const tokenAddr = req.token === 'USDT' ? cfg.usdtBnbAddr : cfg.usdcBnbAddr;
+        balanceMinor = await probeEvmBalance(
+          redis,
+          cfg.rpcBnb,
+          req.address,
+          tokenAddr,
+          'bnb',
+          req.token
+        );
+      } else {
+        const mint = req.token === 'USDT' ? cfg.usdtSolMint : cfg.usdcSolMint;
+        balanceMinor = await probeSolanaBalance(
+          redis,
+          cfg.solanaConnection,
+          req.address,
+          mint,
+          req.token
+        );
+      }
+      return {
+        chain: req.chain,
+        address: req.address,
+        token: req.token,
+        balanceMinor: balanceMinor.toString(),
+        stale: false,
+      };
+    } catch (err) {
+      logger.warn(
+        { chain: req.chain, address: req.address, token: req.token, err },
+        'probeBatch: probe failed'
+      );
+      return {
+        chain: req.chain,
+        address: req.address,
+        token: req.token,
+        balanceMinor: null,
+        stale: true,
+      };
+    } finally {
+      release();
+    }
+  };
+
+  return Promise.all(requests.map((r) => probeOne(r)));
+}

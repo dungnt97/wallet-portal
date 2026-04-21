@@ -5,6 +5,8 @@
 export type Role = 'admin' | 'treasurer' | 'operator' | 'viewer';
 
 export type Permission =
+  | 'reconciliation.read'
+  | 'reconciliation.run'
   | 'dashboard.read'
   | 'deposits.read'
   | 'deposits.credit'
@@ -53,4 +55,7 @@ export const PERMS: Record<Permission, Role[]> = {
   // Signer ceremony management — restricted to admin only (WebAuthn step-up required)
   'signers.read': ['admin', 'treasurer', 'operator', 'viewer'],
   'signers.manage': ['admin'],
+  // Reconciliation (Slice 10) — read: ops+admin; run: admin-only
+  'reconciliation.read': ['admin', 'treasurer', 'operator'],
+  'reconciliation.run': ['admin'],
 };

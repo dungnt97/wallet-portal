@@ -54,6 +54,17 @@ const EnvSchema = z.object({
   SLACK_WEBHOOK_URL: z.string().default(''),
   // DRY_RUN: log payloads without sending SMTP/webhook calls (default true for non-prod)
   NOTIFICATIONS_DRY_RUN: z.string().default('true'),
+  // Reconciliation (Slice 10)
+  // Kill-switch: set RECON_ENABLED=false to disable cron + manual trigger (returns 503)
+  RECON_ENABLED: z.string().default('true'),
+  // Dry-run: probe on-chain but skip DB insert + notifications (useful in CI + staging)
+  RECON_DRY_RUN: z.string().default('false'),
+  // Drift thresholds in USD cents (uniform across USDT + USDC)
+  RECON_DUST_THRESHOLD_CENTS: z.coerce.number().int().nonnegative().default(100),
+  RECON_WARNING_THRESHOLD_CENTS: z.coerce.number().int().nonnegative().default(1000),
+  RECON_CRITICAL_THRESHOLD_CENTS: z.coerce.number().int().nonnegative().default(10000),
+  // Snapshot retention in days — snapshots older than this are hard-deleted by GC job
+  RECON_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

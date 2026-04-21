@@ -19,6 +19,8 @@ declare module 'fastify' {
     slackQueue: Queue;
     /** BullMQ queue for signer ceremony broadcast jobs (Slice 6) */
     ceremonyQueue: Queue;
+    /** BullMQ queue for reconciliation run jobs (Slice 10) */
+    reconQueue: Queue;
   }
 
   interface Session {

@@ -13,6 +13,7 @@ import notificationsRoutes from './notifications.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import rebalanceRoutes from './rebalance.routes.js';
+import reconciliationRoutes from './reconciliation.routes.js';
 import signersRoutes from './signers.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
@@ -43,6 +44,9 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
 
   // Notifications — bell panel list, unread count, mark-read, prefs
   await app.register(notificationsRoutes);
+
+  // Reconciliation — snapshot list, detail, manual trigger, cancel (Slice 10)
+  await app.register(reconciliationRoutes);
 
   // Ops routes — kill-switch toggle + health aggregator
   await app.register(opsKillSwitchRoutes);

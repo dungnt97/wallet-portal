@@ -20,6 +20,7 @@ import searchRoutes from './search.routes.js';
 import signersRoutes from './signers.routes.js';
 import staffRoutes from './staff.routes.js';
 import sweepsRoutes from './sweeps.routes.js';
+import transactionsRoutes from './transactions.routes.js';
 import usersRoutes from './users.routes.js';
 import walletsRoutes from './wallets.routes.js';
 import withdrawalsRoutes from './withdrawals.routes.js';
@@ -37,6 +38,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(dashboardRoutes);
   await app.register(depositsRoutes);
   await app.register(withdrawalsRoutes);
+  await app.register(transactionsRoutes);
   await app.register(multisigRoutes);
   await app.register(sweepsRoutes, { sweepQueue: app.sweepQueue });
   await app.register(usersRoutes);

@@ -1,18 +1,20 @@
-// Transactions KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+import type { TxRow } from '@/api/queries';
+// Transactions KPI strip — computed from real TxRow[] returned by useTransactions().
+// FixTransaction removed.
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
 import { useMemo } from 'react';
 import { Sparkline, makeSeries } from '../_shared/charts';
-import type { FixTransaction } from '../_shared/fixtures';
 
 interface Props {
-  rows: FixTransaction[];
+  rows: TxRow[];
 }
 
 export function TransactionsKpiStrip({ rows }: Props) {
   const totalVol = rows.reduce((s, t) => s + t.amount, 0);
   const totalFee = rows.reduce((s, t) => s + t.fee, 0);
+  // Cosmetic sparkline — real volume history endpoint not yet available
   const volSeries = useMemo(() => makeSeries(81, 48, 0.03, 0.08).map((v) => v * 40_000), []);
   const deposits = rows.filter((t) => t.type === 'deposit');
   const withdrawals = rows.filter((t) => t.type === 'withdrawal');
@@ -91,7 +93,7 @@ export function TransactionsKpiStrip({ rows }: Props) {
               Gas spent
             </>
           ),
-          value: totalFee.toFixed(3),
+          value: totalFee > 0 ? totalFee.toFixed(3) : '—',
           foot: (
             <>
               <span className="text-xs text-muted text-mono">BNB + SOL</span>

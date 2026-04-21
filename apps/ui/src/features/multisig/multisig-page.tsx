@@ -1,6 +1,15 @@
-// Multisig queue page — wired to real /multisig-ops + /staff + /cold/balances APIs.
+// Multisig queue page — wired to real /multisig-ops + /staff + /cold/balances + /wallets APIs.
 // FIX_MULTISIG_OPS, TOTAL_BALANCES, TREASURERS fixtures fully removed.
-import { useColdBalances, useMultisigOps, useStaffList } from '@/api/queries';
+import { ApiError } from '@/api/client';
+import {
+  useApproveMultisigOp,
+  useColdBalances,
+  useExecuteMultisigOp,
+  useMultisigOps,
+  useRejectMultisigOp,
+  useStaffList,
+  useWallets,
+} from '@/api/queries';
 import type { MultisigOpRow, StaffMemberRow } from '@/api/queries';
 import { useAuth } from '@/auth/use-auth';
 import { PageFrame } from '@/components/custody';
@@ -67,6 +76,25 @@ export function MultisigPage() {
   const { data: opsPage } = useMultisigOps({ limit: 50 });
   const { data: staffPage } = useStaffList({ limit: 100 });
   const { data: coldBalances } = useColdBalances();
+  // Vault addresses from wallet registry (operational wallets per chain)
+  const { data: walletsPage } = useWallets({ tier: 'hot' });
+
+  // Derive vault addresses from registry; fall back to env-configured values
+  const bnbVaultAddress = useMemo(() => {
+    return (
+      walletsPage?.data.find((w) => w.chain === 'bnb' && w.purpose === 'operational')?.address ??
+      (import.meta.env.VITE_SAFE_ADDRESS as string | undefined) ??
+      '—'
+    );
+  }, [walletsPage]);
+
+  const solVaultAddress = useMemo(() => {
+    return (
+      walletsPage?.data.find((w) => w.chain === 'sol' && w.purpose === 'operational')?.address ??
+      (import.meta.env.VITE_SQUADS_MULTISIG_ADDRESS as string | undefined) ??
+      '—'
+    );
+  }, [walletsPage]);
 
   const staffMap = useMemo<Map<string, StaffMemberRow>>(() => {
     const m = new Map<string, StaffMemberRow>();
@@ -112,35 +140,71 @@ export function MultisigPage() {
     }, 800);
   };
 
+  // Mutation hooks are keyed by selected op id
+  const approveMutation = useApproveMultisigOp(selected?.id ?? 'none');
+  const rejectMutation = useRejectMultisigOp(selected?.id ?? 'none');
+  const executeMutation = useExecuteMultisigOp(selected?.id ?? 'none');
+
   const onApprove = (o: MultisigOpDisplay) => {
     if (!staff) return;
-    const collected = o.collected + 1;
-    const updated: MultisigOpDisplay = {
-      ...o,
-      collected,
-      status: collected >= o.required ? 'ready' : 'collecting',
-      approvers: [
-        ...o.approvers,
-        { staffId: staff.id, at: new Date().toISOString(), txSig: 'stub…' },
-      ],
-    };
-    setOverrides((prev) => ({ ...prev, [o.id]: updated }));
-    setSelected(updated);
-    toast(`Signature recorded (${collected}/${o.required}).`, 'success');
+    approveMutation.mutate(
+      { staffId: staff.id, at: new Date().toISOString() },
+      {
+        onSuccess: (result) => {
+          const collected = result.op.collectedSigs;
+          const updated: MultisigOpDisplay = {
+            ...o,
+            collected,
+            status: result.op.status as MultisigOpDisplay['status'],
+            approvers: [
+              ...o.approvers,
+              { staffId: staff.id, at: new Date().toISOString(), txSig: '' },
+            ],
+          };
+          setOverrides((prev) => ({ ...prev, [o.id]: updated }));
+          setSelected(updated);
+          toast(`Signature recorded (${collected}/${o.required}).`, 'success');
+        },
+        onError: (err) => {
+          const msg = err instanceof ApiError ? err.message : String(err);
+          toast(`Approve failed: ${msg}`, 'error');
+        },
+      }
+    );
   };
 
   const onReject = (o: MultisigOpDisplay) => {
     if (!staff) return;
-    const updated: MultisigOpDisplay = { ...o, status: 'failed', rejectedBy: staff.id };
-    setOverrides((prev) => ({ ...prev, [o.id]: updated }));
-    setSelected(updated);
-    toast(`Rejected ${o.id}.`, 'success');
+    rejectMutation.mutate(
+      {},
+      {
+        onSuccess: () => {
+          const updated: MultisigOpDisplay = { ...o, status: 'failed', rejectedBy: staff.id };
+          setOverrides((prev) => ({ ...prev, [o.id]: updated }));
+          setSelected(updated);
+          toast(`Rejected ${o.id.slice(0, 8)}.`, 'success');
+        },
+        onError: (err) => {
+          const msg = err instanceof ApiError ? err.message : String(err);
+          toast(`Reject failed: ${msg}`, 'error');
+        },
+      }
+    );
   };
 
   const onExecute = (o: MultisigOpDisplay) => {
-    const updated: MultisigOpDisplay = { ...o, status: 'ready' };
-    setOverrides((prev) => ({ ...prev, [o.id]: updated }));
-    setSelected(null);
+    executeMutation.mutate(undefined, {
+      onSuccess: () => {
+        const updated: MultisigOpDisplay = { ...o, status: 'ready' };
+        setOverrides((prev) => ({ ...prev, [o.id]: updated }));
+        setSelected(null);
+        toast(t('multisig.executeQueued', 'Broadcast enqueued.'), 'success');
+      },
+      onError: (err) => {
+        const msg = err instanceof ApiError ? err.message : String(err);
+        toast(`Execute failed: ${msg}`, 'error');
+      },
+    });
   };
 
   return (
@@ -205,7 +269,7 @@ export function MultisigPage() {
         <VaultCard
           chain="bnb"
           name="BSC Treasury Safe"
-          address="0x4a8C2bAcF8dE54E2B19f2Aab1ce8B7bc1D54aB17"
+          address={bnbVaultAddress}
           policy={`${MULTISIG_POLICY.required} of ${MULTISIG_POLICY.total}`}
           balance={bnbBalance}
           pending={pending.filter((o) => o.chain === 'bnb').length}
@@ -214,7 +278,7 @@ export function MultisigPage() {
         <VaultCard
           chain="sol"
           name="Solana Squads Vault"
-          address="GfA8T9LqXk2pNvRtBcMnHWdYJsEqZxuVP3oHkCmVault7"
+          address={solVaultAddress}
           policy={`${MULTISIG_POLICY.required} of ${MULTISIG_POLICY.total}`}
           balance={solBalance}
           pending={pending.filter((o) => o.chain === 'sol').length}

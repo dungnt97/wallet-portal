@@ -1,6 +1,9 @@
 import { MultisigOp } from '@wp/shared-types';
 import { eq } from 'drizzle-orm';
 // Multisig routes — GET /multisig-ops, POST /multisig-ops/:id/submit-signature
+// POST /multisig-ops/:id/approve  — record signer approval (no hw signing key required)
+// POST /multisig-ops/:id/reject   — fail the op
+// POST /multisig-ops/:id/execute  — enqueue broadcast for ready op
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -203,6 +206,227 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
         },
         progress: `${updatedOp.collectedSigs}/${updatedOp.requiredSigs}`,
       });
+    }
+  );
+  // ── POST /multisig-ops/:id/approve ───────────────────────────────────────────
+  // Simple approval without a hardware signing key — records staff approval + increments count.
+  // For full cryptographic signing (treasurer flow), use POST /withdrawals/:id/approve instead.
+  r.post(
+    '/multisig-ops/:id/approve',
+    {
+      preHandler: requirePerm('multisig.sign'),
+      schema: {
+        tags: ['multisig'],
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({
+          staffId: z.string().uuid(),
+          at: z.string().datetime().optional(),
+        }),
+        response: {
+          200: z.object({
+            op: z.object({
+              id: z.string().uuid(),
+              collectedSigs: z.number().int(),
+              requiredSigs: z.number().int(),
+              status: z.string(),
+            }),
+            thresholdMet: z.boolean(),
+          }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: req.body.staffId }).id;
+      const opId = req.params.id;
+
+      const op = await app.db.query.multisigOperations.findFirst({
+        where: eq(schema.multisigOperations.id, opId),
+      });
+      if (!op) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `MultisigOperation ${opId} not found` });
+      }
+      if (['ready', 'submitted', 'confirmed', 'failed', 'expired'].includes(op.status)) {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `Cannot approve op in status '${op.status}'`,
+        });
+      }
+
+      const newCount = op.collectedSigs + 1;
+      const thresholdMet = newCount >= op.requiredSigs;
+      const nextStatus = thresholdMet ? 'ready' : 'collecting';
+
+      const [updatedOp] = await app.db
+        .update(schema.multisigOperations)
+        .set({ collectedSigs: newCount, status: nextStatus, updatedAt: new Date() })
+        .where(eq(schema.multisigOperations.id, opId))
+        .returning();
+
+      if (!updatedOp) throw new Error('Update returned no row');
+
+      await emitAudit(app.db, {
+        staffId,
+        action: 'multisig.approved',
+        resourceType: 'multisig_operation',
+        resourceId: opId,
+        changes: { collectedSigs: newCount, requiredSigs: op.requiredSigs, thresholdMet },
+      });
+
+      app.io.of('/stream').emit('multisig.approved', {
+        opId,
+        collectedSigs: updatedOp.collectedSigs,
+        requiredSigs: updatedOp.requiredSigs,
+        status: updatedOp.status,
+        thresholdMet,
+      });
+
+      return reply.code(200).send({
+        op: {
+          id: updatedOp.id,
+          collectedSigs: updatedOp.collectedSigs,
+          requiredSigs: updatedOp.requiredSigs,
+          status: updatedOp.status,
+        },
+        thresholdMet,
+      });
+    }
+  );
+
+  // ── POST /multisig-ops/:id/reject ─────────────────────────────────────────────
+  r.post(
+    '/multisig-ops/:id/reject',
+    {
+      preHandler: requirePerm('multisig.sign'),
+      schema: {
+        tags: ['multisig'],
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({ reason: z.string().max(500).optional() }),
+        response: {
+          200: z.object({ ok: z.boolean() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+      const opId = req.params.id;
+
+      const op = await app.db.query.multisigOperations.findFirst({
+        where: eq(schema.multisigOperations.id, opId),
+      });
+      if (!op) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `MultisigOperation ${opId} not found` });
+      }
+      if (['submitted', 'confirmed', 'failed', 'expired'].includes(op.status)) {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `Cannot reject op in status '${op.status}'`,
+        });
+      }
+
+      await app.db
+        .update(schema.multisigOperations)
+        .set({ status: 'failed', updatedAt: new Date() })
+        .where(eq(schema.multisigOperations.id, opId));
+
+      await emitAudit(app.db, {
+        staffId,
+        action: 'multisig.rejected',
+        resourceType: 'multisig_operation',
+        resourceId: opId,
+        changes: { reason: req.body.reason ?? null },
+      });
+
+      app.io.of('/stream').emit('multisig.rejected', { opId, rejectedBy: staffId });
+
+      return reply.code(200).send({ ok: true });
+    }
+  );
+
+  // ── POST /multisig-ops/:id/execute ────────────────────────────────────────────
+  // Enqueues broadcast of a 'ready' multisig operation.
+  r.post(
+    '/multisig-ops/:id/execute',
+    {
+      preHandler: requirePerm('multisig.sign'),
+      schema: {
+        tags: ['multisig'],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          202: z.object({ jobId: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+      const opId = req.params.id;
+
+      const op = await app.db.query.multisigOperations.findFirst({
+        where: eq(schema.multisigOperations.id, opId),
+      });
+      if (!op) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `MultisigOperation ${opId} not found` });
+      }
+      if (op.status !== 'ready') {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `MultisigOperation ${opId} must be in 'ready' status to execute (current: ${op.status})`,
+        });
+      }
+
+      // If this op is tied to a withdrawal, delegate to the withdrawal execute queue
+      if (op.withdrawalId) {
+        const { executeWithdrawal } = await import('../services/withdrawal-execute.service.js');
+        const { ConflictError, NotFoundError } = await import(
+          '../services/withdrawal-execute.service.js'
+        );
+        try {
+          const result = await executeWithdrawal(
+            app.db,
+            op.withdrawalId,
+            staffId,
+            app.queue,
+            app.io
+          );
+          return reply.code(202).send({ jobId: result.jobId });
+        } catch (err) {
+          if ((err as { code?: string }).code === 'NOT_FOUND') {
+            return reply.code(404).send({ code: 'NOT_FOUND', message: (err as Error).message });
+          }
+          if ((err as { code?: string }).code === 'CONFLICT') {
+            return reply.code(409).send({ code: 'CONFLICT', message: (err as Error).message });
+          }
+          throw err;
+        }
+      }
+
+      // Non-withdrawal ops (e.g. signer ceremonies handled by worker): mark as submitted
+      await app.db
+        .update(schema.multisigOperations)
+        .set({ status: 'submitted', updatedAt: new Date() })
+        .where(eq(schema.multisigOperations.id, opId));
+
+      await emitAudit(app.db, {
+        staffId,
+        action: 'multisig.executed',
+        resourceType: 'multisig_operation',
+        resourceId: opId,
+        changes: { status: 'submitted' },
+      });
+
+      app.io.of('/stream').emit('multisig.executed', { opId });
+      return reply.code(202).send({ jobId: `multisig-op-${opId}` });
     }
   );
 };

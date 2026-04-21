@@ -17,6 +17,12 @@ import swaggerPlugin from './plugins/swagger.plugin.js';
 import telemetryPlugin from './plugins/telemetry.plugin.js';
 import routes from './routes/index.js';
 import { startColdTimelockScheduler } from './services/cold-timelock-scheduler.js';
+import {
+  DIGEST_JOB_NAME,
+  DIGEST_QUEUE,
+  createEmailDigestWorker,
+} from './workers/notif-email-digest.worker.js';
+import { createEmailImmediateWorker } from './workers/notif-email-immediate.worker.js';
 
 export async function buildApp(cfg: Config) {
   const app = Fastify({
@@ -110,6 +116,47 @@ export async function buildApp(cfg: Config) {
       slackQueue: app.slackQueue,
     });
     app.addHook('onClose', async () => stopScheduler());
+
+    // Build Redis connection opts from ioredis instance (BullMQ needs plain options)
+    const redisOpts = {
+      host: app.redis.options.host ?? 'localhost',
+      port: app.redis.options.port ?? 6379,
+      password: app.redis.options.password,
+    };
+
+    const smtpCfg = {
+      host: cfg.SMTP_HOST,
+      port: cfg.SMTP_PORT,
+      user: cfg.SMTP_USER,
+      pass: cfg.SMTP_PASS,
+      from: cfg.SMTP_FROM,
+    };
+
+    // Email immediate worker (concurrency 5, processes notif_email_immediate queue)
+    const emailImmediateWorker = createEmailImmediateWorker(app.db, smtpCfg, redisOpts);
+    app.addHook('onClose', async () => emailImmediateWorker.close());
+
+    // Email digest worker (concurrency 1, processes notif_email_digest queue hourly)
+    const emailDigestWorker = createEmailDigestWorker(app.db, smtpCfg, redisOpts);
+    app.addHook('onClose', async () => emailDigestWorker.close());
+
+    // Register the repeatable hourly cron job (idempotent — BullMQ deduplicates by jobId)
+    // Queue: notif_email_digest, cron: every hour at :00
+    const { Queue } = await import('bullmq');
+    const digestQueue = new Queue(DIGEST_QUEUE, { connection: redisOpts });
+    await digestQueue.add(
+      DIGEST_JOB_NAME,
+      {},
+      {
+        jobId: 'digest-hourly-cron',
+        repeat: { pattern: '0 * * * *' },
+        removeOnComplete: { count: 10 },
+        removeOnFail: { count: 50 },
+      }
+    );
+    await digestQueue.close();
+
+    app.log.info('Notification workers started (email-immediate, email-digest)');
   });
 
   return app;

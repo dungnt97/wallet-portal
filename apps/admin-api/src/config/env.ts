@@ -41,6 +41,17 @@ const EnvSchema = z.object({
   OTEL_SERVICE_NAME: z.string().default('admin-api'),
   // Sentry (optional — empty string = disabled)
   SENTRY_DSN: z.string().default(''),
+  // Notification channels (Slice 5)
+  // SMTP — nodemailer transport. Use Mailhog for dev (SMTP_HOST=localhost, SMTP_PORT=1025).
+  SMTP_HOST: z.string().default('localhost'),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  SMTP_FROM: z.string().default('wallet-portal@localhost'),
+  // Slack — single incoming webhook URL (empty = disabled)
+  SLACK_WEBHOOK_URL: z.string().default(''),
+  // DRY_RUN: log payloads without sending SMTP/webhook calls (default true for non-prod)
+  NOTIFICATIONS_DRY_RUN: z.string().default('true'),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

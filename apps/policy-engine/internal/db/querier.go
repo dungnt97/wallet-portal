@@ -18,4 +18,6 @@ type Querier interface {
 	IsDestinationWhitelisted(ctx context.Context, arg IsDestinationWhitelistedParams) (bool, error)
 	CountWhitelistEntries(ctx context.Context) (int64, error)
 	GetWithdrawal(ctx context.Context, id pgtype.UUID) (GetWithdrawalRow, error)
+	// IsOperationalWallet: sweep fast-path — allows destination if it is a registered operational wallet.
+	IsOperationalWallet(ctx context.Context, arg IsOperationalWalletParams) (bool, error)
 }

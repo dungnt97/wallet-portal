@@ -45,3 +45,13 @@ SELECT id, user_id, chain, token, amount, destination_addr, status, source_tier,
        multisig_op_id, time_lock_expires_at, created_by, created_at, updated_at
 FROM withdrawals
 WHERE id = $1;
+
+-- name: IsOperationalWallet :one
+-- Sweep fast-path: checks if the destination is a registered operational or cold_reserve wallet.
+-- Sweep destinations are always hot_safe (operational purpose) — no multisig needed.
+SELECT EXISTS(
+    SELECT 1 FROM wallets
+    WHERE chain = $1::chain
+      AND address = $2
+      AND purpose IN ('operational', 'cold_reserve')
+) AS is_operational;

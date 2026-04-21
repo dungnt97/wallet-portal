@@ -31,6 +31,9 @@ type fakeQuerier struct {
 
 	withdrawal    *db.GetWithdrawalRow
 	withdrawalErr error
+
+	isOperationalWallet    bool
+	isOperationalWalletErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -73,6 +76,10 @@ func (f *fakeQuerier) GetWithdrawal(_ context.Context, _ pgtype.UUID) (db.GetWit
 		return db.GetWithdrawalRow{}, errors.New("no rows")
 	}
 	return *f.withdrawal, nil
+}
+
+func (f *fakeQuerier) IsOperationalWallet(_ context.Context, _ db.IsOperationalWalletParams) (bool, error) {
+	return f.isOperationalWallet, f.isOperationalWalletErr
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────
@@ -232,27 +239,45 @@ func TestDestinationWhitelist(t *testing.T) {
 		wantPass bool
 	}{
 		{
-			name: "empty whitelist — dev mode allows all",
-			req:  rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb"},
-			querier: &fakeQuerier{whitelistCount: 0, whitelisted: false},
+			name:     "empty whitelist — dev mode allows all",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb"},
+			querier:  &fakeQuerier{whitelistCount: 0, whitelisted: false},
 			wantPass: true,
 		},
 		{
-			name: "address in whitelist",
-			req:  rules.EvaluateRequest{DestinationAddr: "0xgood", Chain: "bnb"},
-			querier: &fakeQuerier{whitelistCount: 5, whitelisted: true},
+			name:     "address in whitelist",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xgood", Chain: "bnb"},
+			querier:  &fakeQuerier{whitelistCount: 5, whitelisted: true},
 			wantPass: true,
 		},
 		{
-			name: "address not in whitelist",
-			req:  rules.EvaluateRequest{DestinationAddr: "0xbad", Chain: "bnb"},
-			querier: &fakeQuerier{whitelistCount: 5, whitelisted: false},
+			name:     "address not in whitelist",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xbad", Chain: "bnb"},
+			querier:  &fakeQuerier{whitelistCount: 5, whitelisted: false},
 			wantPass: false,
 		},
 		{
-			name: "count query error — propagates error",
-			req:  rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb"},
-			querier: &fakeQuerier{whitelistCountErr: errors.New("db down")},
+			name:     "count query error — propagates error",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb"},
+			querier:  &fakeQuerier{whitelistCountErr: errors.New("db down")},
+			wantPass: false,
+		},
+		{
+			name:     "sweep to known operational wallet — allowed without whitelist",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xhot_safe", Chain: "bnb", OperationType: "sweep"},
+			querier:  &fakeQuerier{isOperationalWallet: true},
+			wantPass: true,
+		},
+		{
+			name:     "sweep to unknown address — denied",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xunknown", Chain: "bnb", OperationType: "sweep"},
+			querier:  &fakeQuerier{isOperationalWallet: false},
+			wantPass: false,
+		},
+		{
+			name:     "sweep — DB error checking operational wallet — fail closed",
+			req:      rules.EvaluateRequest{DestinationAddr: "0xany", Chain: "bnb", OperationType: "sweep"},
+			querier:  &fakeQuerier{isOperationalWalletErr: errors.New("db down")},
 			wantPass: false,
 		},
 	}

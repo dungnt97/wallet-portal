@@ -173,3 +173,25 @@ func (q *Queries) SumWithdrawalsToday(ctx context.Context, createdBy pgtype.UUID
 	err := row.Scan(&total)
 	return total, err
 }
+
+const isOperationalWallet = `-- name: IsOperationalWallet :one
+SELECT EXISTS(
+    SELECT 1 FROM wallets
+    WHERE chain = $1::chain
+      AND address = $2
+      AND purpose IN ('operational', 'cold_reserve')
+) AS is_operational
+`
+
+type IsOperationalWalletParams struct {
+	Column1 Chain  `json:"column_1"`
+	Address string `json:"address"`
+}
+
+// Sweep fast-path: destination is an operational/cold_reserve wallet → allow without whitelist check.
+func (q *Queries) IsOperationalWallet(ctx context.Context, arg IsOperationalWalletParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isOperationalWallet, arg.Column1, arg.Address)
+	var isOperational bool
+	err := row.Scan(&isOperational)
+	return isOperational, err
+}

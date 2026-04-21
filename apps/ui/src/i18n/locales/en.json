@@ -630,7 +630,89 @@
     "colChain": "Chain",
     "colAddress": "Address",
     "colRole": "Role",
-    "colStatus": "Status"
+    "colStatus": "Status",
+    "current": {
+      "tabLabel": "Current treasurers",
+      "colName": "Name",
+      "colEmail": "Email",
+      "colStatus": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked",
+      "pending": "Pending",
+      "signing": "Signing",
+      "executing": "Executing",
+      "confirmed": "Confirmed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "partial": "Partial"
+    },
+    "add": {
+      "title": "Add signer",
+      "subtitle": "Initiate ceremony to add a new multisig owner on BNB + Solana",
+      "staffLabel": "Select staff member to add",
+      "staffPlaceholder": "— choose staff —",
+      "noEligibleStaff": "No eligible staff found (all may already be treasurers)",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. New hire onboarding, replacing departed treasurer",
+      "prereqTitle": "Signing key prerequisite",
+      "prereqBody": "The selected staff member must already have active signing keys registered on BNB and Solana before the ceremony can proceed.",
+      "stepUpTitle": "WebAuthn step-up required",
+      "stepUpBody": "Submitting this ceremony will prompt your security key / passkey to authenticate the action.",
+      "submit": "Start add ceremony",
+      "submitting": "Starting ceremony…",
+      "success": "Add-signer ceremony started successfully"
+    },
+    "remove": {
+      "title": "Remove signer",
+      "subtitle": "Initiate ceremony to remove a multisig owner on BNB + Solana",
+      "staffLabel": "Select treasurer to remove",
+      "staffPlaceholder": "— choose treasurer —",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. Off-boarding, compromised key, role change",
+      "belowThresholdTitle": "Cannot remove — threshold violation",
+      "belowThresholdBody": "Removing this signer would leave {{count}} active treasurer(s); the minimum is {{min}}. Add a replacement first.",
+      "shrinkTitle": "Signer set will shrink",
+      "shrinkBody": "After removal the set will have {{post}} active treasurer(s). Ensure the threshold still meets policy requirements.",
+      "submit": "Start remove ceremony",
+      "submitting": "Starting ceremony…",
+      "success": "Remove-signer ceremony started successfully"
+    },
+    "rotate": {
+      "title": "Rotate all",
+      "subtitle": "Atomically swap owners across BNB Safe + Solana Squads in a single ceremony",
+      "addLabel": "Add to set",
+      "removeLabel": "Remove from set",
+      "noAddCandidates": "No non-treasurer staff available to add",
+      "noRemoveCandidates": "No current treasurers available to remove",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. Quarterly key rotation, team restructure",
+      "postCount": "Post-rotation count",
+      "owners": "owners",
+      "threshold": "Threshold",
+      "belowMin": "Below minimum (2)",
+      "overlapError": "Staff appears in both lists",
+      "submit": "Start rotate ceremony",
+      "submitting": "Starting ceremony…",
+      "success": "Rotate-signers ceremony started successfully"
+    },
+    "ceremony": {
+      "activeTabLabel": "Active ceremonies",
+      "historyTabLabel": "History",
+      "noneActive": "No active ceremonies",
+      "created": "Ceremony created",
+      "reason": "Reason",
+      "partialTitle": "Partial completion — action required",
+      "partialBody": "One chain confirmed but the other failed. Withdrawals on the affected chain are blocked until resolved. Follow the runbook to complete or roll back.",
+      "runbookLink": "View runbook",
+      "step": {
+        "pending": "Pending",
+        "signing": "Signing",
+        "executing": "Executing",
+        "confirmed": "Confirmed"
+      }
+    }
   },
   "users": {
     "title": "Users",

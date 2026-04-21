@@ -623,14 +623,96 @@
     }
   },
   "signers": {
-    "title": "Signers",
-    "subtitle": "Các key signer đã đăng ký trên các vault",
-    "addSigner": "Thêm signer",
-    "colName": "Signer",
-    "colChain": "Chain",
+    "title": "Người ký",
+    "subtitle": "Khoá ký đã đăng ký trên các vault",
+    "addSigner": "Thêm người ký",
+    "colName": "Người ký",
+    "colChain": "Chuỗi",
     "colAddress": "Địa chỉ",
     "colRole": "Vai trò",
-    "colStatus": "Trạng thái"
+    "colStatus": "Trạng thái",
+    "current": {
+      "tabLabel": "Thủ quỹ hiện tại",
+      "colName": "Tên",
+      "colEmail": "Email",
+      "colStatus": "Trạng thái"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "revoked": "Đã thu hồi",
+      "pending": "Đang chờ",
+      "signing": "Đang ký",
+      "executing": "Đang thực hiện",
+      "confirmed": "Đã xác nhận",
+      "failed": "Thất bại",
+      "cancelled": "Đã huỷ",
+      "partial": "Một phần"
+    },
+    "add": {
+      "title": "Thêm người ký",
+      "subtitle": "Khởi tạo lễ thêm chủ sở hữu multisig trên BNB + Solana",
+      "staffLabel": "Chọn nhân viên để thêm",
+      "staffPlaceholder": "— chọn nhân viên —",
+      "noEligibleStaff": "Không tìm thấy nhân viên đủ điều kiện (tất cả đã là thủ quỹ)",
+      "reasonLabel": "Lý do",
+      "reasonPlaceholder": "VD: Nhân viên mới, thay thế thủ quỹ đã rời đi",
+      "prereqTitle": "Điều kiện tiên quyết về khoá ký",
+      "prereqBody": "Nhân viên được chọn phải có khoá ký đang hoạt động đã đăng ký trên BNB và Solana trước khi lễ có thể tiến hành.",
+      "stepUpTitle": "Yêu cầu xác thực WebAuthn",
+      "stepUpBody": "Việc gửi lễ này sẽ yêu cầu khoá bảo mật / passkey để xác thực hành động.",
+      "submit": "Bắt đầu lễ thêm",
+      "submitting": "Đang bắt đầu lễ…",
+      "success": "Lễ thêm người ký đã được khởi tạo thành công"
+    },
+    "remove": {
+      "title": "Xoá người ký",
+      "subtitle": "Khởi tạo lễ xoá chủ sở hữu multisig trên BNB + Solana",
+      "staffLabel": "Chọn thủ quỹ để xoá",
+      "staffPlaceholder": "— chọn thủ quỹ —",
+      "reasonLabel": "Lý do",
+      "reasonPlaceholder": "VD: Thôi việc, khoá bị xâm phạm, thay đổi vai trò",
+      "belowThresholdTitle": "Không thể xoá — vi phạm ngưỡng",
+      "belowThresholdBody": "Xoá người ký này sẽ chỉ còn {{count}} thủ quỹ đang hoạt động; tối thiểu là {{min}}. Hãy thêm người thay thế trước.",
+      "shrinkTitle": "Bộ người ký sẽ thu hẹp",
+      "shrinkBody": "Sau khi xoá sẽ còn {{post}} thủ quỹ đang hoạt động. Đảm bảo ngưỡng vẫn đáp ứng yêu cầu chính sách.",
+      "submit": "Bắt đầu lễ xoá",
+      "submitting": "Đang bắt đầu lễ…",
+      "success": "Lễ xoá người ký đã được khởi tạo thành công"
+    },
+    "rotate": {
+      "title": "Xoay vòng tất cả",
+      "subtitle": "Hoán đổi chủ sở hữu nguyên tử trên BNB Safe + Solana Squads trong một lễ duy nhất",
+      "addLabel": "Thêm vào bộ",
+      "removeLabel": "Xoá khỏi bộ",
+      "noAddCandidates": "Không có nhân viên không phải thủ quỹ để thêm",
+      "noRemoveCandidates": "Không có thủ quỹ hiện tại để xoá",
+      "reasonLabel": "Lý do",
+      "reasonPlaceholder": "VD: Xoay vòng khoá định kỳ, tái cấu trúc nhóm",
+      "postCount": "Số lượng sau xoay vòng",
+      "owners": "chủ sở hữu",
+      "threshold": "Ngưỡng",
+      "belowMin": "Dưới tối thiểu (2)",
+      "overlapError": "Nhân viên xuất hiện trong cả hai danh sách",
+      "submit": "Bắt đầu lễ xoay vòng",
+      "submitting": "Đang bắt đầu lễ…",
+      "success": "Lễ xoay vòng người ký đã được khởi tạo thành công"
+    },
+    "ceremony": {
+      "activeTabLabel": "Lễ đang hoạt động",
+      "historyTabLabel": "Lịch sử",
+      "noneActive": "Không có lễ nào đang hoạt động",
+      "created": "Lễ đã được tạo",
+      "reason": "Lý do",
+      "partialTitle": "Hoàn thành một phần — cần xử lý",
+      "partialBody": "Một chuỗi đã xác nhận nhưng chuỗi kia thất bại. Rút tiền trên chuỗi bị ảnh hưởng bị chặn cho đến khi được giải quyết. Làm theo runbook để hoàn thành hoặc khôi phục.",
+      "runbookLink": "Xem runbook",
+      "step": {
+        "pending": "Đang chờ",
+        "signing": "Đang ký",
+        "executing": "Đang thực hiện",
+        "confirmed": "Đã xác nhận"
+      }
+    }
   },
   "users": {
     "title": "Người dùng",

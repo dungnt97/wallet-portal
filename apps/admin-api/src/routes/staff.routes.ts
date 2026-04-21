@@ -9,7 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth, requirePerm } from '../auth/rbac.middleware.js';
-import { staffLoginHistory } from '../db/schema/index.js';
+import { staffLoginHistory, staffMembers } from '../db/schema/index.js';
 import { updateProfile } from '../services/account-settings.service.js';
 import { inviteStaff } from '../services/staff-invite.service.js';
 import { StubError, syncGoogleWorkspace } from '../services/staff-sync-google.service.js';
@@ -304,6 +304,73 @@ const staffRoutes: FastifyPluginAsync = async (app) => {
         total: totalById,
         page,
       });
+    }
+  );
+  // ── GET /staff/login-history ────────────────────────────────────────────────
+  // Global login history for audit page — JOINs staffMembers for name/email.
+  r.get(
+    '/staff/login-history',
+    {
+      preHandler: requirePerm('staff.read'),
+      schema: {
+        tags: ['staff'],
+        querystring: z.object({
+          limit: z.coerce.number().int().positive().max(200).default(50),
+        }),
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string().uuid(),
+                staffId: z.string().uuid().nullable(),
+                staffName: z.string(),
+                email: z.string(),
+                ip: z.string(),
+                userAgent: z.string(),
+                result: z.enum(['success', 'failed', 'mfa_failed']),
+                at: z.string(),
+              })
+            ),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const { limit } = req.query;
+
+      const rows = await app.db
+        .select({
+          id: staffLoginHistory.id,
+          staffId: staffLoginHistory.staffId,
+          staffName: staffMembers.name,
+          email: staffMembers.email,
+          ip: staffLoginHistory.ipAddress,
+          userAgent: staffLoginHistory.userAgent,
+          success: staffLoginHistory.success,
+          failureReason: staffLoginHistory.failureReason,
+          at: staffLoginHistory.createdAt,
+        })
+        .from(staffLoginHistory)
+        .leftJoin(staffMembers, eq(staffLoginHistory.staffId, staffMembers.id))
+        .orderBy(desc(staffLoginHistory.createdAt))
+        .limit(limit);
+
+      const data = rows.map((r) => ({
+        id: r.id,
+        staffId: r.staffId ?? null,
+        staffName: r.staffName ?? 'Unknown',
+        email: r.email ?? '',
+        ip: r.ip ?? '',
+        userAgent: r.userAgent ?? '',
+        result: (r.success
+          ? 'success'
+          : r.failureReason?.includes('MFA') || r.failureReason?.includes('OTP')
+            ? 'mfa_failed'
+            : 'failed') as 'success' | 'failed' | 'mfa_failed',
+        at: r.at.toISOString(),
+      }));
+
+      return reply.send({ data });
     }
   );
 };

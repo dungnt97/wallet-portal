@@ -9,6 +9,7 @@ import depositsRoutes from './deposits.routes.js';
 import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
 import multisigRoutes from './multisig.routes.js';
+import notifChannelsRoutes from './notification-channels.routes.js';
 import notificationsRoutes from './notifications.routes.js';
 import opsBackupRoutes from './ops-backup.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
@@ -49,6 +50,8 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
 
   // Notifications — bell panel list, unread count, mark-read, prefs
   await app.register(notificationsRoutes);
+  // Notification channels config (static for now; no DB table yet)
+  await app.register(notifChannelsRoutes);
 
   // Reconciliation — snapshot list, detail, manual trigger, cancel (Slice 10)
   await app.register(reconciliationRoutes);

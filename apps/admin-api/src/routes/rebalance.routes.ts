@@ -1,9 +1,12 @@
 // Rebalance routes — POST /rebalance initiates a hot→cold transfer (operation_type='hot_to_cold').
+// GET /rebalance/history — paginated list of past rebalance withdrawals (sourceTier='cold').
 // Destination auto-resolved from wallets registry; policy whitelist fast-path applies.
+import { desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
+import * as schema from '../db/schema/index.js';
 import {
   KillSwitchEnabledError,
   NotFoundError,
@@ -20,6 +23,68 @@ const rebalanceRoutes: FastifyPluginAsync = async (app) => {
     bearerToken: process.env.SVC_BEARER_TOKEN ?? '',
     timeoutMs: 2_000,
   });
+
+  // ── GET /rebalance/history ────────────────────────────────────────────────────
+  // Returns past rebalance ops (withdrawals with sourceTier = 'cold') for the cold page.
+  r.get(
+    '/rebalance/history',
+    {
+      preHandler: requirePerm('deposits.read'),
+      schema: {
+        tags: ['rebalance'],
+        querystring: z.object({
+          limit: z.coerce.number().int().positive().max(50).default(20),
+        }),
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string().uuid(),
+                chain: z.enum(['bnb', 'sol']),
+                direction: z.enum(['hot→cold', 'cold→hot']),
+                amount: z.number(),
+                createdAt: z.string(),
+                executedAt: z.string().nullable(),
+                sigs: z.number().int(),
+                status: z.enum(['awaiting_signatures', 'completed', 'failed']),
+                txHash: z.string().nullable(),
+                proposer: z.string(),
+              })
+            ),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const { limit } = req.query;
+
+      const rows = await app.db
+        .select()
+        .from(schema.withdrawals)
+        .where(eq(schema.withdrawals.sourceTier, 'cold'))
+        .orderBy(desc(schema.withdrawals.createdAt))
+        .limit(limit);
+
+      const data = rows.map((w) => ({
+        id: w.id,
+        chain: w.chain,
+        direction: 'hot→cold' as const, // cold-tier withdrawals are hot→cold rebalances
+        amount: Number.parseFloat(w.amount),
+        createdAt: w.createdAt.toISOString(),
+        executedAt: w.broadcastAt ? w.broadcastAt.toISOString() : null,
+        sigs: 0, // would need JOIN to multisig_operations — omit for now
+        status: (w.status === 'completed'
+          ? 'completed'
+          : w.status === 'failed' || w.status === 'cancelled'
+            ? 'failed'
+            : 'awaiting_signatures') as 'awaiting_signatures' | 'completed' | 'failed',
+        txHash: w.txHash ?? null,
+        proposer: w.createdBy,
+      }));
+
+      return reply.send({ data });
+    }
+  );
 
   // ── POST /rebalance ───────────────────────────────────────────────────────────
   r.post(

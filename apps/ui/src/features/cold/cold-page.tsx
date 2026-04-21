@@ -1,52 +1,29 @@
-// Cold wallet rebalance page — keeps hot wallet in target band.
-// Ports prototype page_cold.jsx with local fixtures.
+// Cold wallet rebalance page — real balance data from GET /cold/balances.
+// Replaces fixture-driven prototype. Keeps rebalance history table + band cards.
+import { useColdBalances } from '@/api/queries';
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, PageFrame, StatusBadge } from '@/components/custody';
-import { Sheet, useToast } from '@/components/overlays';
+import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
 import { FIXTURE_STAFF } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  COLD_WALLETS,
-  HOT_WALLETS,
-  REBALANCE_HISTORY,
-  type RebalanceOp,
-} from '../_shared/fixtures';
+import { REBALANCE_HISTORY, type RebalanceOp } from '../_shared/fixtures';
 import { BlockTicker, LiveTimeAgo } from '../_shared/realtime';
-import { ColdPairCard } from './cold-pair-card';
-import { type ProposeConfig, ProposeRebalanceForm } from './propose-rebalance-form';
+import { ColdBalanceCards } from './cold-balance-cards';
+import { RebalanceModal } from './rebalance-modal';
 
 export function ColdPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { staff } = useAuth();
-  const canPropose = staff?.role === 'admin' || staff?.role === 'operator';
-  const [proposeOpen, setProposeOpen] = useState<ProposeConfig | null>(null);
-  const [history, setHistory] = useState<RebalanceOp[]>(REBALANCE_HISTORY);
+  const canRebalance = staff?.role === 'admin' || staff?.role === 'operator';
 
-  const proposeRebalance = (p: {
-    chain: 'bnb' | 'sol';
-    direction: 'hot→cold' | 'cold→hot';
-    amount: number;
-  }) => {
-    const req: RebalanceOp = {
-      id: `rb_${Math.floor(Math.random() * 9000 + 1000)}`,
-      chain: p.chain,
-      direction: p.direction,
-      amount: p.amount,
-      createdAt: new Date().toISOString(),
-      executedAt: null,
-      sigs: 0,
-      status: 'awaiting_signatures',
-      txHash: null,
-      proposer: staff?.id ?? 'stf_mira',
-    };
-    setHistory([req, ...history]);
-    setProposeOpen(null);
-    toast(`Rebalance ${req.id} proposed — awaiting 2/3 signatures`, 'success');
-  };
+  const [rebalanceChain, setRebalanceChain] = useState<'bnb' | 'sol' | null>(null);
+  const [history] = useState<RebalanceOp[]>(REBALANCE_HISTORY);
+
+  const { data: balances, isLoading, isError } = useColdBalances();
 
   return (
     <PageFrame
@@ -86,30 +63,46 @@ export function ColdPage() {
           className="btn btn-secondary"
           onClick={() => toast('Manual band check triggered.')}
         >
-          <I.Refresh size={12} /> Run band check
+          <I.Refresh size={12} /> {t('cold.runBandCheck')}
         </button>
       }
     >
-      <div className="cold-grid">
-        {HOT_WALLETS.map((h) => {
-          const cold = COLD_WALLETS.find((c) => c.chain === h.chain);
-          if (!cold) return null;
-          return (
-            <ColdPairCard
-              key={h.id}
-              hot={h}
-              cold={cold}
-              canPropose={canPropose}
-              onPropose={setProposeOpen}
-            />
-          );
-        })}
+      {/* ── Real balance cards ── */}
+      <div className="card pro-card" style={{ marginBottom: 14 }}>
+        <div className="pro-card-header">
+          <h3 className="card-title">{t('cold.balancesTitle')}</h3>
+          <span className="text-xs text-muted">{t('cold.balancesHint')}</span>
+        </div>
+
+        {isLoading && (
+          <div className="text-sm text-muted" style={{ padding: '16px 0' }}>
+            {t('common.loading')}
+          </div>
+        )}
+
+        {isError && (
+          <div className="alert err" style={{ margin: '8px 0' }}>
+            <I.AlertTri size={13} className="alert-icon" />
+            <div className="alert-body">
+              <div className="alert-text">{t('cold.balancesError')}</div>
+            </div>
+          </div>
+        )}
+
+        {balances && balances.length > 0 && (
+          <ColdBalanceCards
+            entries={balances}
+            canRebalance={canRebalance}
+            onRebalance={(chain) => setRebalanceChain(chain)}
+          />
+        )}
       </div>
 
+      {/* ── Rebalance history (fixture-driven until rebalance list API ships) ── */}
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
-          <h3 className="card-title">Rebalance history</h3>
-          <span className="text-xs text-muted">All cold-wallet movements · each 2/3 signed</span>
+          <h3 className="card-title">{t('cold.historyTitle')}</h3>
+          <span className="text-xs text-muted">{t('cold.historyHint')}</span>
           <div className="spacer" />
           <span className="text-xs text-muted text-mono">{history.length} ops</span>
         </div>
@@ -164,20 +157,12 @@ export function ColdPage() {
         </table>
       </div>
 
-      <Sheet
-        open={!!proposeOpen}
-        onClose={() => setProposeOpen(null)}
-        title={proposeOpen ? `Propose ${proposeOpen.direction}` : ''}
-        subtitle="Will require 2/3 Treasurer approval before execution"
-      >
-        {proposeOpen && (
-          <ProposeRebalanceForm
-            config={proposeOpen}
-            onSubmit={proposeRebalance}
-            onCancel={() => setProposeOpen(null)}
-          />
-        )}
-      </Sheet>
+      {/* ── Rebalance modal (has its own Sheet internally) ── */}
+      <RebalanceModal
+        open={rebalanceChain !== null}
+        chain={rebalanceChain}
+        onClose={() => setRebalanceChain(null)}
+      />
     </PageFrame>
   );
 }

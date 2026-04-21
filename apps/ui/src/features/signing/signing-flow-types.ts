@@ -34,6 +34,13 @@ export interface SigningOp {
   totalSigners: number;
   myIndex?: number;
   destinationKnown?: boolean;
+  /**
+   * Slice 7: cold-tier withdrawals require HW-attestation before signing.
+   * When 'cold', SigningFlowHost inserts a hw-prompt modal before wallet-sign.
+   */
+  sourceTier?: 'hot' | 'cold';
+  /** Slice 7: withdrawal UUID — used to construct the synthetic attestation blob in dev-mode. */
+  withdrawalId?: string;
 }
 
 export interface SignedSignature {
@@ -53,6 +60,13 @@ export interface StepUpResult {
   at: string;
 }
 
+export interface HwAttestation {
+  /** base64-encoded attestation blob from hardware wallet (or synthetic in dev-mode) */
+  blob: string;
+  /** device type that produced the blob */
+  type: 'ledger' | 'trezor';
+}
+
 export interface SigningFlowState {
   step: SigningStep;
   op: SigningOp | null;
@@ -61,4 +75,6 @@ export interface SigningFlowState {
   broadcast: BroadcastResult | null;
   error: string | null;
   rejectReason: string | null;
+  /** Slice 7: set after HW prompt confirmed for cold-tier ops */
+  hwAttestation: HwAttestation | null;
 }

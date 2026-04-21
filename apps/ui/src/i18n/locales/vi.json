@@ -395,7 +395,28 @@
     "executeQueued": "Đang phát sóng lệnh rút tiền…",
     "executeError": "Thực thi thất bại: {{msg}}",
     "broadcastReceived": "Lệnh rút đã phát sóng — tx: {{hash}}",
-    "confirmed": "Lệnh rút đã xác nhận trên chuỗi."
+    "confirmed": "Lệnh rút đã xác nhận trên chuỗi.",
+    "dTier": "Tier nguồn",
+    "tierCold": "Vault cold",
+    "timelock": {
+      "label": "Khoá thời gian",
+      "locked": "Đang khoá",
+      "unlocked": "Đã mở",
+      "remaining": "còn lại"
+    },
+    "cancel": {
+      "btn": "Huỷ lệnh rút",
+      "title": "Huỷ lệnh rút tiền",
+      "subtitle": "Thao tác này không thể hoàn tác — lệnh rút sẽ bị vô hiệu",
+      "warningTitle": "Không thể hoàn tác",
+      "warningBody": "Huỷ sẽ vô hiệu lệnh rút và xoá job đang chờ. Mọi chữ ký đã thu thập sẽ bị huỷ bỏ.",
+      "reasonLabel": "Lý do huỷ",
+      "reasonPlaceholder": "VD: Sai địa chỉ đích",
+      "reasonHint": "Ít nhất 3 ký tự — ghi vào audit log",
+      "confirm": "Huỷ lệnh rút",
+      "success": "Đã huỷ lệnh rút thành công.",
+      "error": "Huỷ thất bại: {{msg}}"
+    }
   },
   "sweep": {
     "eyebrow": "Vận hành",
@@ -517,7 +538,32 @@
     "colAmount": "Số lượng",
     "colStatus": "Trạng thái",
     "colProposer": "Người đề xuất",
-    "colCreated": "Tạo lúc"
+    "colCreated": "Tạo lúc",
+    "tierHot": "Hot",
+    "tierCold": "Cold",
+    "stale": "Cũ",
+    "staleHint": "Dữ liệu số dư có thể hơi cũ (đang cache)",
+    "balancesTitle": "Số dư thời gian thực",
+    "balancesHint": "USDT + USDC trên ví hot và cold · cache 30 giây",
+    "balancesError": "Không tải được dữ liệu số dư — kiểm tra kết nối",
+    "historyTitle": "Lịch sử rebalance",
+    "historyHint": "Tất cả chuyển động ví cold · mỗi lần cần 2/3 chữ ký",
+    "runBandCheck": "Chạy kiểm tra band"
+  },
+  "rebalance": {
+    "title": "Rebalance hot → cold",
+    "subtitle": "Khởi tạo chuyển tiền hot sang cold — cần 2/3 chữ ký Treasurer",
+    "hotToCold": "Rebalance hot → cold",
+    "fldChain": "Chain",
+    "fldToken": "Token",
+    "fldAmount": "Số lượng (tương đương USD)",
+    "amountHint": "Nhập số lượng cần chuyển từ ví hot sang vault cold",
+    "infoTitle": "Quy trình ký",
+    "infoBody": "Ví hot ký với 2/3 Treasurer. Vault cold chỉ nhận tiền. Fast-path whitelist áp dụng cho địa chỉ cold đã đăng ký.",
+    "submit": "Đề xuất rebalance",
+    "success": "Rebalance {{id}} đã đề xuất — chờ 2/3 chữ ký",
+    "error": "Rebalance thất bại: {{msg}}",
+    "policyBlocked": "Policy từ chối: {{msg}}"
   },
   "audit": {
     "title": "Nhật ký audit",
@@ -656,7 +702,20 @@
     "policyBlockTitle": "Bị chặn bởi policy",
     "policyBlockSubtitle": "Giao dịch này không thể thực hiện",
     "policyBlockText": "Một hoặc nhiều policy check thất bại. Liên hệ team compliance để rà soát.",
-    "policyBlockClose": "Đóng"
+    "policyBlockClose": "Đóng",
+    "hw": {
+      "title": "Yêu cầu thiết bị phần cứng",
+      "subtitle": "Lệnh rút vault cold — xác nhận trên Ledger hoặc Trezor của bạn",
+      "infoTitle": "Tại sao cần thiết?",
+      "infoBody": "Lệnh rút cold-tier yêu cầu chứng thực mật mã từ ví phần cứng để đáp ứng quy tắc policy hw_attested.",
+      "devModeTitle": "Dev mode — chứng thực tổng hợp",
+      "devModeBody": "Blob tổng hợp sẽ được dùng: {{blob}}",
+      "step1": "Kết nối Ledger hoặc Trezor qua USB",
+      "step2": "Mở đúng ứng dụng (Ethereum hoặc Solana) trên thiết bị",
+      "step3": "Xác minh thông tin giao dịch hiển thị trên màn hình thiết bị",
+      "ack": "Tôi đã xác nhận thông tin trên thiết bị phần cứng",
+      "confirm": "Đã xác nhận trên thiết bị"
+    }
   },
   "login": {
     "title": "Đăng nhập",

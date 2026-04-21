@@ -1,5 +1,6 @@
 // Withdrawal detail sheet — amount header, approval queue, details, action footer.
 // Execute button visible only when: threshold met (stage=executing) + time_lock expired.
+// Slice 7: adds 48h countdown for cold tier time_locked status + cancel button.
 import { useAuth } from '@/auth/use-auth';
 import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
 import { DetailSheet, useToast } from '@/components/overlays';
@@ -7,9 +8,12 @@ import { I } from '@/icons';
 import { CHAINS, ROLES } from '@/lib/constants';
 import { fmtDateTime, fmtUSD, shortHash } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type FixWithdrawal, TREASURERS } from '../_shared/fixtures';
+import { TimeLeftDisplay } from '../cold/time-left-display';
 import { ApprovalQueue } from './approval-queue';
+import { CancelWithdrawalModal } from './cancel-withdrawal-modal';
 
 interface Props {
   withdrawal: FixWithdrawal | null;
@@ -34,21 +38,30 @@ export function WithdrawalSheet({
   const canApprove = hasPerm('withdrawal.approve');
   const canExecute = hasPerm('withdrawal.execute');
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   if (!withdrawal) return null;
   const w = withdrawal;
 
+  // Safely read optional fields injected by the API that aren't on FixWithdrawal yet
+  const wExt = w as unknown as Record<string, unknown>;
+  const timeLockExpiresAt = (wExt.timeLockExpiresAt ?? wExt.unlockAt) as string | undefined;
+  const sourceTier = (wExt.sourceTier ?? 'hot') as 'hot' | 'cold';
+  const apiStatus = (wExt.status ?? w.stage) as string;
+
+  const timeLockActive = timeLockExpiresAt ? new Date(timeLockExpiresAt) > new Date() : false;
+
   const requester = TREASURERS.find((s) => s.id === w.requestedBy);
   const alreadyApproved = staff && w.multisig.approvers.some((a) => a.staffId === staff.id);
 
-  // Time-lock check: read from server field if present, otherwise allow execute
-  const timeLockExpiresAt = (w as unknown as Record<string, unknown>).timeLockExpiresAt as
-    | string
-    | undefined;
-  const timeLockActive = timeLockExpiresAt ? new Date(timeLockExpiresAt) > new Date() : false;
-
   // Execute button: visible when stage=executing (threshold met) AND time-lock not active
   const showExecute = w.stage === 'executing' && canExecute && !timeLockActive;
+
+  // Cancel button: visible for treasurers on cold-tier withdrawals in cancellable states
+  const cancellableStatus = ['time_locked', 'pending', 'approved'].includes(apiStatus);
+  const isCreator = staff?.id === (wExt.createdBy as string | undefined);
+  const showCancel =
+    sourceTier === 'cold' && cancellableStatus && hasPerm('withdrawals.cancel') && !isCreator;
 
   const footer = (
     <>
@@ -56,6 +69,16 @@ export function WithdrawalSheet({
         {t('withdrawals.close')}
       </button>
       <div className="spacer" />
+
+      {showCancel && (
+        <button
+          className="btn"
+          style={{ color: 'var(--err-text)', borderColor: 'var(--err)' }}
+          onClick={() => setCancelOpen(true)}
+        >
+          <I.X size={12} /> {t('withdrawals.cancel.btn')}
+        </button>
+      )}
 
       {w.stage === 'draft' && (
         <button className="btn btn-accent" onClick={() => onSubmitDraft(w)}>
@@ -115,109 +138,133 @@ export function WithdrawalSheet({
   );
 
   return (
-    <DetailSheet
-      open={!!withdrawal}
-      onClose={onClose}
-      wide
-      title={t('withdrawals.sheetTitle', { id: w.id })}
-      subtitle={t('withdrawals.sheetSub', {
-        amt: fmtUSD(w.amount),
-        token: w.token,
-        chain: CHAINS[w.chain].name,
-      })}
-      footer={footer}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <div className="text-xs text-muted">{t('withdrawals.dId')}</div>
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {fmtUSD(w.amount)} <span className="text-muted text-sm fw-500">{w.token}</span>
+    <>
+      <DetailSheet
+        open={!!withdrawal}
+        onClose={onClose}
+        wide
+        title={t('withdrawals.sheetTitle', { id: w.id })}
+        subtitle={t('withdrawals.sheetSub', {
+          amt: fmtUSD(w.amount),
+          token: w.token,
+          chain: CHAINS[w.chain].name,
+        })}
+        footer={footer}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <div className="text-xs text-muted">{t('withdrawals.dId')}</div>
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {fmtUSD(w.amount)} <span className="text-muted text-sm fw-500">{w.token}</span>
+          </div>
+          <div className="text-xs text-muted" style={{ marginTop: 4 }}>
+            to <span className="text-mono">{shortHash(w.destination, 10, 8)}</span> ·{' '}
+            {CHAINS[w.chain].name}
+          </div>
         </div>
-        <div className="text-xs text-muted" style={{ marginTop: 4 }}>
-          to <span className="text-mono">{shortHash(w.destination, 10, 8)}</span> ·{' '}
-          {CHAINS[w.chain].name}
-        </div>
-      </div>
 
-      <ApprovalQueue
-        multisig={w.multisig}
-        stage={w.stage}
-        chain={w.chain}
-        currentStaffId={staff?.id}
-      />
-
-      <h4 className="section-head">{t('withdrawals.details')}</h4>
-      <dl className="dl">
-        <dt>{t('withdrawals.dId')}</dt>
-        <dd className="text-mono">{w.id}</dd>
-        <dt>{t('withdrawals.dStatus')}</dt>
-        <dd>
-          <StatusBadge status={w.stage} />
-        </dd>
-        <dt>{t('withdrawals.dVault')}</dt>
-        <dd>{w.chain === 'bnb' ? t('withdrawals.vaultBsc') : t('withdrawals.vaultSol')}</dd>
-        <dt>{t('withdrawals.dChain')}</dt>
-        <dd>
-          <ChainPill chain={w.chain} /> {CHAINS[w.chain].name}
-        </dd>
-        <dt>{t('withdrawals.dAsset')}</dt>
-        <dd>
-          <TokenPill token={w.token} />
-        </dd>
-        <dt>{t('withdrawals.dDest')}</dt>
-        <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
-          {w.destination}
-        </dd>
-        <dt>{t('withdrawals.dRequestedBy')}</dt>
-        <dd className="hstack">
-          {requester?.name || '—'}
-          {requester && (
-            <span className={`role-pill role-${requester.role}`}>
-              {ROLES[requester.role]?.label}
-            </span>
-          )}
-        </dd>
-        <dt>{t('withdrawals.dCreated')}</dt>
-        <dd>{fmtDateTime(w.createdAt)}</dd>
-        {w.txHash && (
-          <>
-            <dt>{t('withdrawals.dTxHash')}</dt>
-            <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
-              {w.txHash}
-            </dd>
-          </>
-        )}
+        {/* Timelock countdown for cold-tier withdrawals */}
         {timeLockExpiresAt && (
-          <>
-            <dt>Time-lock</dt>
-            <dd className="text-xs text-muted">
-              {timeLockActive
-                ? `Active until ${new Date(timeLockExpiresAt).toLocaleString()}`
-                : `Expired ${new Date(timeLockExpiresAt).toLocaleString()}`}
-            </dd>
-          </>
+          <div style={{ marginBottom: 16 }}>
+            <TimeLeftDisplay unlockAt={timeLockExpiresAt} />
+          </div>
         )}
-        {showRiskFlags && (
-          <>
-            <dt>{t('withdrawals.dRisk')}</dt>
-            <dd>
-              <Risk level={w.risk} />
-            </dd>
-          </>
-        )}
-        {w.note && (
-          <>
-            <dt>{t('withdrawals.dMemo')}</dt>
-            <dd>{w.note}</dd>
-          </>
-        )}
-      </dl>
-    </DetailSheet>
+
+        <ApprovalQueue
+          multisig={w.multisig}
+          stage={w.stage}
+          chain={w.chain}
+          currentStaffId={staff?.id}
+        />
+
+        <h4 className="section-head">{t('withdrawals.details')}</h4>
+        <dl className="dl">
+          <dt>{t('withdrawals.dId')}</dt>
+          <dd className="text-mono">{w.id}</dd>
+          <dt>{t('withdrawals.dStatus')}</dt>
+          <dd>
+            <StatusBadge status={w.stage} />
+          </dd>
+          {sourceTier === 'cold' && (
+            <>
+              <dt>{t('withdrawals.dTier')}</dt>
+              <dd>
+                <span className="badge-tight info">
+                  <I.Lock size={9} /> {t('withdrawals.tierCold')}
+                </span>
+              </dd>
+            </>
+          )}
+          <dt>{t('withdrawals.dVault')}</dt>
+          <dd>{w.chain === 'bnb' ? t('withdrawals.vaultBsc') : t('withdrawals.vaultSol')}</dd>
+          <dt>{t('withdrawals.dChain')}</dt>
+          <dd>
+            <ChainPill chain={w.chain} /> {CHAINS[w.chain].name}
+          </dd>
+          <dt>{t('withdrawals.dAsset')}</dt>
+          <dd>
+            <TokenPill token={w.token} />
+          </dd>
+          <dt>{t('withdrawals.dDest')}</dt>
+          <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
+            {w.destination}
+          </dd>
+          <dt>{t('withdrawals.dRequestedBy')}</dt>
+          <dd className="hstack">
+            {requester?.name || '—'}
+            {requester && (
+              <span className={`role-pill role-${requester.role}`}>
+                {ROLES[requester.role]?.label}
+              </span>
+            )}
+          </dd>
+          <dt>{t('withdrawals.dCreated')}</dt>
+          <dd>{fmtDateTime(w.createdAt)}</dd>
+          {w.txHash && (
+            <>
+              <dt>{t('withdrawals.dTxHash')}</dt>
+              <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
+                {w.txHash}
+              </dd>
+            </>
+          )}
+          {timeLockExpiresAt && (
+            <>
+              <dt>{t('withdrawals.timelock.label')}</dt>
+              <dd>
+                <TimeLeftDisplay unlockAt={timeLockExpiresAt} compact />
+              </dd>
+            </>
+          )}
+          {showRiskFlags && (
+            <>
+              <dt>{t('withdrawals.dRisk')}</dt>
+              <dd>
+                <Risk level={w.risk} />
+              </dd>
+            </>
+          )}
+          {w.note && (
+            <>
+              <dt>{t('withdrawals.dMemo')}</dt>
+              <dd>{w.note}</dd>
+            </>
+          )}
+        </dl>
+      </DetailSheet>
+
+      {/* Cancel confirmation modal — rendered outside DetailSheet to avoid z-index nesting */}
+      <CancelWithdrawalModal
+        open={cancelOpen}
+        withdrawalId={w.id}
+        onClose={() => setCancelOpen(false)}
+      />
+    </>
   );
 }

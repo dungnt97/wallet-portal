@@ -69,6 +69,7 @@ export function useWithdrawalActions(
       return;
     }
 
+    const hw = signingFlow.state.hwAttestation;
     approveMutation.mutate(
       {
         signature: sig.signature,
@@ -78,6 +79,8 @@ export function useWithdrawalActions(
           ? String((w as unknown as Record<string, unknown>).multisigOpId ?? '')
           : '',
         chain: w.chain,
+        // Slice 7: include HW-attestation blob for cold-tier withdrawals
+        ...(hw ? { attestationBlob: hw.blob, attestationType: hw.type } : {}),
       },
       {
         onSuccess: (result) => {

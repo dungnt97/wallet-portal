@@ -10,6 +10,7 @@ import { evaluatePolicy } from './policy-preview';
 import { IS_DEV_MODE, broadcastDevMode, makeBroadcastResult } from './signing-flow-broadcast';
 import type {
   BroadcastResult,
+  HwAttestation,
   SignedSignature,
   SigningFlowState,
   SigningOp,
@@ -19,6 +20,7 @@ import type {
 // Re-export types for external consumers
 export type {
   BroadcastResult,
+  HwAttestation,
   SignedSignature,
   SigningFlowState,
   SigningOp,
@@ -34,10 +36,12 @@ const INITIAL: SigningFlowState = {
   broadcast: null,
   error: null,
   rejectReason: null,
+  hwAttestation: null,
 };
 
 /** Convert a fixture withdrawal into an op the signing flow can drive. */
 export function withdrawalToOp(w: FixWithdrawal): SigningOp {
+  const wExt = w as unknown as Record<string, unknown>;
   return {
     id: w.id,
     chain: w.chain,
@@ -53,6 +57,9 @@ export function withdrawalToOp(w: FixWithdrawal): SigningOp {
     totalSigners: w.multisig.total,
     myIndex: w.multisig.collected + 1,
     destinationKnown: true,
+    // Slice 7: propagate tier + id so SigningFlowHost can insert HW prompt for cold ops
+    sourceTier: (wExt.sourceTier as 'hot' | 'cold' | undefined) ?? 'hot',
+    withdrawalId: w.id,
   };
 }
 
@@ -78,6 +85,11 @@ export interface SigningFlow {
   cancel: () => void;
   reject: (reason?: string) => void;
   reset: () => void;
+  /**
+   * Slice 7: called by HwPromptModal when the user confirms HW attestation.
+   * Stores attestation on state and advances to wallet-sign.
+   */
+  hwAttested: (attestation: HwAttestation) => void;
 }
 
 /** Hook driving the signing state machine. Consume from a parent component. */
@@ -170,6 +182,18 @@ export function useSigningFlow(): SigningFlow {
 
   const reset = useCallback(() => setState(INITIAL), []);
 
+  /**
+   * Slice 7: HW attestation confirmed — store blob and advance to wallet-sign.
+   * Called from HwPromptModal after user taps "Confirmed on device".
+   */
+  const hwAttested = useCallback((attestation: HwAttestation) => {
+    setState((prev) =>
+      prev.step === 'review' || prev.step === 'wallet-sign'
+        ? { ...prev, step: 'wallet-sign', hwAttestation: attestation }
+        : prev
+    );
+  }, []);
+
   return {
     state,
     start,
@@ -183,6 +207,7 @@ export function useSigningFlow(): SigningFlow {
     cancel,
     reject,
     reset,
+    hwAttested,
   };
 }
 

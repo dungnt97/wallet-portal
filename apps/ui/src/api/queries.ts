@@ -17,6 +17,7 @@ export const queryKeys = {
   dashboardStats: () => ['dashboard', 'stats'] as const,
   killSwitch: () => ['ops', 'killSwitch'] as const,
   opsHealth: () => ['ops', 'health'] as const,
+  coldBalances: () => ['cold', 'balances'] as const,
 };
 
 // ---- Query types ----
@@ -36,6 +37,10 @@ export interface ApproveWithdrawalBody {
   signedAt: string;
   multisigOpId: string;
   chain: 'bnb' | 'sol';
+  /** Slice 7: base64 HW attestation blob — required for cold-tier, omitted for hot-tier */
+  attestationBlob?: string;
+  /** Slice 7: hardware device type */
+  attestationType?: 'ledger' | 'trezor';
 }
 
 export interface WithdrawalApproveResult {
@@ -198,6 +203,72 @@ export function useExecuteWithdrawal(withdrawalId: string) {
       void qc.invalidateQueries({ queryKey: ['withdrawals'] });
       void qc.invalidateQueries({ queryKey: ['multisig'] });
       void qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+// ---- Cold balance types ----
+
+export interface ColdBalanceEntry {
+  chain: 'bnb' | 'sol';
+  tier: 'hot' | 'cold';
+  address: string;
+  token: 'USDT' | 'USDC';
+  balance: string;
+  lastCheckedAt: string;
+  stale?: boolean;
+}
+
+export interface RebalanceBody {
+  chain: 'bnb' | 'sol';
+  token: 'USDT' | 'USDC';
+  amountMinor: string;
+}
+
+export interface RebalanceResult {
+  withdrawalId: string;
+  multisigOpId: string;
+  destinationAddr: string;
+  status: string;
+}
+
+export interface CancelWithdrawalBody {
+  reason?: string;
+}
+
+// ---- Cold balance hooks ----
+
+/** GET /cold/balances — 30s refetch interval matches backend cache */
+export function useColdBalances() {
+  return useQuery({
+    queryKey: queryKeys.coldBalances(),
+    queryFn: () => api.get<{ data: ColdBalanceEntry[] }>('/cold/balances').then((r) => r.data),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+}
+
+/** POST /rebalance — hot→cold rebalance; triggers WebAuthn step-up via api client */
+export function useRebalance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RebalanceBody) => api.post<RebalanceResult>('/rebalance', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['cold'] });
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+    },
+  });
+}
+
+/** POST /withdrawals/:id/cancel */
+export function useCancelWithdrawal(withdrawalId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: CancelWithdrawalBody) =>
+      api.post<{ ok: boolean }>(`/withdrawals/${withdrawalId}/cancel`, body ?? {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['withdrawals'] });
+      void qc.invalidateQueries({ queryKey: ['multisig'] });
     },
   });
 }

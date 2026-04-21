@@ -395,7 +395,28 @@
     "executeQueued": "Broadcasting withdrawal…",
     "executeError": "Execute failed: {{msg}}",
     "broadcastReceived": "Withdrawal broadcast — tx: {{hash}}",
-    "confirmed": "Withdrawal confirmed on-chain."
+    "confirmed": "Withdrawal confirmed on-chain.",
+    "dTier": "Source tier",
+    "tierCold": "Cold vault",
+    "timelock": {
+      "label": "Time-lock",
+      "locked": "Locked",
+      "unlocked": "Unlocked",
+      "remaining": "remaining"
+    },
+    "cancel": {
+      "btn": "Cancel withdrawal",
+      "title": "Cancel withdrawal",
+      "subtitle": "This action is irreversible — the withdrawal will be voided",
+      "warningTitle": "Cannot be undone",
+      "warningBody": "Cancelling will void the withdrawal and remove the pending queue job. Any signatures already collected will be discarded.",
+      "reasonLabel": "Reason for cancellation",
+      "reasonPlaceholder": "e.g. Incorrect destination address",
+      "reasonHint": "At least 3 characters — recorded in the audit log",
+      "confirm": "Cancel withdrawal",
+      "success": "Withdrawal cancelled successfully.",
+      "error": "Cancel failed: {{msg}}"
+    }
   },
   "sweep": {
     "eyebrow": "Operations",
@@ -517,7 +538,32 @@
     "colAmount": "Amount",
     "colStatus": "Status",
     "colProposer": "Proposer",
-    "colCreated": "Created"
+    "colCreated": "Created",
+    "tierHot": "Hot",
+    "tierCold": "Cold",
+    "stale": "Stale",
+    "staleHint": "Balance data may be slightly outdated (cached)",
+    "balancesTitle": "Live balances",
+    "balancesHint": "Real-time USDT + USDC across hot and cold wallets · 30s cache",
+    "balancesError": "Failed to load balance data — check connectivity",
+    "historyTitle": "Rebalance history",
+    "historyHint": "All cold-wallet movements · each 2/3 signed",
+    "runBandCheck": "Run band check"
+  },
+  "rebalance": {
+    "title": "Rebalance hot → cold",
+    "subtitle": "Initiates a hot-to-cold transfer — requires 2/3 Treasurer approval",
+    "hotToCold": "Rebalance hot → cold",
+    "fldChain": "Chain",
+    "fldToken": "Token",
+    "fldAmount": "Amount (USD equiv)",
+    "amountHint": "Enter the amount to transfer from the hot wallet to cold vault",
+    "infoTitle": "Signing path",
+    "infoBody": "Hot wallet signs with 2/3 Treasurer keys. Cold vault simply receives. Policy whitelist fast-path applies for registered cold addresses.",
+    "submit": "Propose rebalance",
+    "success": "Rebalance {{id}} proposed — awaiting 2/3 signatures",
+    "error": "Rebalance failed: {{msg}}",
+    "policyBlocked": "Policy rejected: {{msg}}"
   },
   "audit": {
     "title": "Audit log",
@@ -656,7 +702,20 @@
     "policyBlockTitle": "Blocked by policy",
     "policyBlockSubtitle": "This transaction cannot proceed",
     "policyBlockText": "One or more policy checks failed. Contact your compliance team to review.",
-    "policyBlockClose": "Close"
+    "policyBlockClose": "Close",
+    "hw": {
+      "title": "Hardware device required",
+      "subtitle": "Cold vault withdrawal — confirm on your Ledger or Trezor",
+      "infoTitle": "Why is this required?",
+      "infoBody": "Cold-tier withdrawals require cryptographic attestation from a hardware wallet to satisfy the hw_attested policy rule.",
+      "devModeTitle": "Dev mode — synthetic attestation",
+      "devModeBody": "Synthetic blob will be used: {{blob}}",
+      "step1": "Connect your Ledger or Trezor via USB",
+      "step2": "Open the correct app (Ethereum or Solana) on the device",
+      "step3": "Verify the transaction details shown on the device screen",
+      "ack": "I have confirmed the details on my hardware device",
+      "confirm": "Confirmed on device"
+    }
   },
   "login": {
     "title": "Sign in",

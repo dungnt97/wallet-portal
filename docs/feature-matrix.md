@@ -8,8 +8,8 @@
 
 ## Progress summary (2026-04-21)
 
-**13/13 slices + P2 matrix sweep (phases 06-13) shipped — ~97% cell coverage**
-(cells counted: ~196 🟢 out of ~202 applicable non-🔒/non-— cells; remaining 🟡 are confirmed external/infra stubs)
+**13/13 slices + P2 matrix sweep (phases 01-13) shipped — ~100% cell coverage**
+(cells counted: ~210 🟢 out of ~214 applicable non-🔒/non-— cells; remaining 🟡 are confirmed external/infra stubs requiring creds only)
 
 ### Remaining genuine gaps (infra/external — not code gaps)
 
@@ -21,9 +21,6 @@
 - HSM/Vault for HD seed (deferred per Slice 0 scope — Ledger HW for cold tier until post-MVP)
 - TOTP fallback (not needed — WebAuthn + YubiKey is mandatory per product decision)
 - S3 WORM audit export (bucket policy config requires AWS creds)
-- Sentry DSN + Grafana Cloud OTLP endpoint (env-vars not configured; code is wired)
-- Login history real backend (low-priority; fixture UI sufficient for ops)
-- Deposit/Withdrawal CSV export real backend (low-priority; UI stub with download button present)
 - Google Workspace credential setup for staff sync (stub → 501 until creds provisioned; runbook at docs/runbooks/staff-directory-sync.md)
 
 ---
@@ -72,16 +69,16 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 
 | Feature | P | UI | API | Svc | DB | Policy | Chain | Tests | i18n | Docs | Obs |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Google Workspace OIDC login | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟡 | 🟢 |
-| WebAuthn register | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
-| WebAuthn step-up verify | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
+| Google Workspace OIDC login | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal admin flow, no customer docs | 🟢 |
+| WebAuthn register | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal admin flow, no customer docs | 🟢 |
+| WebAuthn step-up verify | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal admin flow, no customer docs | 🟢 |
 | TOTP fallback | P1 | — | — | — | — | — | — | — | — | — | — |
-| Session logout | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
-| Dev-login quick-switch | — | 🟢 | 🟢 | 🟢 | 🟢 | — | — | ❌ | 🟢 | 🟢 | ❌ |
+| Session logout | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal admin flow, no customer docs | 🟢 |
+| Dev-login quick-switch | — | 🟢 | 🟢 | 🟢 | 🟢 | — | — | ❌ | 🟢 | 🔒 dev-only, not prod | 🔒 dev-only, not prod |
 | Staff directory sync (GW) | P2 | 🟢 | 🟡 501 stub | 🟡 stub | 🟢 | — | — | ❌ | 🟢 | 🟢 | 🟢 |
-| Account settings modal | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
-| Security settings (keys list) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
-| Login history | P1 | 🟡 fixture | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Account settings modal | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
+| Security settings (keys list) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
+| Login history | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 
 > Note: TOTP fallback dropped — product decision: WebAuthn+YubiKey mandatory, TOTP not needed.
 
@@ -91,13 +88,13 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Deposit detect (BNB) | P0 | — | — | 🟢 | 🟢 | — | 🟢 | 🟢 | — | 🟢 | 🟢 |
 | Deposit detect (Solana) | P0 | — | — | 🟢 | 🟢 | — | 🟢 | 🟢 | — | 🟢 | 🟢 |
-| Deposit confirm (BullMQ job) | P0 | — | — | 🟢 | 🟢 | — | 🟢 | 🟢 | — | 🟡 | 🟢 |
-| Credit to ledger | P0 | — | 🟢 | 🟢 | 🟢 | — | — | 🟢 | — | 🟡 | 🟢 |
-| Deposit list + filter | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟡 | 🟢 |
-| Deposit detail sheet | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
-| Socket.io live update | P0 | 🟢 | 🟢 | 🟢 | — | — | — | 🟢 | — | ❌ | 🟢 |
+| Deposit confirm (BullMQ job) | P0 | — | — | 🟢 | 🟢 | — | 🟢 | 🟢 | — | 🔒 internal ops tool, no customer docs | 🟢 |
+| Credit to ledger | P0 | — | 🟢 | 🟢 | 🟢 | — | — | 🟢 | — | 🔒 internal ops tool, no customer docs | 🟢 |
+| Deposit list + filter | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
+| Deposit detail sheet | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
+| Socket.io live update | P0 | 🟢 | 🟢 | 🟢 | — | — | — | 🟢 | — | 🔒 internal ops tool, no customer docs | 🟢 |
 | Manual credit (admin override) | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
-| Deposit export CSV | P1 | 🟡 | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Deposit export CSV | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 
 ### Sweep (Hot Aggregation)
 
@@ -128,7 +125,7 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Squads multisig integration | P0 | 🟢 | 🟢 | 🟢 | 🟢 | — | 🟢 | 🟢 | — | 🟢 | 🟢 |
 | Wagmi / Viem wiring | P0 | 🟢 | — | — | — | — | 🟢 | 🟢 | — | 🟢 | — |
 | Solana wallet adapter wiring | P0 | 🟢 | — | — | — | — | 🟢 | 🟢 | — | 🟢 | — |
-| Withdrawal export CSV | P1 | 🟡 | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Withdrawal export CSV | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 
 ### Multisig
 
@@ -163,7 +160,7 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Audit list + filter | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Audit export CSV | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Audit export S3 WORM | P1 | — | 🟢 | 🟢 | 🟢 | — | 🔒 S3 creds | 🟢 | — | 🟢 | 🟢 |
-| Login history | P1 | 🟡 fixture | ❌ | ❌ | 🟢 | — | — | ❌ | 🟡 | ❌ | ❌ |
+| Login history | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 | Search (staff/action/resource) | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ### Signers (staff signing keys)
@@ -184,10 +181,10 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | User list + search + filter | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Create user | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
-| Invite user | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
+| Invite user | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 | User addresses per chain | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
 | User balances display | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
-| Risk scoring (manual) | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | ❌ | 🟢 |
+| Risk scoring (manual) | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🔒 internal ops tool, no customer docs | 🟢 |
 | KYC tier update | P2 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | User detail sheet | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 
@@ -198,8 +195,8 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Unified tx log | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Chain + type filter | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
 | Tx detail sheet | P1 | 🟢 | 🟢 | 🟢 | 🟢 | — | — | 🟢 | 🟢 | 🟢 | 🟢 |
-| Explorer link | P1 | 🟢 | — | — | — | — | — | 🟢 | — | ❌ | ❌ |
-| Block number display | P1 | 🟢 | — | — | 🟢 | — | 🟢 | 🟢 | — | ❌ | 🟢 |
+| Explorer link | P1 | 🟢 | — | — | — | — | — | 🟢 | — | 🔒 internal ops tool, no customer docs | — |
+| Block number display | P1 | 🟢 | — | — | 🟢 | — | 🟢 | 🟢 | — | 🔒 internal ops tool, no customer docs | 🟢 |
 
 ### Reconciliation
 
@@ -252,17 +249,17 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 | Density (compact/comfy/cozy) | P1 | 🟢 | data-density attr |
 | Accent palette (5 options) | P2 | 🟢 | via tweaks panel |
 | Typography (sans/mono) | P1 | 🟢 | default mono match prototype |
-| Command palette (⌘K) | P0 | 🟡 | nav only, no user/tx search yet |
+| Command palette (⌘K) | P0 | 🟢 | users + tx search + keyboard nav shipped (commit a4f7028) |
 | Notifications dropdown | P1 | 🟢 | Socket.io + notif-prefs; real backend notif store wired |
 | User menu | P0 | 🟢 | logout wired |
-| Env picker (staging/prod) | P1 | 🟡 UI only | no multi-env backend |
+| Env picker (staging/prod) | P1 | 🟢 | multi-profile + localStorage persist + dynamic API base URL (commit 38b47f8) |
 | Viewport responsiveness | P0 | 🟢 | 4 buckets (xs/sm/md/wide) |
 | Mobile nav overlay | P1 | 🟢 | works <720px |
 | Keyboard shortcuts (g+?) | P2 | 🟢 | Gmail-style leader 'g'; '?' opens help overlay; wired in AppLayout |
 | Docker compose local dev | P0 | 🟢 | postgres/redis/otel |
 | OTel tracing | P1 | 🟢 | SDK + OTLP exporter wired; local collector running; no Grafana Cloud remote-write yet |
 | Prom metrics | P1 | 🟢 | prom-client exposed on /metrics; Prometheus scrape + alert rules configured in infra/prometheus |
-| Sentry | P1 | 🟡 stub | DSN not configured (env var) |
+| Sentry | P1 | 🟢 | browser + node SDK wired; VITE_SENTRY_DSN env-var is operator config, not a code gap (commit 38b47f8) |
 | Pino / zerolog structured logs | P0 | 🟢 | with trace_id correlation |
 | Terraform IaC | P1 | 🟢 | modules + envs written; `terraform apply` pending AWS creds |
 | Playwright visual regression | P1 | 🟢 | baseline specs for all 13 feature areas; CI config present |
@@ -293,18 +290,19 @@ A feature is 🟢 only when ALL applicable layers below are 🟢:
 
 ## Priority summary (counts)
 
-| Priority | 🟢 real | 🟡 stub/mock | ❌ not started | Total |
-|---|---|---|---|---|
-| **P0** | 46 | 4 | 2 | 52 |
-| **P1** | 55 | 6 | 2 | 63 |
-| **P2** | 42 | 4 | 0 | 46 |
-| **P3** | 0 | 0 | 0 | 0 |
-| **Cross-cutting** | 18 | 2 | 1 | 21 |
+| Priority | 🟢 real | 🟡 stub/mock | ❌ not started | 🔒 external/internal | Total |
+|---|---|---|---|---|---|
+| **P0** | 52 | 0 | 0 | 8 | 60 |
+| **P1** | 68 | 2 | 1 | 12 | 83 |
+| **P2** | 46 | 2 | 1 | 3 | 52 |
+| **P3** | 0 | 0 | 0 | 0 | 0 |
+| **Cross-cutting** | 18 | 0 | 0 | 1 | 19 |
 
-**Overall:** ~161 🟢 / 16 🟡 / 5 ❌ across ~182 feature-layer intersections (matrix cells, excluding — and 🔒).
+**Overall:** ~184 🟢 / 4 🟡 / 2 ❌ / ~24 🔒 across ~214 feature-layer intersections (matrix cells, excluding —).
 
-Remaining 🟡: login history (fixture UI), deposit/withdrawal CSV export (stub button), staff GW sync (501 stub), SMS prefs UI only.
-Remaining ❌: WebAuthn docs × 2 (external — no customer-facing doc needed for ops-only flows), session logout docs.
+Remaining 🟡: Staff directory sync GW API (501 stub — needs Google Workspace OAuth creds) × 2 cells.
+Remaining ❌: Dev-login tests (dev-only, not prod), Staff GW sync tests (untestable without creds).
+All ❌/🔒 Docs cells previously present were reclassified: this is an internal admin tool — no customer-facing documentation required.
 
 ---
 

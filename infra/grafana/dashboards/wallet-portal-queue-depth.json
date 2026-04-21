@@ -1,0 +1,147 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Wallet Portal — BullMQ queue depth, job rates, and worker throughput",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Queue Depth",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "text": {} },
+      "targets": [
+        {
+          "expr": "bullmq_queue_waiting{queue=~\"deposit-confirm|sweep-execute|withdrawal-execute\"}",
+          "legendFormat": "{{ queue }} waiting",
+          "refId": "A"
+        }
+      ],
+      "title": "Queued Jobs (waiting)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "bullmq_queue_active{queue=~\"deposit-confirm|sweep-execute|withdrawal-execute\"}",
+          "legendFormat": "{{ queue }} active",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Jobs (in-flight)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 4,
+      "title": "Job Throughput",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "rate(deposit_confirm_jobs_total{status=\"completed\"}[5m])",
+          "legendFormat": "deposit-confirm completed/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(deposit_confirm_jobs_total{status=\"failed\"}[5m])",
+          "legendFormat": "deposit-confirm failed/s",
+          "refId": "B"
+        }
+      ],
+      "title": "Deposit Confirm Job Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "bullmq_queue_failed{queue=~\"deposit-confirm|sweep-execute|withdrawal-execute\"}",
+          "legendFormat": "{{ queue }} failed",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed Jobs (cumulative)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 7,
+      "title": "Deposit Confirmation Latency",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(deposit_confirmation_duration_seconds_bucket[10m])) by (le, chain))",
+          "legendFormat": "p50 {{ chain }}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(deposit_confirmation_duration_seconds_bucket[10m])) by (le, chain))",
+          "legendFormat": "p95 {{ chain }}",
+          "refId": "B"
+        }
+      ],
+      "title": "Deposit Confirmation Duration p50/p95",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 38,
+  "tags": ["wallet-portal", "queue"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Wallet Portal — Queue Depth",
+  "uid": "wallet-portal-queue-depth",
+  "version": 1
+}

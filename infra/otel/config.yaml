@@ -1,6 +1,11 @@
-# OpenTelemetry Collector configuration for local development
-# Receives traces from all services via OTLP HTTP/gRPC and logs them to stdout
-# For observability profile: traces also forwarded to Jaeger
+# OpenTelemetry Collector configuration
+# Local dev: receives from all services, exports to Jaeger + stdout.
+# Production (ECS sidecar): exports to Grafana Cloud OTLP endpoint.
+# Env vars injected at runtime (ECS task secrets / docker-compose .env):
+#   OTEL_EXPORTER_OTLP_ENDPOINT  — Grafana Cloud OTLP gateway URL
+#   OTEL_EXPORTER_OTLP_HEADERS   — "Authorization=Basic <base64>" or bearer token
+#   DEPLOY_ENV                   — staging | production (resource attribute)
+#   OTEL_SERVICE_NAMESPACE       — e.g. "wallet-portal" (resource attribute)
 
 receivers:
   otlp:
@@ -11,49 +16,99 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
-  batch:
-    timeout: 1s
-    send_batch_size: 1024
   memory_limiter:
     check_interval: 1s
-    limit_mib: 256
+    # Reject new data at 80% of container memory limit to prevent OOM
+    limit_percentage: 80
+    spike_limit_percentage: 20
+
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  # Inject deployment metadata onto every span/metric/log
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "wallet-portal"
+        action: upsert
+      - key: deployment.environment
+        from_attribute: DEPLOY_ENV
+        action: upsert
 
 exporters:
-  # Log all spans to stdout — useful for verifying traces arrive
+  # ── Local dev: log spans to stdout ───────────────────────────────────────
   debug:
     verbosity: normal
     sampling_initial: 5
     sampling_thereafter: 200
 
-  # Forward to Jaeger when using observability profile
+  # ── Local dev: forward to Jaeger when using observability profile ────────
   otlp/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
 
-  # Prometheus exporter for collector self-metrics
+  # ── Grafana Cloud OTLP (production / staging) ───────────────────────────
+  # Activated when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+  # OTEL_EXPORTER_OTLP_HEADERS format: "Authorization=Basic <token>"
+  otlphttp/grafana:
+    endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers:
+      Authorization: ${env:OTEL_EXPORTER_OTLP_HEADERS}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 120s
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 100
+
+  # ── Prometheus scrape endpoint (local + ECS) ─────────────────────────────
   prometheus:
     endpoint: '0.0.0.0:8889'
+    # Drop high-cardinality labels at collector boundary
+    metric_expiration: 5m
 
 service:
+  # Extension for health-check probe (ECS uses this for task health)
+  extensions: [health_check]
+
   pipelines:
+    # ── Traces ───────────────────────────────────────────────────────────────
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [debug]
+      processors: [memory_limiter, resource, batch]
+      # Dev: debug only; prod: otlphttp/grafana only (controlled by build profile)
+      exporters: [debug, otlphttp/grafana]
+
+    # ── Metrics ──────────────────────────────────────────────────────────────
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus, otlphttp/grafana]
+
+    # ── Logs ─────────────────────────────────────────────────────────────────
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [debug, otlphttp/grafana]
 
   telemetry:
     logs:
       level: info
     metrics:
-      # Use readers format for otelcol-contrib >= 0.87 (replaces deprecated address field)
       readers:
         - pull:
             exporter:
               prometheus:
                 host: 0.0.0.0
                 port: 8888
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: "/"

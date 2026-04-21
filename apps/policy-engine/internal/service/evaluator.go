@@ -6,6 +6,7 @@ import (
 
 	"github.com/wallet-portal/policy-engine/internal/db"
 	"github.com/wallet-portal/policy-engine/internal/rules"
+	"github.com/wallet-portal/policy-engine/internal/telemetry"
 )
 
 // EvaluateResponse is the structured result returned from the evaluator and
@@ -48,6 +49,7 @@ func DefaultRules(devMode bool) []rules.Rule {
 
 // Evaluate runs every applicable rule and returns the aggregated result.
 // The response Allow field is true only when ALL applicable rules pass.
+// Emits Prometheus metrics for each rule decision.
 func (e *Evaluator) Evaluate(ctx context.Context, req rules.EvaluateRequest) EvaluateResponse {
 	resp := EvaluateResponse{Allow: true, Reasons: []string{}}
 
@@ -61,11 +63,25 @@ func (e *Evaluator) Evaluate(ctx context.Context, req rules.EvaluateRequest) Eva
 			// System/DB errors are logged by the caller via the returned reason.
 			resp.Allow = false
 			resp.Reasons = append(resp.Reasons, rule.Name()+": internal error: "+err.Error())
+			telemetry.PolicyDecisionsTotal.WithLabelValues(rule.Name(), "deny").Inc()
 			continue
 		}
 		if !pass {
 			resp.Allow = false
 			resp.Reasons = append(resp.Reasons, rule.Name()+": "+reason)
+			telemetry.PolicyDecisionsTotal.WithLabelValues(rule.Name(), "deny").Inc()
+
+			// Track kill-switch state so the gauge is always current after a check.
+			if rule.Name() == "kill_switch_check" && reason == "KILL_SWITCH_ENABLED" {
+				telemetry.KillSwitchEnabled.Set(1)
+			}
+		} else {
+			telemetry.PolicyDecisionsTotal.WithLabelValues(rule.Name(), "allow").Inc()
+
+			// Kill-switch passed (not enabled) — reset gauge.
+			if rule.Name() == "kill_switch_check" {
+				telemetry.KillSwitchEnabled.Set(0)
+			}
 		}
 	}
 

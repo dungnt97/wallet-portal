@@ -3,13 +3,69 @@
 # CloudWatch log group + security group + auto-scaling.
 # Called 3× (admin-api, wallet-engine, policy-engine).
 # Fargate Spot capacity provider used when use_fargate_spot = true.
-# OTel sidecar placeholder commented — wired in Phase 05.
+# OTel sidecar wired when enable_otel = true (Phase 05).
 # ─────────────────────────────────────────────────────────────────
 
 locals {
   name_prefix = "wp-${var.env}"
   full_name   = "${local.name_prefix}-${var.service_name}"
   log_group   = "/ecs/${local.name_prefix}/${var.service_name}"
+
+  # Build the OTel sidecar container definition when enabled.
+  # Merged into container_definitions list alongside the app container.
+  otel_sidecar = var.enable_otel ? [
+    {
+      name      = "otel-collector"
+      image     = var.otel_collector_image
+      essential = false
+
+      cpu               = 128
+      memoryReservation = 256
+
+      portMappings = [
+        { containerPort = 4317, protocol = "tcp", name = "otlp-grpc" },
+        { containerPort = 4318, protocol = "tcp", name = "otlp-http" },
+        { containerPort = 8888, protocol = "tcp", name = "self-metrics" },
+        { containerPort = 13133, protocol = "tcp", name = "health-check" },
+      ]
+
+      # SSM config pulled by the collector at startup
+      command = ["--config=ssm:/wp/${var.env}/otel/config"]
+
+      environment = [
+        { name = "DEPLOY_ENV", value = var.env },
+        { name = "OTEL_SERVICE_NAMESPACE", value = "wallet-portal" },
+      ]
+
+      secrets = [
+        {
+          name      = "OTEL_EXPORTER_OTLP_ENDPOINT"
+          valueFrom = var.otel_otlp_endpoint_secret_arn
+        },
+        {
+          name      = "OTEL_EXPORTER_OTLP_HEADERS"
+          valueFrom = var.otel_otlp_headers_secret_arn
+        },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = local.log_group
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "otel-collector"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -sf http://localhost:13133/ || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 30
+      }
+    }
+  ] : []
 }
 
 # ── CloudWatch Log Group ──────────────────────────────────────────
@@ -102,26 +158,7 @@ resource "aws_ecs_task_definition" "this" {
         startPeriod = 60
       }
     }
-    # ── OTel sidecar placeholder (Phase 05) ─────────────────────
-    # {
-    #   name      = "otel-collector"
-    #   image     = "otel/opentelemetry-collector-contrib:latest"
-    #   essential = false
-    #   portMappings = [
-    #     { containerPort = 4317, protocol = "tcp" },
-    #     { containerPort = 4318, protocol = "tcp" }
-    #   ]
-    #   command = ["--config=/etc/otel/config.yaml"]
-    #   logConfiguration = {
-    #     logDriver = "awslogs"
-    #     options = {
-    #       "awslogs-group"         = local.log_group
-    #       "awslogs-region"        = var.aws_region
-    #       "awslogs-stream-prefix" = "otel"
-    #     }
-    #   }
-    # }
-  ])
+  ] + local.otel_sidecar)
 
   tags = {
     Service = var.service_name

@@ -99,6 +99,10 @@ module "vpc" {
 #   target_group_arn  = module.alb.admin_api_target_group_arn
 #   secret_arns       = module.secrets.secret_arns
 #   desired_count     = 1
+#   # OTel sidecar (Phase 05)
+#   enable_otel                      = true
+#   otel_otlp_endpoint_secret_arn    = module.secrets.otlp_endpoint_secret_arn
+#   otel_otlp_headers_secret_arn     = module.secrets.otlp_headers_secret_arn
 # }
 #
 # module "ecs_wallet_engine" {
@@ -114,6 +118,10 @@ module "vpc" {
 #   target_group_arn  = module.alb.wallet_engine_target_group_arn
 #   secret_arns       = module.secrets.secret_arns
 #   desired_count     = 1
+#   # OTel sidecar (Phase 05)
+#   enable_otel                      = true
+#   otel_otlp_endpoint_secret_arn    = module.secrets.otlp_endpoint_secret_arn
+#   otel_otlp_headers_secret_arn     = module.secrets.otlp_headers_secret_arn
 # }
 #
 # module "ecs_policy_engine" {
@@ -129,6 +137,10 @@ module "vpc" {
 #   target_group_arn  = module.alb.policy_engine_target_group_arn
 #   secret_arns       = module.secrets.secret_arns
 #   desired_count     = 1
+#   # OTel sidecar (Phase 05)
+#   enable_otel                      = true
+#   otel_otlp_endpoint_secret_arn    = module.secrets.otlp_endpoint_secret_arn
+#   otel_otlp_headers_secret_arn     = module.secrets.otlp_headers_secret_arn
 # }
 
 # ── Phase 04: Edge ────────────────────────────────────────────────

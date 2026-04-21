@@ -1,6 +1,6 @@
 // Prometheus metrics registration for wallet-engine.
 // Exposes default Node.js process metrics + deposit-specific counters.
-import { Registry, collectDefaultMetrics, Counter, Histogram } from 'prom-client';
+import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
 
 export const registry = new Registry();
 
@@ -36,5 +36,41 @@ export const depositConfirmJobsTotal = new Counter({
   name: 'deposit_confirm_jobs_total',
   help: 'Total BullMQ deposit-confirm jobs enqueued',
   labelNames: ['status'],
+  registers: [registry],
+});
+
+// ── Phase 06 alert-required metrics ─────────────────────────────────────────
+
+// RPC probe counters — used by the BNB/Solana watcher health probes.
+// Alert: RpcProbeFailRate fires when failure rate > 10% over 5m.
+export const rpcProbeTotal = new Counter({
+  name: 'rpc_probe_total',
+  help: 'Total RPC connectivity probes issued.',
+  labelNames: ['chain'],
+  registers: [registry],
+});
+
+export const rpcProbeFailuresTotal = new Counter({
+  name: 'rpc_probe_failures_total',
+  help: 'Total failed RPC connectivity probes.',
+  labelNames: ['chain'],
+  registers: [registry],
+});
+
+// Block lag: difference between node head and last processed block.
+// Populated by the watcher on each poll cycle.
+export const watcherBlockLag = new Gauge({
+  name: 'watcher_block_lag',
+  help: 'Difference between latest chain head and last locally processed block.',
+  labelNames: ['chain'],
+  registers: [registry],
+});
+
+// Deposit confirmation latency histogram — seconds between detection and credit.
+export const depositConfirmationDurationSeconds = new Histogram({
+  name: 'deposit_confirmation_duration_seconds',
+  help: 'Time in seconds from deposit detection to on-chain confirmation credit.',
+  labelNames: ['chain'],
+  buckets: [10, 30, 60, 120, 300, 600, 1800],
   registers: [registry],
 });

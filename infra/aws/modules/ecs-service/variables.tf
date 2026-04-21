@@ -123,3 +123,29 @@ variable "health_check_path" {
   type        = string
   default     = "/health"
 }
+
+# ── OTel sidecar ──────────────────────────────────────────────────
+
+variable "enable_otel" {
+  description = "Attach OTel collector sidecar to this task definition"
+  type        = bool
+  default     = false
+}
+
+variable "otel_collector_image" {
+  description = "OTel collector contrib image URI (pinned tag recommended)"
+  type        = string
+  default     = "otel/opentelemetry-collector-contrib:0.104.0"
+}
+
+variable "otel_otlp_endpoint_secret_arn" {
+  description = "Secrets Manager ARN for OTEL_EXPORTER_OTLP_ENDPOINT. Required when enable_otel=true."
+  type        = string
+  default     = ""
+}
+
+variable "otel_otlp_headers_secret_arn" {
+  description = "Secrets Manager ARN for OTEL_EXPORTER_OTLP_HEADERS (e.g. Authorization=Basic <token>). Required when enable_otel=true."
+  type        = string
+  default     = ""
+}

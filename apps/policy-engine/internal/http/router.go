@@ -7,12 +7,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	internalauth "github.com/wallet-portal/policy-engine/internal/auth"
 	"github.com/wallet-portal/policy-engine/internal/service"
+	"github.com/wallet-portal/policy-engine/internal/telemetry"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // NewRouter builds the chi router with all middleware and routes registered.
@@ -31,10 +33,15 @@ func NewRouter(eval *service.Evaluator, bearerToken string, pool *pgxpool.Pool) 
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(zerologMiddleware())
+	r.Use(prometheusMiddleware())
 
 	// Health probes — no auth required (used by docker-compose / k8s probes).
 	r.Get("/health/live", LiveHandler)
 	r.Get("/health/ready", ReadyHandler(pool))
+
+	// Prometheus metrics — unauthenticated (scraped by Prometheus on internal network only).
+	metricsHandler := promhttp.HandlerFor(telemetry.Registry, promhttp.HandlerOpts{Registry: telemetry.Registry})
+	r.Get("/metrics", metricsHandler.ServeHTTP)
 
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
@@ -93,5 +100,28 @@ func logLevel(status int) zerolog.Level {
 		return zerolog.WarnLevel
 	default:
 		return zerolog.InfoLevel
+	}
+}
+
+// prometheusMiddleware records HTTP request count and duration using the
+// shared Prometheus registry. Skip the /metrics path itself to avoid
+// self-referential cardinality.
+func prometheusMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/metrics" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			start := time.Now()
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
+
+			durationSec := time.Since(start).Seconds()
+			labels := []string{r.Method, r.URL.Path, http.StatusText(ww.Status())}
+			telemetry.HTTPRequestsTotal.WithLabelValues(labels...).Inc()
+			telemetry.HTTPRequestDurationSeconds.WithLabelValues(labels...).Observe(durationSec)
+		})
 	}
 }

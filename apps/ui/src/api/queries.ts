@@ -17,6 +17,8 @@ export const queryKeys = {
   signers: () => ['signers'] as const,
   dashboardStats: () => ['dashboard', 'stats'] as const,
   dashboardMetrics: () => ['dashboard', 'metrics'] as const,
+  dashboardHistory: (metric: string, range: string) =>
+    ['dashboard', 'history', metric, range] as const,
   killSwitch: () => ['ops', 'killSwitch'] as const,
   opsHealth: () => ['ops', 'health'] as const,
   coldBalances: () => ['cold', 'balances'] as const,
@@ -340,6 +342,35 @@ export function useDashboardMetrics() {
     queryFn: () => api.get<DashboardMetrics>('/dashboard/metrics'),
     staleTime: 15_000,
     refetchInterval: 30_000,
+  });
+}
+
+// ---- Dashboard history (time-series for chart) ----
+
+export type DashboardHistoryMetric = 'aum' | 'deposits' | 'withdrawals';
+export type DashboardHistoryRange = '24h' | '7d' | '30d' | '90d';
+
+export interface HistoryPoint {
+  t: string;
+  v: number;
+}
+
+export interface DashboardHistory {
+  metric: DashboardHistoryMetric;
+  range: DashboardHistoryRange;
+  points: HistoryPoint[];
+}
+
+/** GET /dashboard/history?metric=...&range=... — time-bucketed real data from DB */
+export function useDashboardHistory(metric: DashboardHistoryMetric, range: DashboardHistoryRange) {
+  return useQuery({
+    queryKey: queryKeys.dashboardHistory(metric, range),
+    queryFn: () =>
+      api
+        .get<DashboardHistory>(`/dashboard/history?metric=${metric}&range=${range}`)
+        .catch(() => ({ metric, range, points: [] as HistoryPoint[] })),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 }
 

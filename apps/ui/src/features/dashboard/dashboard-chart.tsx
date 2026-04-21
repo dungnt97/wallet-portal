@@ -1,14 +1,18 @@
-import { useDashboardMetrics } from '@/api/queries';
+import {
+  type DashboardHistoryMetric,
+  type DashboardHistoryRange,
+  useDashboardHistory,
+  useDashboardMetrics,
+} from '@/api/queries';
 import { ChainPill, Segmented, TokenPill } from '@/components/custody';
 import { fmtCompact, fmtUSD } from '@/lib/format';
 // Dashboard chart + holdings — tabbed pro-card with AreaChart and asset rows.
-// Real AUM total from /dashboard/metrics. Time-series sparklines are cosmetic
-// (no historical OHLC endpoint yet — noted for future charting slice).
+// Time-series data from GET /dashboard/history — real DB buckets, no synthetic fallback.
 import { useMemo, useState } from 'react';
-import { AreaChart, Sparkline, makeSeries } from '../_shared/charts';
+import { AreaChart, Sparkline } from '../_shared/charts';
 
 /** Build x-axis date labels for the given range, ending with "Today" */
-function buildAxisLabels(range: '24h' | '7d' | '30d' | '90d'): string[] {
+function buildAxisLabels(range: DashboardHistoryRange): string[] {
   const days = range === '24h' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
   const labels: string[] = [];
   const now = new Date();
@@ -27,14 +31,31 @@ function buildAxisLabels(range: '24h' | '7d' | '30d' | '90d'): string[] {
   return labels;
 }
 
-type Range = '24h' | '7d' | '30d' | '90d';
-type Metric = 'aum' | 'deposits' | 'withdrawals';
+/**
+ * Compute period delta: (latest - first) / first * 100.
+ * Returns null if series is empty or first value is zero (avoids division by zero).
+ */
+function computeDelta(series: number[]): number | null {
+  if (series.length < 2) return null;
+  const first = series[0];
+  const last = series[series.length - 1];
+  if (first == null || last == null || first === 0) return null;
+  return ((last - first) / first) * 100;
+}
+
+/** Format delta as "+12.3%" or "-5.1%". Returns "—" when null. */
+function fmtDelta(delta: number | null): string {
+  if (delta === null) return '—';
+  const sign = delta >= 0 ? '+' : '';
+  return `${sign}${delta.toFixed(1)}%`;
+}
 
 export function DashboardChart() {
-  const [range, setRange] = useState<Range>('7d');
-  const [metric, setMetric] = useState<Metric>('aum');
+  const [range, setRange] = useState<DashboardHistoryRange>('7d');
+  const [metric, setMetric] = useState<DashboardHistoryMetric>('aum');
 
   const { data: metrics } = useDashboardMetrics();
+  const { data: historyData } = useDashboardHistory(metric, range);
 
   const totalUsdt = Number(metrics?.aumUsdt ?? 0);
   const totalUsdc = Number(metrics?.aumUsdc ?? 0);
@@ -43,55 +64,56 @@ export function DashboardChart() {
   const pendingDepositsValue = Number(metrics?.pendingDepositsValue ?? 0);
   const pendingWithdrawals = metrics?.pendingWithdrawals ?? 0;
 
-  // Cosmetic trend series — scaled to real totals so proportions are meaningful.
-  // Point count varies by range so axis ticks align.
-  const pointCount = range === '24h' ? 24 : range === '7d' ? 42 : range === '30d' ? 60 : 90;
-  const aumSeries = useMemo(
-    () => makeSeries(42, pointCount, 0.12, 0.035).map((v) => v * Math.max(total, 1) * 0.92),
-    [total, pointCount]
-  );
-  const depSeries = useMemo(
-    () =>
-      makeSeries(101, pointCount, 0.04, 0.1).map((v) => v * Math.max(pendingDepositsValue, 80_000)),
-    [pendingDepositsValue, pointCount]
-  );
-  const wdSeries = useMemo(
-    () =>
-      makeSeries(207, pointCount, 0.02, 0.09).map(
-        (v) => v * Math.max(pendingWithdrawals * 5000, 50_000)
-      ),
-    [pendingWithdrawals, pointCount]
-  );
+  // Extract numeric series from real history points
+  const series = useMemo(() => (historyData?.points ?? []).map((p) => p.v), [historyData]);
 
-  const series = metric === 'aum' ? aumSeries : metric === 'deposits' ? depSeries : wdSeries;
   const stroke =
     metric === 'aum' ? 'var(--accent)' : metric === 'deposits' ? 'var(--ok)' : 'var(--info)';
 
   const axisLabels = useMemo(() => buildAxisLabels(range), [range]);
+
+  // Compute real deltas from historical series
+  const aumDelta = useMemo(() => {
+    if (metric !== 'aum') return null;
+    return computeDelta(series);
+  }, [metric, series]);
+
+  const depDelta = useMemo(() => {
+    if (metric !== 'deposits') return null;
+    return computeDelta(series);
+  }, [metric, series]);
+
+  const wdDelta = useMemo(() => {
+    if (metric !== 'withdrawals') return null;
+    return computeDelta(series);
+  }, [metric, series]);
 
   const tabs = [
     {
       id: 'aum' as const,
       label: 'AUM',
       value: `$${fmtCompact(total)}`,
-      delta: '—',
-      positive: true,
+      delta: fmtDelta(aumDelta),
+      positive: aumDelta === null || aumDelta >= 0,
     },
     {
       id: 'deposits' as const,
       label: 'Deposits (pending)',
       value: `$${fmtCompact(pendingDepositsValue)}`,
-      delta: '—',
-      positive: true,
+      delta: fmtDelta(depDelta),
+      positive: depDelta === null || depDelta >= 0,
     },
     {
       id: 'withdrawals' as const,
       label: 'Withdrawals (pending)',
       value: String(pendingWithdrawals),
-      delta: '—',
-      positive: false,
+      delta: fmtDelta(wdDelta),
+      positive: wdDelta === null || wdDelta >= 0,
     },
   ];
+
+  // Empty state: no data yet for this metric/range
+  const isEmpty = series.length === 0;
 
   return (
     <div className="card pro-card">
@@ -122,7 +144,23 @@ export function DashboardChart() {
         />
       </div>
       <div className="pro-card-body">
-        <AreaChart data={series} height={180} stroke={stroke} label={metric} />
+        {isEmpty ? (
+          <div
+            className="chart-empty-state"
+            style={{
+              height: 180,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="text-sm text-muted">
+              No historical data yet — activity will appear here
+            </span>
+          </div>
+        ) : (
+          <AreaChart data={series} height={180} stroke={stroke} label={metric} />
+        )}
         <div className="chart-axis">
           {axisLabels.map((lbl) => (
             <span key={lbl}>{lbl}</span>
@@ -140,9 +178,6 @@ export function HoldingsList() {
   const aumUsdc = Number(metrics?.aumUsdc ?? 0);
   const total = aumUsdt + aumUsdc;
 
-  const usdtSpark = useMemo(() => makeSeries(401, 32, 0.04, 0.02), []);
-  const usdcSpark = useMemo(() => makeSeries(402, 32, 0.06, 0.025), []);
-
   const usdtPct = total > 0 ? Math.round((aumUsdt / total) * 100) : 0;
   const usdcPct = total > 0 ? Math.round((aumUsdc / total) * 100) : 0;
 
@@ -153,7 +188,9 @@ export function HoldingsList() {
       bal: aumUsdt,
       pct: usdtPct,
       delta: '—',
-      series: usdtSpark,
+      // Empty sparkline — no synthetic data; will stay blank until history endpoint
+      // is wired per-token (future: useDashboardHistory('aum', '7d') filtered by currency)
+      series: [] as number[],
       color: 'oklch(70% 0.12 165)',
     },
     {
@@ -162,7 +199,7 @@ export function HoldingsList() {
       bal: aumUsdc,
       pct: usdcPct,
       delta: '—',
-      series: usdcSpark,
+      series: [] as number[],
       color: 'oklch(65% 0.14 245)',
     },
   ];
@@ -184,7 +221,11 @@ export function HoldingsList() {
               <div className="text-mono fw-600">${fmtUSD(r.bal)}</div>
               <div className="text-xs text-muted">{r.pct}% of AUM</div>
             </div>
-            <Sparkline data={r.series} width={60} height={20} stroke={r.color} />
+            {r.series.length >= 2 ? (
+              <Sparkline data={r.series} width={60} height={20} stroke={r.color} />
+            ) : (
+              <span style={{ width: 60, height: 20, display: 'inline-block' }} />
+            )}
             <span className="text-xs text-mono fw-500">{r.delta}</span>
           </div>
         ))}

@@ -15,6 +15,7 @@ import { z } from 'zod';
 import * as schema from '../db/schema/index.js';
 import { emitDepositCredited } from '../events/emit-deposit-credited.js';
 import { ConflictError, NotFoundError, creditDeposit } from '../services/deposit-credit.service.js';
+import { notifyStaff } from '../services/notify-staff.service.js';
 import {
   NotFoundError as SwNotFoundError,
   recordSweepBroadcasted,
@@ -81,6 +82,27 @@ const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, 
         const result = await creditDeposit(app.db, req.params.id);
         // Emit real-time event to all connected UI clients
         emitDepositCredited(app.io, result);
+        // Notify treasurers of credited deposit (fire-and-forget)
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'treasurer',
+            eventType: 'deposit.confirmed',
+            severity: 'info',
+            title: 'Deposit confirmed',
+            body: `${result.amount} ${result.token} on ${result.chain} credited to user ${result.userId}`,
+            payload: {
+              depositId: result.id,
+              userId: result.userId,
+              amount: result.amount,
+              token: result.token,
+            },
+            dedupeKey: result.id,
+          },
+          app.emailQueue,
+          app.slackQueue
+        ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
         return reply.code(200).send({ ok: true, depositId: result.id });
       } catch (err) {
         if (err instanceof NotFoundError) {
@@ -303,6 +325,22 @@ const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, 
     async (req, reply) => {
       try {
         await recordSweepConfirmed(app.db, req.params.id, app.io);
+        // Notify admins of sweep confirmation (fire-and-forget)
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'admin',
+            eventType: 'sweep.confirmed',
+            severity: 'info',
+            title: 'Sweep confirmed on-chain',
+            body: `Sweep ${req.params.id} has been confirmed`,
+            payload: { sweepId: req.params.id },
+            dedupeKey: `sweep_confirmed:${req.params.id}`,
+          },
+          app.emailQueue,
+          app.slackQueue
+        ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
         return reply.code(200).send({ ok: true });
       } catch (err) {
         if (err instanceof SwNotFoundError) {

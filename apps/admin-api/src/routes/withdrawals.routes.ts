@@ -6,6 +6,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
+import { notifyStaff } from '../services/notify-staff.service.js';
 import {
   ConflictError as ApproveConflictError,
   NotFoundError as ApproveNotFoundError,
@@ -140,6 +141,25 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
           getPolicyOpts(),
           app.coldTimelockQueue
         );
+        // Notify treasurers + admins of new withdrawal (fire-and-forget, non-fatal)
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'treasurer',
+            eventType: 'withdrawal.created',
+            severity: 'info',
+            title: 'New withdrawal request',
+            body: `${withdrawal.amount} ${withdrawal.token} on ${withdrawal.chain} to ${withdrawal.destinationAddr}`,
+            payload: {
+              id: withdrawal.id,
+              amount: withdrawal.amount,
+              dest: withdrawal.destinationAddr,
+            },
+          },
+          app.emailQueue,
+          app.slackQueue
+        ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
         return reply.code(201).send({
           withdrawal: {
             id: withdrawal.id,
@@ -242,6 +262,27 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
           app.io,
           getPolicyOpts()
         );
+        // Notify treasurers of approval progress (fire-and-forget)
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'treasurer',
+            eventType: 'withdrawal.approved',
+            severity: 'info',
+            title: `Withdrawal signature added (${result.progress})`,
+            body: result.thresholdMet
+              ? 'Threshold met — ready to execute'
+              : `${result.op.collectedSigs}/${result.op.requiredSigs} signatures collected`,
+            payload: {
+              withdrawalId: req.params.id,
+              progress: result.progress,
+              thresholdMet: result.thresholdMet,
+            },
+          },
+          app.emailQueue,
+          app.slackQueue
+        ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
         return reply.code(200).send({
           op: {
             id: result.op.id,
@@ -291,6 +332,21 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
       const staffId = (req.session.staff ?? { id: '' }).id;
       try {
         const result = await executeWithdrawal(app.db, req.params.id, staffId, app.queue, app.io);
+        // Notify admins that withdrawal broadcast was enqueued (fire-and-forget)
+        notifyStaff(
+          app.db,
+          app.io,
+          {
+            role: 'admin',
+            eventType: 'withdrawal.broadcast',
+            severity: 'info',
+            title: 'Withdrawal queued for broadcast',
+            body: `Withdrawal ${req.params.id} enqueued for on-chain execution`,
+            payload: { withdrawalId: req.params.id, jobId: result.jobId },
+          },
+          app.emailQueue,
+          app.slackQueue
+        ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
         return reply.code(202).send({ jobId: result.jobId });
       } catch (err) {
         if (err instanceof ExecNotFoundError) {

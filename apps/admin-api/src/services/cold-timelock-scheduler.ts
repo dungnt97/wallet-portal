@@ -5,12 +5,17 @@
 //     that may have been missed during Redis restart; enqueues broadcast jobs immediately.
 //  2. 5-minute repeatable job (BullMQ repeatable): re-scans for newly unlocked rows that
 //     missed their delayed job (e.g. Redis eviction, pod restart between create and fire).
+//  3. Expiring-soon probe: within the 5-minute scan, also checks for time_locks expiring
+//     within 10 minutes and emits cold.timelock.expiring notification (once per withdrawal).
 //
 // The actual broadcast logic lives in wallet-engine cold-timelock-broadcast worker.
 import type { Queue } from 'bullmq';
-import { and, eq, lte } from 'drizzle-orm';
+import { and, between, eq, lte } from 'drizzle-orm';
+import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
+import type { EmailJobData, SlackJobData } from './notify-staff.service.js';
+import { notifyStaff } from './notify-staff.service.js';
 import { COLD_TIMELOCK_QUEUE, type ColdTimelockJobData } from './withdrawal-create.service.js';
 
 /* eslint-disable no-console */
@@ -72,18 +77,78 @@ export async function reconcileExpiredTimelocks(
   return enqueued;
 }
 
+// ── Expiring-soon notification ────────────────────────────────────────────────
+
+const EXPIRING_SOON_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Find time_locked withdrawals expiring within 10 minutes and notify treasurers.
+ * Uses dedupeKey `timelock_expiring:{id}` so each withdrawal fires at most once.
+ */
+export async function notifyExpiringSoon(
+  db: Db,
+  io: SocketIOServer,
+  emailQueue: Queue<EmailJobData>,
+  slackQueue: Queue<SlackJobData>
+): Promise<void> {
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + EXPIRING_SOON_WINDOW_MS);
+
+  const expiringSoon = await db
+    .select({ id: schema.withdrawals.id, timeLockExpiresAt: schema.withdrawals.timeLockExpiresAt })
+    .from(schema.withdrawals)
+    .where(
+      and(
+        eq(schema.withdrawals.status, 'time_locked'),
+        between(schema.withdrawals.timeLockExpiresAt, now, windowEnd)
+      )
+    );
+
+  for (const row of expiringSoon) {
+    const expiresAt = row.timeLockExpiresAt?.toISOString() ?? '';
+    await notifyStaff(
+      db,
+      io,
+      {
+        role: 'treasurer',
+        eventType: 'cold.timelock.expiring',
+        severity: 'warning',
+        title: 'Cold withdrawal timelock expiring soon',
+        body: `Withdrawal ${row.id} unlocks at ${expiresAt}`,
+        payload: { withdrawalId: row.id, timeLockExpiresAt: expiresAt },
+        dedupeKey: `timelock_expiring:${row.id}`,
+      },
+      emailQueue,
+      slackQueue
+    ).catch((err) => {
+      logger.error({ err, withdrawalId: row.id }, 'notifyStaff for expiring timelock failed');
+    });
+  }
+}
+
 // ── Periodic fallback scheduler ───────────────────────────────────────────────
 
 const FALLBACK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+export interface TimelockSchedulerDeps {
+  io: SocketIOServer;
+  emailQueue: Queue<EmailJobData>;
+  slackQueue: Queue<SlackJobData>;
+}
 
 /**
  * Start the cold timelock scheduler:
  *  - Runs an immediate reconciliation on boot (handles Redis restart survivability).
  *  - Schedules a repeating 5-minute fallback using setInterval.
+ *  - Each cycle also notifies treasurers of timelocks expiring within 10 minutes.
  *
  * Returns a cleanup function — call it on graceful shutdown.
  */
-export function startColdTimelockScheduler(db: Db, queue: Queue<ColdTimelockJobData>): () => void {
+export function startColdTimelockScheduler(
+  db: Db,
+  queue: Queue<ColdTimelockJobData>,
+  deps?: TimelockSchedulerDeps
+): () => void {
   // On-boot reconciliation — non-fatal, log and continue if DB is not ready yet
   reconcileExpiredTimelocks(db, queue).catch((err) => {
     logger.error({ err }, 'On-boot cold timelock reconciliation failed');
@@ -94,6 +159,12 @@ export function startColdTimelockScheduler(db: Db, queue: Queue<ColdTimelockJobD
     reconcileExpiredTimelocks(db, queue).catch((err) => {
       logger.error({ err }, 'Periodic cold timelock reconciliation failed');
     });
+    // Notify of upcoming expirations if deps provided
+    if (deps) {
+      notifyExpiringSoon(db, deps.io, deps.emailQueue, deps.slackQueue).catch((err) => {
+        logger.error({ err }, 'notifyExpiringSoon failed');
+      });
+    }
   }, FALLBACK_INTERVAL_MS);
 
   // Prevent the interval from blocking process exit

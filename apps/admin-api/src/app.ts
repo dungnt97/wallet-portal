@@ -101,9 +101,14 @@ export async function buildApp(cfg: Config) {
   await app.register(routes, { cfg });
 
   // Cold timelock scheduler — on-boot reconciliation + 5min periodic fallback (Slice 7)
+  // Also probes for timelocks expiring within 10 minutes and notifies treasurers (Slice 5).
   // Must start after DB, queue plugins are registered. Cleanup registered as onClose hook.
   app.addHook('onReady', async () => {
-    const stopScheduler = startColdTimelockScheduler(app.db, app.coldTimelockQueue);
+    const stopScheduler = startColdTimelockScheduler(app.db, app.coldTimelockQueue, {
+      io: app.io,
+      emailQueue: app.emailQueue,
+      slackQueue: app.slackQueue,
+    });
     app.addHook('onClose', async () => stopScheduler());
   });
 

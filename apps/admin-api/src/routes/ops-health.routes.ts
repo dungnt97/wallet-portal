@@ -7,6 +7,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth } from '../auth/rbac.middleware.js';
 import {
+  checkDegradationTransition,
   probeChain,
   probeDb,
   probePolicyEngine,
@@ -14,6 +15,7 @@ import {
   probeRedis,
   probeWorkers,
 } from '../services/health-probes.service.js';
+import { notifyStaff } from '../services/notify-staff.service.js';
 
 // ── Response schema ───────────────────────────────────────────────────────────
 
@@ -164,19 +166,61 @@ const opsHealthRoutes: FastifyPluginAsync = async (app) => {
         ]
       );
 
+      const dbProbe = unwrap(
+        dbResult as PromiseSettledResult<Awaited<ReturnType<typeof probeDb>>>,
+        { status: 'error' as const, error: 'probe failed' }
+      );
+      const redisProbe = unwrap(
+        redisResult as PromiseSettledResult<Awaited<ReturnType<typeof probeRedis>>>,
+        { status: 'error' as const, error: 'probe failed' }
+      );
+      const policyProbe = unwrap(
+        policyResult as PromiseSettledResult<Awaited<ReturnType<typeof probePolicyEngine>>>,
+        { status: 'error' as const, error: 'probe failed' }
+      );
+
+      // Fire health.degraded notifications for fresh ok→error transitions (ops + admins)
+      const degradedComponents: string[] = [];
+      if (checkDegradationTransition('db', dbProbe.status)) degradedComponents.push('db');
+      if (checkDegradationTransition('redis', redisProbe.status)) degradedComponents.push('redis');
+      if (checkDegradationTransition('policyEngine', policyProbe.status))
+        degradedComponents.push('policyEngine');
+      for (const chain of chainResults) {
+        if (checkDegradationTransition(`chain:${chain.id}`, chain.status))
+          degradedComponents.push(`chain:${chain.id}`);
+      }
+      for (const q of queueResults) {
+        if (checkDegradationTransition(`queue:${q.name}`, q.status))
+          degradedComponents.push(`queue:${q.name}`);
+      }
+      for (const w of workerResults) {
+        if (checkDegradationTransition(`worker:${w.name}`, w.status))
+          degradedComponents.push(`worker:${w.name}`);
+      }
+
+      if (degradedComponents.length > 0) {
+        for (const role of ['ops', 'admin'] as const) {
+          notifyStaff(
+            app.db,
+            app.io,
+            {
+              role,
+              eventType: 'health.degraded',
+              severity: 'critical',
+              title: 'System health degraded',
+              body: `Components degraded: ${degradedComponents.join(', ')}`,
+              payload: { components: degradedComponents },
+            },
+            app.emailQueue,
+            app.slackQueue
+          ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
+        }
+      }
+
       return reply.code(200).send({
-        db: unwrap(dbResult as PromiseSettledResult<Awaited<ReturnType<typeof probeDb>>>, {
-          status: 'error',
-          error: 'probe failed',
-        }),
-        redis: unwrap(redisResult as PromiseSettledResult<Awaited<ReturnType<typeof probeRedis>>>, {
-          status: 'error',
-          error: 'probe failed',
-        }),
-        policyEngine: unwrap(
-          policyResult as PromiseSettledResult<Awaited<ReturnType<typeof probePolicyEngine>>>,
-          { status: 'error', error: 'probe failed' }
-        ),
+        db: dbProbe,
+        redis: redisProbe,
+        policyEngine: policyProbe,
         chains: chainResults,
         queues: queueResults,
         workers: workerResults,

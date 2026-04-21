@@ -8,6 +8,7 @@ import { requireAuth } from '../auth/rbac.middleware.js';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import { requireStepUp } from '../auth/require-step-up.middleware.js';
 import { KillSwitchEnabledError, getState, toggle } from '../services/kill-switch.service.js';
+import { notifyStaff } from '../services/notify-staff.service.js';
 
 const KillSwitchStateSchema = z.object({
   enabled: z.boolean(),
@@ -61,6 +62,29 @@ const opsKillSwitchRoutes: FastifyPluginAsync = async (app) => {
           { enabled: req.body.enabled, reason: req.body.reason ?? undefined, staffId },
           app.io
         );
+        // Notify ops + admins of kill-switch state change — always critical (fire-and-forget)
+        const eventType = req.body.enabled ? 'ops.killswitch.enabled' : 'ops.killswitch.disabled';
+        const notifyRoles = ['admin', 'ops'] as const;
+        const ksTitle = req.body.enabled
+          ? 'Kill-switch ENABLED — outbound paused'
+          : 'Kill-switch disabled — outbound resumed';
+        const ksPayload = { enabled: state.enabled, updatedByStaffId: staffId };
+        for (const role of notifyRoles) {
+          notifyStaff(
+            app.db,
+            app.io,
+            {
+              role,
+              eventType,
+              severity: 'critical',
+              title: ksTitle,
+              ...(state.reason != null && { body: state.reason }),
+              payload: ksPayload,
+            },
+            app.emailQueue,
+            app.slackQueue
+          ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
+        }
         return reply.code(200).send(state);
       } catch (err) {
         if (err instanceof KillSwitchEnabledError) {

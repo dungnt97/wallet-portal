@@ -1,8 +1,10 @@
 import type { Queue } from 'bullmq';
 // health-probes.service — individual component probes for GET /ops/health.
 // Each probe resolves to a typed status object; caller runs them in parallel via Promise.allSettled.
+// State tracking: tracks previous component statuses to emit notifications only on degradation transitions.
 import { eq } from 'drizzle-orm';
 import type Redis from 'ioredis';
+import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
 
@@ -162,6 +164,30 @@ export async function probeQueue(queue: Queue): Promise<QueueProbeResult> {
   } catch (err) {
     return { name: queue.name, depth: 0, status: 'error', error: String(err) };
   }
+}
+
+// ── Health degradation state tracker ─────────────────────────────────────────
+
+/**
+ * In-process map tracking last known status per named component.
+ * Allows emitting `health.degraded` notifications only on ok→error transitions
+ * (not on every poll when already degraded).
+ */
+const componentStatusCache = new Map<string, ProbeStatus>();
+
+/**
+ * Check if a component just transitioned from ok → error.
+ * Updates the cache and returns true only on a fresh degradation.
+ */
+export function checkDegradationTransition(component: string, current: ProbeStatus): boolean {
+  const previous = componentStatusCache.get(component) ?? 'ok';
+  componentStatusCache.set(component, current);
+  return previous === 'ok' && current === 'error';
+}
+
+/** Reset all tracked states — useful in tests */
+export function resetHealthStateCache(): void {
+  componentStatusCache.clear();
 }
 
 // ── Worker heartbeat probes ───────────────────────────────────────────────────

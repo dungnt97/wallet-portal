@@ -65,10 +65,19 @@ export function CommandPalette({ open, onClose }: Props) {
     onClose();
   };
 
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
-    <>
-      <div className="scrim cmd-scrim" onClick={onClose} />
-      <div className="cmd-palette">
+    <div
+      className="cmd-scrim"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="cmd-palette" onClick={stop} onKeyDown={stop} role="presentation">
         <div className="cmd-search">
           <I.Search size={14} />
           <input
@@ -84,7 +93,7 @@ export function CommandPalette({ open, onClose }: Props) {
           {filteredPages.map((p) => {
             const Icon = I[p.iconKey];
             return (
-              <button key={p.id} className="cmd-row" onClick={() => go(p.to)}>
+              <button key={p.id} type="button" className="cmd-row" onClick={() => go(p.to)}>
                 <Icon size={14} />
                 <span>{p.label}</span>
                 <span className="cmd-kind">{p.kind}</span>
@@ -96,6 +105,6 @@ export function CommandPalette({ open, onClose }: Props) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -45,7 +45,10 @@
     "selected": "selected",
     "of": "of",
     "selectAll": "Select all",
-    "clearSelection": "Clear selection"
+    "clearSelection": "Clear selection",
+    "copyFailed": "Copy failed",
+    "done": "Done",
+    "timeLockActive": "Time-lock active"
   },
   "sidebar": {
     "brandName": "Wallet Portal",
@@ -262,7 +265,19 @@
     "dBlock": "Block",
     "dRisk": "Risk",
     "emptyTitle": "No deposits",
-    "emptyHint": "Inbound deposits will appear here as they are detected on chain."
+    "emptyHint": "Inbound deposits will appear here as they are detected on chain.",
+    "manualCredit": {
+      "title": "Manual credit",
+      "userSearch": "User (email or ID)",
+      "chain": "Chain",
+      "token": "Token",
+      "amount": "Amount",
+      "reason": "Reason",
+      "reasonHint": "Minimum 20 characters — recorded in audit log",
+      "submit": "Apply credit",
+      "success": "Manual credit applied.",
+      "badge": "Manual"
+    }
   },
   "withdrawals": {
     "eyebrow": "Flow",
@@ -725,7 +740,30 @@
     "colStatus": "Status",
     "colCreated": "Created",
     "colRole": "Role",
-    "colActive": "Active"
+    "colActive": "Active",
+    "inviteTitle": "Invite staff member",
+    "inviteSent": "Invite created",
+    "inviteFullName": "Full name",
+    "inviteEmail": "Work email",
+    "inviteRole": "Role",
+    "sendInvite": "Create invite",
+    "inviteLinkDesc": "Share this link with the new staff member. They will be prompted to register a security key.",
+    "inviteExpiry": "Link expires on {{date}}. After expiry the staff member must be re-invited.",
+    "inviteHint": "A WebAuthn registration link valid for 72 hours will be generated. The invite expires automatically.",
+    "riskBadge": {
+      "low": "Low risk",
+      "medium": "Medium risk",
+      "high": "High risk",
+      "frozen": "Frozen"
+    },
+    "riskEdit": {
+      "title": "Update risk tier",
+      "tier": "Risk tier",
+      "reason": "Reason",
+      "reasonPlaceholder": "Explain the basis for this risk assessment…",
+      "save": "Save",
+      "saved": "Risk tier updated."
+    }
   },
   "transactions": {
     "title": "Transactions",
@@ -956,56 +994,6 @@
     "logoutAllHint": "Destroys the current session. Other active sessions (different devices/tabs) will expire on next request.",
     "saved": "Profile saved.",
     "loggedOutAll": "Logged out. Please sign in again."
-  },
-  "users": {
-    "title": "Users",
-    "subtitle": "End-user accounts and staff directory",
-    "tabUsers": "End users",
-    "tabStaff": "Staff",
-    "colUser": "User",
-    "colEmail": "Email",
-    "colKyc": "KYC",
-    "colStatus": "Status",
-    "colCreated": "Created",
-    "colRole": "Role",
-    "colActive": "Active",
-    "inviteTitle": "Invite staff member",
-    "inviteSent": "Invite created",
-    "inviteFullName": "Full name",
-    "inviteEmail": "Work email",
-    "inviteRole": "Role",
-    "sendInvite": "Create invite",
-    "inviteLinkDesc": "Share this link with the new staff member. They will be prompted to register a security key.",
-    "inviteExpiry": "Link expires on {{date}}. After expiry the staff member must be re-invited.",
-    "inviteHint": "A WebAuthn registration link valid for 72 hours will be generated. The invite expires automatically.",
-    "riskBadge": {
-      "low": "Low risk",
-      "medium": "Medium risk",
-      "high": "High risk",
-      "frozen": "Frozen"
-    },
-    "riskEdit": {
-      "title": "Update risk tier",
-      "tier": "Risk tier",
-      "reason": "Reason",
-      "reasonPlaceholder": "Explain the basis for this risk assessment…",
-      "save": "Save",
-      "saved": "Risk tier updated."
-    }
-  },
-  "deposits": {
-    "manualCredit": {
-      "title": "Manual credit",
-      "userSearch": "User (email or ID)",
-      "chain": "Chain",
-      "token": "Token",
-      "amount": "Amount",
-      "reason": "Reason",
-      "reasonHint": "Minimum 20 characters — recorded in audit log",
-      "submit": "Apply credit",
-      "success": "Manual credit applied.",
-      "badge": "Manual"
-    }
   },
   "ops": {
     "eyebrow": "Operations",

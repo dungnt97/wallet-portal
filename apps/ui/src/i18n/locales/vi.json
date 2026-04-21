@@ -45,7 +45,10 @@
     "selected": "đã chọn",
     "of": "trong số",
     "selectAll": "Chọn tất cả",
-    "clearSelection": "Bỏ chọn"
+    "clearSelection": "Bỏ chọn",
+    "copyFailed": "Sao chép thất bại",
+    "done": "Xong",
+    "timeLockActive": "Khoá thời gian đang hoạt động"
   },
   "sidebar": {
     "brandName": "Wallet Portal",
@@ -262,7 +265,19 @@
     "dBlock": "Block",
     "dRisk": "Rủi ro",
     "emptyTitle": "Chưa có deposit",
-    "emptyHint": "Deposit mới sẽ xuất hiện ở đây khi được phát hiện trên chain."
+    "emptyHint": "Deposit mới sẽ xuất hiện ở đây khi được phát hiện trên chain.",
+    "manualCredit": {
+      "title": "Nạp thủ công",
+      "userSearch": "Người dùng (email hoặc ID)",
+      "chain": "Chuỗi",
+      "token": "Token",
+      "amount": "Số lượng",
+      "reason": "Lý do",
+      "reasonHint": "Tối thiểu 20 ký tự — ghi vào nhật ký kiểm toán",
+      "submit": "Áp dụng",
+      "success": "Đã nạp thủ công.",
+      "badge": "Thủ công"
+    }
   },
   "withdrawals": {
     "eyebrow": "Luồng",
@@ -716,16 +731,39 @@
   },
   "users": {
     "title": "Người dùng",
-    "subtitle": "Tài khoản end-user và danh bạ nhân sự",
-    "tabUsers": "End user",
-    "tabStaff": "Nhân sự",
+    "subtitle": "Tài khoản người dùng cuối và danh bạ nhân viên",
+    "tabUsers": "Người dùng cuối",
+    "tabStaff": "Nhân viên",
     "colUser": "Người dùng",
     "colEmail": "Email",
     "colKyc": "KYC",
     "colStatus": "Trạng thái",
-    "colCreated": "Tạo lúc",
+    "colCreated": "Ngày tạo",
     "colRole": "Vai trò",
-    "colActive": "Hoạt động"
+    "colActive": "Hoạt động",
+    "inviteTitle": "Mời nhân viên",
+    "inviteSent": "Đã tạo lời mời",
+    "inviteFullName": "Họ và tên",
+    "inviteEmail": "Email công việc",
+    "inviteRole": "Vai trò",
+    "sendInvite": "Tạo lời mời",
+    "inviteLinkDesc": "Chia sẻ liên kết này với nhân viên mới. Họ sẽ được yêu cầu đăng ký khoá bảo mật.",
+    "inviteExpiry": "Liên kết hết hạn vào {{date}}. Sau khi hết hạn cần mời lại.",
+    "inviteHint": "Liên kết đăng ký WebAuthn có hiệu lực 72 giờ sẽ được tạo.",
+    "riskBadge": {
+      "low": "Rủi ro thấp",
+      "medium": "Rủi ro trung bình",
+      "high": "Rủi ro cao",
+      "frozen": "Đã đóng băng"
+    },
+    "riskEdit": {
+      "title": "Cập nhật mức rủi ro",
+      "tier": "Mức rủi ro",
+      "reason": "Lý do",
+      "reasonPlaceholder": "Giải thích cơ sở đánh giá rủi ro này…",
+      "save": "Lưu",
+      "saved": "Đã cập nhật mức rủi ro."
+    }
   },
   "transactions": {
     "title": "Giao dịch",
@@ -919,14 +957,9 @@
     "empty": "Không có thông báo",
     "viewAll": "Xem tất cả trong nhật ký",
     "prefs": {
-      "title": "Cài đặt thông báo",
-      "menuItem": "Cài đặt thông báo",
-      "saved": "Đã lưu cài đặt.",
-      "channels": "Kênh nhận thông báo",
-      "inApp": "Trong ứng dụng (chuông)",
-      "email": "Email tổng hợp",
-      "slack": "Slack",
-      "eventTypes": "Loại sự kiện"
+      "sms": "SMS (Twilio)",
+      "phoneNumber": "Số điện thoại",
+      "phoneNumberPlaceholder": "+84 90 000 0000"
     },
     "eventTypes": {
       "withdrawal": "Sự kiện rút tiền",
@@ -936,11 +969,6 @@
       "reorg": "Reorg chuỗi",
       "health": "Sức khoẻ hệ thống",
       "coldTimelock": "Hết hạn cold timelock"
-    },
-    "prefs": {
-      "sms": "SMS (Twilio)",
-      "phoneNumber": "Số điện thoại",
-      "phoneNumberPlaceholder": "+84 90 000 0000"
     }
   },
   "account": {
@@ -958,56 +986,6 @@
     "logoutAllHint": "Huỷ phiên hiện tại. Các phiên khác sẽ hết hạn ở lần yêu cầu tiếp theo.",
     "saved": "Đã lưu hồ sơ.",
     "loggedOutAll": "Đã đăng xuất. Vui lòng đăng nhập lại."
-  },
-  "users": {
-    "title": "Người dùng",
-    "subtitle": "Tài khoản người dùng cuối và danh bạ nhân viên",
-    "tabUsers": "Người dùng cuối",
-    "tabStaff": "Nhân viên",
-    "colUser": "Người dùng",
-    "colEmail": "Email",
-    "colKyc": "KYC",
-    "colStatus": "Trạng thái",
-    "colCreated": "Ngày tạo",
-    "colRole": "Vai trò",
-    "colActive": "Hoạt động",
-    "inviteTitle": "Mời nhân viên",
-    "inviteSent": "Đã tạo lời mời",
-    "inviteFullName": "Họ và tên",
-    "inviteEmail": "Email công việc",
-    "inviteRole": "Vai trò",
-    "sendInvite": "Tạo lời mời",
-    "inviteLinkDesc": "Chia sẻ liên kết này với nhân viên mới. Họ sẽ được yêu cầu đăng ký khoá bảo mật.",
-    "inviteExpiry": "Liên kết hết hạn vào {{date}}. Sau khi hết hạn cần mời lại.",
-    "inviteHint": "Liên kết đăng ký WebAuthn có hiệu lực 72 giờ sẽ được tạo.",
-    "riskBadge": {
-      "low": "Rủi ro thấp",
-      "medium": "Rủi ro trung bình",
-      "high": "Rủi ro cao",
-      "frozen": "Đã đóng băng"
-    },
-    "riskEdit": {
-      "title": "Cập nhật mức rủi ro",
-      "tier": "Mức rủi ro",
-      "reason": "Lý do",
-      "reasonPlaceholder": "Giải thích cơ sở đánh giá rủi ro này…",
-      "save": "Lưu",
-      "saved": "Đã cập nhật mức rủi ro."
-    }
-  },
-  "deposits": {
-    "manualCredit": {
-      "title": "Nạp thủ công",
-      "userSearch": "Người dùng (email hoặc ID)",
-      "chain": "Chuỗi",
-      "token": "Token",
-      "amount": "Số lượng",
-      "reason": "Lý do",
-      "reasonHint": "Tối thiểu 20 ký tự — ghi vào nhật ký kiểm toán",
-      "submit": "Áp dụng",
-      "success": "Đã nạp thủ công.",
-      "badge": "Thủ công"
-    }
   },
   "ops": {
     "eyebrow": "Vận hành",

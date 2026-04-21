@@ -35,11 +35,23 @@ export interface SignedSweepEVM {
 }
 
 function isDevMode(): boolean {
-  return (
-    process.env.AUTH_DEV_MODE === 'true' ||
-    !process.env.HD_MASTER_XPUB_BNB ||
-    process.env.HD_MASTER_XPUB_BNB === ''
-  );
+  // Synthetic tx allowed ONLY when AUTH_DEV_MODE is explicitly 'true'.
+  // Missing mnemonic in production is a fatal config error — not a dev-mode fallback.
+  return process.env.AUTH_DEV_MODE === 'true';
+}
+
+/**
+ * Assert that production is not accidentally running without key material.
+ * Throws immediately if called in non-dev mode with an empty mnemonic,
+ * so the worker fails fast rather than silently emitting a fake hash.
+ */
+function assertKeyMaterial(): void {
+  if (!isDevMode() && (!process.env.HD_MASTER_XPUB_BNB || process.env.HD_MASTER_XPUB_BNB === '')) {
+    throw new Error(
+      'FATAL: HD_MASTER_XPUB_BNB is not set and AUTH_DEV_MODE is not true. ' +
+        'Refusing to produce synthetic EVM sweep tx in production.'
+    );
+  }
 }
 
 /** Synthesise a fake 32-byte hex tx hash */
@@ -70,6 +82,9 @@ function deriveWallet(mnemonic: string, index: number): HDNodeWallet {
  */
 export async function buildAndSignSweepEVM(params: BuildSweepEVMParams): Promise<SignedSweepEVM> {
   const { userAddressIndex, tokenContract, amount, destinationHotSafe, nonce } = params;
+
+  // Fail fast if production is missing key material
+  assertKeyMaterial();
 
   if (isDevMode()) {
     const fakeHash = syntheticTxHash();
@@ -129,6 +144,7 @@ export async function broadcastSweepEVM(
   txHex: `0x${string}`,
   provider: JsonRpcProvider
 ): Promise<{ txHash: `0x${string}`; blockNumber?: number }> {
+  assertKeyMaterial();
   if (isDevMode()) {
     return { txHash: syntheticTxHash() };
   }

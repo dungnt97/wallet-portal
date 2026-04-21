@@ -39,11 +39,19 @@ export interface BumpSolanaResult {
 }
 
 function isDevMode(): boolean {
-  return (
-    process.env.AUTH_DEV_MODE === 'true' ||
-    !process.env.HD_MASTER_SEED_SOLANA ||
-    process.env.HD_MASTER_SEED_SOLANA === ''
-  );
+  return process.env.AUTH_DEV_MODE === 'true';
+}
+
+function assertKeyMaterial(): void {
+  if (
+    !isDevMode() &&
+    (!process.env.HD_MASTER_SEED_SOLANA || process.env.HD_MASTER_SEED_SOLANA === '')
+  ) {
+    throw new Error(
+      'FATAL: HD_MASTER_SEED_SOLANA is not set and AUTH_DEV_MODE is not true. ' +
+        'Refusing to produce synthetic Solana bump tx in production.'
+    );
+  }
 }
 
 function syntheticSignature(): string {
@@ -79,6 +87,7 @@ export async function bumpSolanaTx(
 ): Promise<BumpSolanaResult> {
   const { originalTxBase64, currentCuPriceMicroLamports, feeMultiplier, hdIndex } = params;
 
+  assertKeyMaterial();
   if (isDevMode()) {
     const fakeSig = syntheticSignature();
     logger.warn({ fakeSig }, 'DEV MODE: synthetic Solana bump — no real signing');

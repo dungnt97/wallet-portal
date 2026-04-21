@@ -37,11 +37,16 @@ export interface CancelEvmResult {
 }
 
 function isDevMode(): boolean {
-  return (
-    process.env.AUTH_DEV_MODE === 'true' ||
-    !process.env.HD_MASTER_XPUB_BNB ||
-    process.env.HD_MASTER_XPUB_BNB === ''
-  );
+  return process.env.AUTH_DEV_MODE === 'true';
+}
+
+function assertKeyMaterial(): void {
+  if (!isDevMode() && (!process.env.HD_MASTER_XPUB_BNB || process.env.HD_MASTER_XPUB_BNB === '')) {
+    throw new Error(
+      'FATAL: HD_MASTER_XPUB_BNB is not set and AUTH_DEV_MODE is not true. ' +
+        'Refusing to produce synthetic EVM cancel tx in production.'
+    );
+  }
 }
 
 function syntheticTxHash(): string {
@@ -78,6 +83,7 @@ export async function cancelEvmTx(
 ): Promise<CancelEvmResult> {
   const { originalTxHash, nonce, feeMultiplier, chainId, hdIndex, hotSafeAddress } = params;
 
+  assertKeyMaterial();
   if (isDevMode()) {
     const fakeHash = syntheticTxHash();
     logger.warn({ originalTxHash, fakeHash }, 'DEV MODE: synthetic cancel tx — no real signing');

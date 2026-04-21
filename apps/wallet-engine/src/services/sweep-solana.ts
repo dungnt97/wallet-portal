@@ -52,11 +52,20 @@ export interface SignedSweepSolana {
 }
 
 function isDevMode(): boolean {
-  return (
-    process.env.AUTH_DEV_MODE === 'true' ||
-    !process.env.HD_MASTER_SEED_SOLANA ||
-    process.env.HD_MASTER_SEED_SOLANA === ''
-  );
+  // Synthetic tx allowed ONLY when AUTH_DEV_MODE is explicitly 'true'.
+  return process.env.AUTH_DEV_MODE === 'true';
+}
+
+function assertKeyMaterial(): void {
+  if (
+    !isDevMode() &&
+    (!process.env.HD_MASTER_SEED_SOLANA || process.env.HD_MASTER_SEED_SOLANA === '')
+  ) {
+    throw new Error(
+      'FATAL: HD_MASTER_SEED_SOLANA is not set and AUTH_DEV_MODE is not true. ' +
+        'Refusing to produce synthetic Solana sweep tx in production.'
+    );
+  }
 }
 
 /** Synthesise a fake base58 tx signature (~88 chars) */
@@ -99,6 +108,8 @@ export async function buildAndSignSweepSolana(
   recentBlockhash: string
 ): Promise<SignedSweepSolana> {
   const { userAddressIndex, mint, amount, destinationHotSafe } = params;
+
+  assertKeyMaterial();
 
   if (isDevMode()) {
     const sig = syntheticSignature();
@@ -184,6 +195,7 @@ export async function broadcastSweepSolana(
   txBase64: string,
   connection: Connection
 ): Promise<{ signature: string; slot?: number }> {
+  assertKeyMaterial();
   if (isDevMode()) {
     return { signature: syntheticSignature() };
   }

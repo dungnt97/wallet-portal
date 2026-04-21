@@ -19,6 +19,7 @@
     { "idx": 18, "version": "7", "when": 1745750000000, "tag": "0018_account_settings_invite", "breakpoints": true },
     { "idx": 19, "version": "7", "when": 1745800000000, "tag": "0019_user_risk_tier", "breakpoints": true },
     { "idx": 20, "version": "7", "when": 1745850000000, "tag": "0020_manual_credit_deposit", "breakpoints": true },
-    { "idx": 22, "version": "7", "when": 1745900000000, "tag": "0022_backups_table", "breakpoints": true }
+    { "idx": 22, "version": "7", "when": 1745900000000, "tag": "0022_backups_table", "breakpoints": true },
+    { "idx": 23, "version": "7", "when": 1745950000000, "tag": "0023_notification_channels", "breakpoints": true }
   ]
 }

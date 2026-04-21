@@ -12,6 +12,7 @@ import { useAuth } from '@/auth/use-auth';
 import { ChainPill, PageFrame, StatusBadge } from '@/components/custody';
 import { useToast } from '@/components/overlays';
 import { I } from '@/icons';
+import { MULTISIG_POLICY } from '@/lib/constants';
 import { fmtUSD, shortHash } from '@/lib/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +70,9 @@ export function ColdPage() {
           <div className="policy-strip-item">
             <I.Shield size={11} />
             <span className="text-muted">{t('cold.thresholdLabel')}</span>
-            <span className="fw-600">2/3 (outbound) · 3/5 cold signers</span>
+            <span className="fw-600">
+              {MULTISIG_POLICY.required}/{MULTISIG_POLICY.total} {t('cold.signersLabel', 'signers')}
+            </span>
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">

@@ -1,4 +1,4 @@
-// Rebalance modal — POST /rebalance hot→cold. Chain pre-filled from clicked card.
+// Rebalance modal — POST /rebalance. Chain + direction pre-filled from clicked card.
 // WebAuthn step-up is handled transparently by the API client on 403 STEP_UP_REQUIRED.
 import { ApiError } from '@/api/client';
 import { type RebalanceBody, useRebalance } from '@/api/queries';
@@ -10,10 +10,12 @@ import { useTranslation } from 'react-i18next';
 interface Props {
   open: boolean;
   chain: 'bnb' | 'sol' | null;
+  /** Direction of the rebalance — determines which wallet is source vs destination */
+  direction: 'hot→cold' | 'cold→hot';
   onClose: () => void;
 }
 
-export function RebalanceModal({ open, chain, onClose }: Props) {
+export function RebalanceModal({ open, chain, direction, onClose }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
   const rebalanceMutation = useRebalance();
@@ -44,6 +46,8 @@ export function RebalanceModal({ open, chain, onClose }: Props) {
       token,
       // Convert decimal dollar amount → minor string (6 decimal places for USDT/USDC)
       amountMinor: (Number(amount) * 1_000_000).toFixed(0),
+      // Map UI direction string to API enum
+      direction: direction === 'cold→hot' ? 'cold_to_hot' : 'hot_to_cold',
     };
 
     try {

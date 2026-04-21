@@ -77,12 +77,22 @@ function makeQueryClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderModal(props: { open: boolean; chain: 'bnb' | 'sol' | null; onClose?: () => void }) {
+function renderModal(props: {
+  open: boolean;
+  chain: 'bnb' | 'sol' | null;
+  direction?: 'hot→cold' | 'cold→hot';
+  onClose?: () => void;
+}) {
   const onClose = props.onClose ?? vi.fn();
   const qc = makeQueryClient();
   render(
     <QueryClientProvider client={qc}>
-      <RebalanceModal open={props.open} chain={props.chain} onClose={onClose} />
+      <RebalanceModal
+        open={props.open}
+        chain={props.chain}
+        direction={props.direction ?? 'hot→cold'}
+        onClose={onClose}
+      />
     </QueryClientProvider>
   );
   return { onClose };
@@ -145,6 +155,7 @@ describe('RebalanceModal', () => {
         chain: 'bnb',
         token: 'USDT',
         amountMinor: '1000000000', // 1000 * 1_000_000
+        direction: 'hot_to_cold',
       });
     });
   });
@@ -187,7 +198,7 @@ describe('RebalanceModal', () => {
     const qc = makeQueryClient();
     const { rerender } = render(
       <QueryClientProvider client={qc}>
-        <RebalanceModal open={true} chain="bnb" onClose={vi.fn()} />
+        <RebalanceModal open={true} chain="bnb" direction="hot→cold" onClose={vi.fn()} />
       </QueryClientProvider>
     );
 
@@ -198,12 +209,12 @@ describe('RebalanceModal', () => {
     // Close then reopen — same QueryClient to avoid provider mismatch
     rerender(
       <QueryClientProvider client={qc}>
-        <RebalanceModal open={false} chain="bnb" onClose={vi.fn()} />
+        <RebalanceModal open={false} chain="bnb" direction="hot→cold" onClose={vi.fn()} />
       </QueryClientProvider>
     );
     rerender(
       <QueryClientProvider client={qc}>
-        <RebalanceModal open={true} chain="bnb" onClose={vi.fn()} />
+        <RebalanceModal open={true} chain="bnb" direction="hot→cold" onClose={vi.fn()} />
       </QueryClientProvider>
     );
 

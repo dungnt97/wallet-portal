@@ -201,6 +201,7 @@ export function ColdPage() {
       <RebalanceModal
         open={rebalanceOpen !== null}
         chain={rebalanceOpen?.chain ?? null}
+        direction={rebalanceOpen?.direction ?? 'hot→cold'}
         onClose={() => setRebalanceOpen(null)}
       />
     </PageFrame>

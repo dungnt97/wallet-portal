@@ -46,6 +46,8 @@ export interface CreateRebalanceInput {
   token: 'USDT' | 'USDC';
   /** Amount in minor decimal string — same format as withdrawal amounts */
   amountMinor: string;
+  /** hot_to_cold (default) or cold_to_hot */
+  direction?: 'hot_to_cold' | 'cold_to_hot';
 }
 
 export interface CreateRebalanceResult {
@@ -81,11 +83,11 @@ async function resolveHotSourceUserId(db: Db): Promise<string> {
 // ── Main service function ─────────────────────────────────────────────────────
 
 /**
- * Create a hot→cold rebalance operation:
+ * Create a rebalance operation — supports hot_to_cold (default) and cold_to_hot:
  *  1. Kill-switch guard
- *  2. Resolve destination cold_reserve wallet for (chain)
- *  3. Policy Engine pre-check — whitelist fast-path allows cold_reserve dest automatically
- *  4. DB transaction: INSERT withdrawals + multisig_operations (operationType='hot_to_cold')
+ *  2. Resolve source + destination wallets based on direction
+ *  3. Policy Engine pre-check — whitelist fast-path covers both intra-custody directions
+ *  4. DB transaction: INSERT withdrawals + multisig_operations
  *  5. Emit Socket.io rebalance.created
  */
 export async function createRebalance(
@@ -96,6 +98,7 @@ export async function createRebalance(
   policyOpts: PolicyClientOptions
 ): Promise<CreateRebalanceResult> {
   const { chain, token, amountMinor } = input;
+  const direction = input.direction ?? 'hot_to_cold';
 
   // 1. Kill-switch guard
   const ksState = await getKillSwitchState(db);
@@ -103,32 +106,51 @@ export async function createRebalance(
     throw new KillSwitchEnabledError(ksState.reason);
   }
 
-  // 2. Resolve cold_reserve destination wallet
-  const coldWallet = await db.query.wallets.findFirst({
-    where: and(
-      eq(schema.wallets.tier, 'cold'),
-      eq(schema.wallets.chain, chain),
-      eq(schema.wallets.purpose, 'cold_reserve')
-    ),
-  });
-  if (!coldWallet) {
-    throw new NotFoundError(
-      `No cold_reserve wallet registered for chain=${chain}. Add one via wallets seed.`
-    );
+  // 2. Resolve destination wallet based on direction
+  let destinationAddr: string;
+  let sourceTier: 'hot' | 'cold';
+
+  if (direction === 'hot_to_cold') {
+    // hot → cold: source=hot operational, destination=cold_reserve
+    const coldWallet = await db.query.wallets.findFirst({
+      where: and(
+        eq(schema.wallets.tier, 'cold'),
+        eq(schema.wallets.chain, chain),
+        eq(schema.wallets.purpose, 'cold_reserve')
+      ),
+    });
+    if (!coldWallet) {
+      throw new NotFoundError(
+        `No cold_reserve wallet registered for chain=${chain}. Add one via wallets seed.`
+      );
+    }
+    destinationAddr = coldWallet.address;
+    sourceTier = 'hot';
+  } else {
+    // cold → hot: source=cold_reserve, destination=hot operational
+    const hotWallet = await db.query.wallets.findFirst({
+      where: and(eq(schema.wallets.chain, chain), eq(schema.wallets.purpose, 'operational')),
+    });
+    if (!hotWallet) {
+      throw new NotFoundError(
+        `No operational (hot) wallet registered for chain=${chain}. Add one via wallets seed.`
+      );
+    }
+    destinationAddr = hotWallet.address;
+    sourceTier = 'cold';
   }
-  const destinationAddr = coldWallet.address;
 
   // 3. Resolve a userId for the FK (rebalances have no end-user)
   const userId = await resolveHotSourceUserId(db);
 
-  // 4. Policy Engine pre-check — hot_to_cold operation_type triggers whitelist fast-path
+  // 4. Policy Engine pre-check — both directions are intra-custody whitelist fast-path
   const policyResult = await checkPolicy(policyOpts, {
-    operationType: 'hot_to_cold',
+    operationType: 'hot_to_cold', // policy-engine whitelist covers both intra-custody directions
     actorStaffId: staffId,
     destinationAddr,
     amount: amountMinor,
     chain,
-    tier: 'hot', // source tier is hot (hot→cold direction)
+    tier: sourceTier,
   });
   if (!policyResult.allow) {
     throw new PolicyRejectedError(policyResult.reasons);
@@ -148,7 +170,7 @@ export async function createRebalance(
         amount: amountMinor,
         destinationAddr,
         status: 'pending',
-        sourceTier: 'hot',
+        sourceTier,
         createdBy: staffId,
       })
       .returning();
@@ -164,7 +186,7 @@ export async function createRebalance(
       .values({
         withdrawalId: newWithdrawal.id,
         chain,
-        // 'hot_to_cold' signals both the policy fast-path and the UI rebalance view
+        // always 'hot_to_cold' as the operation type — cold_to_hot is tracked via sourceTier
         operationType: 'hot_to_cold',
         multisigAddr: getMultisigAddr(chain),
         requiredSigs: 2,
@@ -191,11 +213,13 @@ export async function createRebalance(
       resourceType: 'withdrawal',
       resourceId: newWithdrawal.id,
       changes: {
+        direction,
         operationType: 'hot_to_cold',
         chain,
         token,
         amount: amountMinor,
         destinationAddr,
+        sourceTier,
         multisigOpId: newOp.id,
       },
     });
@@ -204,6 +228,7 @@ export async function createRebalance(
   // 6. Emit event after commit
   socketEmitter.of('/stream').emit('rebalance.created', {
     id: withdrawal?.id,
+    direction,
     chain,
     token,
     amount: amountMinor,

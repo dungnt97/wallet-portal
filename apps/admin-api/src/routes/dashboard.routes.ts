@@ -1,10 +1,11 @@
 import { count, eq, inArray, sum } from 'drizzle-orm';
-// Dashboard routes — GET /dashboard/metrics + GET /dashboard/nav-counts
+// Dashboard routes — GET /dashboard/metrics + GET /dashboard/nav-counts + GET /dashboard/history
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
+import { getDashboardHistory } from '../services/dashboard-history.service.js';
 
 const MetricsSchema = z.object({
   aumUsdt: z.string(),
@@ -140,6 +141,39 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
         multisig: multisigCount,
         recovery: recoveryCount,
       });
+    }
+  );
+  // ── GET /dashboard/history — time-bucketed series for chart ─────────────────
+  // Returns real data from ledger_entries / deposits / withdrawals tables.
+  // query: metric=aum|deposits|withdrawals, range=24h|7d|30d|90d
+  r.get(
+    '/dashboard/history',
+    {
+      preHandler: requirePerm('dashboard.read'),
+      schema: {
+        tags: ['dashboard'],
+        querystring: z.object({
+          metric: z.enum(['aum', 'deposits', 'withdrawals']),
+          range: z.enum(['24h', '7d', '30d', '90d']),
+        }),
+        response: {
+          200: z.object({
+            metric: z.enum(['aum', 'deposits', 'withdrawals']),
+            range: z.enum(['24h', '7d', '30d', '90d']),
+            points: z.array(
+              z.object({
+                t: z.string(),
+                v: z.number(),
+              })
+            ),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const { metric, range } = req.query;
+      const result = await getDashboardHistory(app.db, metric, range);
+      return reply.code(200).send(result);
     }
   );
 };

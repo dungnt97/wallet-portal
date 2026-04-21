@@ -1,0 +1,119 @@
+name: Dependency Audit
+
+# Weekly scheduled scan + manual trigger.
+# Fails on High+ vulnerabilities; opens a GitHub issue on failure.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # 06:00 UTC every Monday
+  workflow_dispatch:
+
+jobs:
+  audit-js:
+    name: JS/TS dependency audit (pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit (high+)
+        # Capture exit code separately so we can open an issue before failing the job
+        run: |
+          pnpm audit --audit-level high --json > audit-report.json 2>&1 || echo "AUDIT_FAILED=true" >> "$GITHUB_ENV"
+
+      - name: Open issue on vulnerability found
+        if: env.AUDIT_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const today = new Date().toISOString().slice(0, 10);
+            let body = '## Dependency audit found High+ vulnerabilities\n\n';
+            try {
+              const report = JSON.parse(fs.readFileSync('audit-report.json', 'utf8'));
+              const advisories = report.advisories ?? {};
+              const entries = Object.values(advisories)
+                .filter(a => ['high', 'critical'].includes(a.severity))
+                .map(a => `- **${a.severity.toUpperCase()}** \`${a.module_name}\` — ${a.title}`);
+              if (entries.length > 0) body += entries.join('\n') + '\n\n';
+            } catch {
+              const raw = fs.readFileSync('audit-report.json', 'utf8').slice(0, 3000);
+              body += '```\n' + raw + '\n```\n\n';
+            }
+            body += 'See `docs/runbooks/cve-triage-sla.md` for remediation workflow.';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '[Security] High+ JS dependency vulnerability — ' + today,
+              body,
+              labels: ['security', 'dependencies'],
+            });
+
+      - name: Fail job if vulnerabilities found
+        if: env.AUDIT_FAILED == 'true'
+        run: |
+          echo "pnpm audit found High+ vulnerabilities. See opened issue for details."
+          exit 1
+
+  audit-go:
+    name: Go dependency audit (nancy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install nancy
+        run: go install github.com/sonatypecorp/nancy@latest
+
+      - name: Run nancy sleuth
+        working-directory: apps/policy-engine
+        run: |
+          go list -m -json all | nancy sleuth || echo "NANCY_FAILED=true" >> "$GITHUB_ENV"
+
+      - name: Open issue on Go vulnerability found
+        if: env.NANCY_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '[Security] High+ Go dependency vulnerability — ' + today,
+              body: 'nancy sleuth found vulnerable Go modules in `apps/policy-engine`.\n\nRun locally:\n```bash\ncd apps/policy-engine && go list -m -json all | nancy sleuth\n```\n\nSee `docs/runbooks/cve-triage-sla.md` for remediation workflow.',
+              labels: ['security', 'dependencies'],
+            });
+
+      - name: Fail job if Go vulnerabilities found
+        if: env.NANCY_FAILED == 'true'
+        run: |
+          echo "nancy found vulnerable Go modules. See opened issue for details."
+          exit 1

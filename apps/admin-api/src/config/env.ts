@@ -25,6 +25,8 @@ const EnvSchema = z.object({
   WEBAUTHN_ORIGIN: z.string().default('http://localhost:5173'),
   // Dev bypass — skip Google ID token verification (never set in prod)
   AUTH_DEV_MODE: z.string().default('false'),
+  // Policy Engine
+  POLICY_ENGINE_URL: z.string().url().default('http://localhost:3003'),
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('admin-api'),
@@ -37,9 +39,7 @@ export type Config = z.infer<typeof EnvSchema>;
 export function loadConfig(): Config {
   const result = EnvSchema.safeParse(process.env);
   if (!result.success) {
-    const msg = result.error.errors
-      .map((e) => `  ${e.path.join('.')}: ${e.message}`)
-      .join('\n');
+    const msg = result.error.errors.map((e) => `  ${e.path.join('.')}: ${e.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${msg}`);
   }
   return result.data;

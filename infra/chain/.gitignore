@@ -1,0 +1,9 @@
+# Deployed addresses (commit .deployed.json.example as template, not the real file)
+.deployed.json
+
+# Local env — contains private keys, NEVER commit
+.env
+
+# Build artefacts
+dist/
+node_modules/

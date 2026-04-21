@@ -1,8 +1,10 @@
-// Session auth stub — email → staff lookup (real OIDC replaces this in P06)
-// Used by POST /auth/session to establish a session cookie for the staff member.
+import { eq } from 'drizzle-orm';
+// Session staff lookup — email → staff DB query.
+// Used by POST /auth/session/dev-login (AUTH_DEV_MODE) and the OIDC callback
+// to resolve and validate the authenticated staff member from the database.
+// P06 OIDC flow calls lookupStaffByEmail after id_token verification.
 import type { Db } from '../db/index.js';
 import { staffMembers } from '../db/schema/index.js';
-import { eq } from 'drizzle-orm';
 
 export type SessionStaff = {
   id: string;
@@ -16,10 +18,7 @@ export type SessionStaff = {
  * Returns null if not found or account is not active.
  * P06 replaces this with Google OIDC token verification.
  */
-export async function lookupStaffByEmail(
-  db: Db,
-  email: string,
-): Promise<SessionStaff | null> {
+export async function lookupStaffByEmail(db: Db, email: string): Promise<SessionStaff | null> {
   const rows = await db
     .select({
       id: staffMembers.id,

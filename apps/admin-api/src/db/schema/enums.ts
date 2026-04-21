@@ -46,6 +46,7 @@ export const depositStatusEnum = pgEnum('deposit_status', [
   'credited',
   'swept',
   'failed',
+  'reorg_pending',
 ]);
 
 /** Withdrawal state machine */
@@ -79,9 +80,4 @@ export const multisigStatusEnum = pgEnum('multisig_status', [
 ]);
 
 /** On-chain transaction confirmation state */
-export const txStatusEnum = pgEnum('tx_status', [
-  'pending',
-  'confirmed',
-  'failed',
-  'dropped',
-]);
+export const txStatusEnum = pgEnum('tx_status', ['pending', 'confirmed', 'failed', 'dropped']);

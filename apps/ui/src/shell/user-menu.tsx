@@ -1,4 +1,5 @@
 import { useAuth } from '@/auth/use-auth';
+import { NotifPrefsModal } from '@/features/notifs/notif-prefs-modal';
 import { I } from '@/icons';
 import { ROLES } from '@/lib/constants';
 // User menu — avatar trigger + dropdown. Ports prototype shell.jsx
@@ -18,6 +19,7 @@ export function UserMenu({ compact, onOpenAccount, onOpenSecurity }: Props) {
   const { t } = useTranslation();
   const { staff, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,63 +33,75 @@ export function UserMenu({ compact, onOpenAccount, onOpenSecurity }: Props) {
   if (!staff) return null;
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button
-        className="user-menu-trigger"
-        onClick={() => setOpen((o) => !o)}
-        title="Account"
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <div className="avatar">{staff.initials}</div>
-        {!compact && (
-          <>
-            <span className="user-menu-name">{staff.name.split(' ')[0]}</span>
-            <I.ChevronDown size={11} className="text-faint" />
-          </>
-        )}
-      </button>
+    <>
+      <NotifPrefsModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      <div ref={ref} style={{ position: 'relative' }}>
+        <button
+          className="user-menu-trigger"
+          onClick={() => setOpen((o) => !o)}
+          title="Account"
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <div className="avatar">{staff.initials}</div>
+          {!compact && (
+            <>
+              <span className="user-menu-name">{staff.name.split(' ')[0]}</span>
+              <I.ChevronDown size={11} className="text-faint" />
+            </>
+          )}
+        </button>
 
-      {open && (
-        <div className="user-menu" role="menu">
-          <div className="user-menu-header">
-            <div className="fw-500" style={{ fontSize: 13 }}>
-              {staff.name}
+        {open && (
+          <div className="user-menu" role="menu">
+            <div className="user-menu-header">
+              <div className="fw-500" style={{ fontSize: 13 }}>
+                {staff.name}
+              </div>
+              <div className="text-xs text-muted">{staff.email}</div>
+              <span className={`role-pill role-${staff.role}`}>{ROLES[staff.role]?.label}</span>
             </div>
-            <div className="text-xs text-muted">{staff.email}</div>
-            <span className={`role-pill role-${staff.role}`}>{ROLES[staff.role]?.label}</span>
-          </div>
 
-          <button
-            className="user-menu-item"
-            onClick={() => {
-              setOpen(false);
-              onOpenAccount?.();
-            }}
-          >
-            <I.Settings size={13} /> {t('topbar.settings')}
-          </button>
-          <button
-            className="user-menu-item"
-            onClick={() => {
-              setOpen(false);
-              onOpenSecurity?.();
-            }}
-          >
-            <I.Shield size={13} /> Security &amp; sessions
-          </button>
-          <div className="user-menu-divider" />
-          <button
-            className="user-menu-item danger"
-            onClick={() => {
-              logout();
-              setOpen(false);
-            }}
-          >
-            <I.LogOut size={13} /> {t('topbar.signOut')} <span className="kbd-hint">⇧⌘Q</span>
-          </button>
-        </div>
-      )}
-    </div>
+            <button
+              className="user-menu-item"
+              onClick={() => {
+                setOpen(false);
+                onOpenAccount?.();
+              }}
+            >
+              <I.Settings size={13} /> {t('topbar.settings')}
+            </button>
+            <button
+              className="user-menu-item"
+              onClick={() => {
+                setOpen(false);
+                onOpenSecurity?.();
+              }}
+            >
+              <I.Shield size={13} /> Security &amp; sessions
+            </button>
+            <button
+              className="user-menu-item"
+              onClick={() => {
+                setOpen(false);
+                setPrefsOpen(true);
+              }}
+            >
+              <I.Bell size={13} /> {t('notifications.prefs.menuItem')}
+            </button>
+            <div className="user-menu-divider" />
+            <button
+              className="user-menu-item danger"
+              onClick={() => {
+                logout();
+                setOpen(false);
+              }}
+            >
+              <I.LogOut size={13} /> {t('topbar.signOut')} <span className="kbd-hint">⇧⌘Q</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

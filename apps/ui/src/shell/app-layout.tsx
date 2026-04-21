@@ -1,4 +1,5 @@
 import { ToastHost } from '@/components/overlays';
+import { useNotificationsSocket } from '@/features/notifs/use-notifications-socket';
 import { useTweaksStore } from '@/stores/tweaks-store';
 // App layout — .app grid shell. Composes sidebar + topbar + main + overlays.
 // Ports prototype app.jsx `AppShell`, wiring it into react-router-dom.
@@ -14,6 +15,12 @@ import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 import { TweaksPanel } from './tweaks-panel';
 import { useEffectiveSidebarCollapsed, useViewportBucket } from './viewport-hooks';
+
+/** Inner component — rendered inside <ToastHost> so useToast() works. */
+function AppLayoutInner() {
+  useNotificationsSocket();
+  return null;
+}
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -61,6 +68,7 @@ export function AppLayout() {
 
   return (
     <ToastHost>
+      <AppLayoutInner />
       <div
         className="app"
         data-sidebar={effectiveCollapsed ? 'collapsed' : 'expanded'}

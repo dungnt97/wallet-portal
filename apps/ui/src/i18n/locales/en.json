@@ -365,7 +365,19 @@
     "vaultSol": "Solana Squads Vault",
     "newTitle": "New withdrawal",
     "newSub": "Submit a transfer request — will require {{n}} of {{m}} Treasurer approvals",
-    "cancel": "Cancel",
+    "cancel": {
+      "btn": "Cancel withdrawal",
+      "title": "Cancel withdrawal",
+      "subtitle": "This action is irreversible — the withdrawal will be voided",
+      "warningTitle": "Cannot be undone",
+      "warningBody": "Cancelling will void the withdrawal and remove the pending queue job. Any signatures already collected will be discarded.",
+      "reasonLabel": "Reason for cancellation",
+      "reasonPlaceholder": "e.g. Incorrect destination address",
+      "reasonHint": "At least 3 characters — recorded in the audit log",
+      "confirm": "Cancel withdrawal",
+      "success": "Withdrawal cancelled successfully.",
+      "error": "Cancel failed: {{msg}}"
+    },
     "reviewBtn": "Review",
     "back": "Back",
     "fldChain": "Chain",
@@ -403,19 +415,6 @@
       "locked": "Locked",
       "unlocked": "Unlocked",
       "remaining": "remaining"
-    },
-    "cancel": {
-      "btn": "Cancel withdrawal",
-      "title": "Cancel withdrawal",
-      "subtitle": "This action is irreversible — the withdrawal will be voided",
-      "warningTitle": "Cannot be undone",
-      "warningBody": "Cancelling will void the withdrawal and remove the pending queue job. Any signatures already collected will be discarded.",
-      "reasonLabel": "Reason for cancellation",
-      "reasonPlaceholder": "e.g. Incorrect destination address",
-      "reasonHint": "At least 3 characters — recorded in the audit log",
-      "confirm": "Cancel withdrawal",
-      "success": "Withdrawal cancelled successfully.",
-      "error": "Cancel failed: {{msg}}"
     }
   },
   "sweep": {
@@ -828,6 +827,32 @@
       "queueDepth": "depth: {{depth}}",
       "workerHeartbeat": "heartbeat {{sec}}s ago",
       "workerNoHeartbeat": "no heartbeat"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "allMarkedRead": "All notifications marked as read.",
+    "empty": "No notifications",
+    "viewAll": "View all in audit log",
+    "prefs": {
+      "title": "Notification settings",
+      "menuItem": "Notification settings",
+      "saved": "Preferences saved.",
+      "channels": "Delivery channels",
+      "inApp": "In-app (bell)",
+      "email": "Email digest",
+      "slack": "Slack",
+      "eventTypes": "Event types"
+    },
+    "eventTypes": {
+      "withdrawal": "Withdrawal events",
+      "sweep": "Sweep events",
+      "deposit": "Deposit events",
+      "killSwitch": "Kill switch",
+      "reorg": "Chain reorg",
+      "health": "Health degraded",
+      "coldTimelock": "Cold timelock expiry"
     }
   }
 }

@@ -1,21 +1,45 @@
-import { I, type IconKey } from '@/icons';
+import {
+  useMarkAllRead,
+  useMarkRead,
+  useNotifications,
+  useUnreadCount,
+} from '@/features/notifs/use-notifications';
+import { I } from '@/icons';
 import { timeAgo } from '@/lib/format';
 // Notifications panel — floating dropdown below the bell icon.
-// Ports prototype overlays.jsx `NotificationsPanel`. Fixture data until
-// wired to /notifications API (P07+).
-import { useState } from 'react';
+// Wired to real /notifications API + Socket.io live updates (Slice 5).
+import type { NotificationPayload, NotificationSeverity } from '@wp/shared-types';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from './toast-host';
 
-interface NotifItem {
-  id: string;
-  icon: IconKey;
-  tone: 'ok' | 'warn' | 'err' | 'info';
-  title: string;
-  body: string;
-  at: string;
-  to: string;
+// ── Severity → route helper ───────────────────────────────────────────────────
+
+/** Derive a navigation target from the notification event type + payload */
+function resolveRoute(notif: NotificationPayload): string {
+  const { eventType, payload } = notif;
+  if (eventType.startsWith('withdrawal.') && payload?.withdrawalId) {
+    return '/app/withdrawals';
+  }
+  if (eventType.startsWith('sweep.')) return '/app/sweep';
+  if (eventType.startsWith('deposit.')) return '/app/deposits';
+  if (eventType.startsWith('ops.killswitch')) return '/app/ops';
+  if (eventType.startsWith('health.') || eventType.startsWith('watcher.')) {
+    return '/app/architecture';
+  }
+  if (eventType.startsWith('cold.')) return '/app/cold';
+  return '/app/audit';
 }
+
+// ── Severity color chip ───────────────────────────────────────────────────────
+
+const SEVERITY_CLASS: Record<NotificationSeverity, string> = {
+  info: 'notif-dot info',
+  warning: 'notif-dot warn',
+  critical: 'notif-dot err',
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   open: boolean;
@@ -23,93 +47,93 @@ interface Props {
 }
 
 export function NotificationsPanel({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const [read, setRead] = useState<string[]>([]);
 
-  const items: NotifItem[] = [
-    {
-      id: 'n1',
-      icon: 'Shield',
-      tone: 'warn',
-      title: 'Withdrawal awaiting your signature',
-      body: 'op_uv5 · 13,353.77 USDT · 1/2 collected',
-      at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-      to: '/app/multisig',
-    },
-    {
-      id: 'n2',
-      icon: 'ArrowDown',
-      tone: 'ok',
-      title: '4 deposits credited',
-      body: '18,240.12 USDT across BNB and Solana',
-      at: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
-      to: '/app/deposits',
-    },
-    {
-      id: 'n3',
-      icon: 'Sweep',
-      tone: 'info',
-      title: 'Sweep run finished',
-      body: '12 addresses · gas 0.013 BNB',
-      at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      to: '/app/sweep',
-    },
-    {
-      id: 'n4',
-      icon: 'AlertTri',
-      tone: 'err',
-      title: 'RPC failover triggered',
-      body: 'BSC primary degraded — switched to backup',
-      at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      to: '/app/architecture',
-    },
-  ];
+  const { data: listData, isLoading } = useNotifications(50);
+  const { data: countData } = useUnreadCount();
+  const markRead = useMarkRead();
+  const markAllRead = useMarkAllRead();
+
+  const items = listData?.data ?? [];
+  const unreadCount = countData?.count ?? 0;
 
   if (!open) return null;
+
+  const handleItemClick = (notif: NotificationPayload) => {
+    if (!notif.readAt) {
+      markRead.mutate(notif.id);
+    }
+    navigate(resolveRoute(notif));
+    onClose();
+  };
+
+  const handleMarkAllRead = () => {
+    markAllRead.mutate(undefined, {
+      onSuccess: () => toast(t('notifications.allMarkedRead')),
+    });
+  };
+
   return (
     <div className="notif-panel" onClick={(e) => e.stopPropagation()}>
       <div className="notif-header">
-        <span className="fw-600 text-sm">Notifications</span>
+        <span className="fw-600 text-sm">
+          {t('notifications.title')}
+          {unreadCount > 0 && (
+            <span className="notif-badge" style={{ marginLeft: 6 }}>
+              {unreadCount}
+            </span>
+          )}
+        </span>
         <button
           className="btn btn-ghost btn-sm"
-          onClick={() => {
-            setRead(items.map((i) => i.id));
-            toast('All marked as read.');
-          }}
+          onClick={handleMarkAllRead}
+          disabled={markAllRead.isPending || unreadCount === 0}
         >
-          Mark all read
+          {t('notifications.markAllRead')}
         </button>
       </div>
+
       <div className="notif-body">
+        {isLoading && (
+          <div className="text-sm text-muted" style={{ padding: '12px 16px' }}>
+            {t('common.loading')}
+          </div>
+        )}
+
+        {!isLoading && items.length === 0 && (
+          <div className="text-sm text-muted" style={{ padding: '12px 16px', textAlign: 'center' }}>
+            {t('notifications.empty')}
+          </div>
+        )}
+
         {items.map((n) => {
-          const Icon = I[n.icon];
-          const isRead = read.includes(n.id);
+          const isUnread = !n.readAt;
           return (
             <button
               key={n.id}
-              className={`notif-row ${isRead ? 'read' : ''}`}
-              onClick={() => {
-                setRead((r) => [...r, n.id]);
-                navigate(n.to);
-                onClose();
-              }}
+              className={`notif-row${isUnread ? '' : ' read'}`}
+              onClick={() => handleItemClick(n)}
             >
-              <span className={`notif-dot ${n.tone}`}>
-                <Icon size={12} />
+              <span className={SEVERITY_CLASS[n.severity]}>
+                {n.severity === 'critical' && <I.AlertTri size={12} />}
+                {n.severity === 'warning' && <I.AlertTri size={12} />}
+                {n.severity === 'info' && <I.Bell size={12} />}
               </span>
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <div className="text-sm fw-500">{n.title}</div>
-                <div className="text-xs text-muted truncate">{n.body}</div>
+                {n.body && <div className="text-xs text-muted truncate">{n.body}</div>}
                 <div className="text-xs text-faint" style={{ marginTop: 2 }}>
-                  {timeAgo(n.at)}
+                  {timeAgo(n.createdAt)}
                 </div>
               </div>
-              {!isRead && <span className="notif-unread" />}
+              {isUnread && <span className="notif-unread" />}
             </button>
           );
         })}
       </div>
+
       <div className="notif-footer">
         <button
           className="btn btn-ghost btn-sm"
@@ -118,7 +142,7 @@ export function NotificationsPanel({ open, onClose }: Props) {
             onClose();
           }}
         >
-          View all in audit log →
+          {t('notifications.viewAll')} →
         </button>
       </div>
     </div>

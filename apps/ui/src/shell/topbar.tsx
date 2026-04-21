@@ -1,4 +1,5 @@
 import { NotificationsPanel } from '@/components/overlays';
+import { useUnreadCount } from '@/features/notifs/use-notifications';
 import { I } from '@/icons';
 import type { ViewportBucket } from '@/lib/constants';
 import { useTweaksStore } from '@/stores/tweaks-store';
@@ -51,6 +52,9 @@ export function Topbar({
     return () => window.removeEventListener('mousedown', onClick);
   }, [notifOpen]);
 
+  const { data: countData } = useUnreadCount();
+  const unreadCount = countData?.count ?? 0;
+
   const isNarrow = viewport === 'xs' || viewport === 'sm';
   const isXs = viewport === 'xs';
 
@@ -90,11 +94,15 @@ export function Topbar({
 
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button
-            className="icon-btn has-dot"
+            className={`icon-btn${unreadCount > 0 ? ' has-dot' : ''}`}
             title={t('topbar.notifications')}
             onClick={() => setNotifOpen((o) => !o)}
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           >
             <I.Bell size={15} />
+            {unreadCount > 0 && (
+              <span className="notif-count-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            )}
           </button>
           <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
         </div>

@@ -365,7 +365,19 @@
     "vaultSol": "Solana Squads Vault",
     "newTitle": "Tạo withdrawal",
     "newSub": "Gửi yêu cầu chuyển — cần {{n}}/{{m}} Treasurer duyệt",
-    "cancel": "Huỷ",
+    "cancel": {
+      "btn": "Huỷ lệnh rút",
+      "title": "Huỷ lệnh rút tiền",
+      "subtitle": "Thao tác này không thể hoàn tác — lệnh rút sẽ bị vô hiệu",
+      "warningTitle": "Không thể hoàn tác",
+      "warningBody": "Huỷ sẽ vô hiệu lệnh rút và xoá job đang chờ. Mọi chữ ký đã thu thập sẽ bị huỷ bỏ.",
+      "reasonLabel": "Lý do huỷ",
+      "reasonPlaceholder": "VD: Sai địa chỉ đích",
+      "reasonHint": "Ít nhất 3 ký tự — ghi vào audit log",
+      "confirm": "Huỷ lệnh rút",
+      "success": "Đã huỷ lệnh rút thành công.",
+      "error": "Huỷ thất bại: {{msg}}"
+    },
     "reviewBtn": "Rà soát",
     "back": "Quay lại",
     "fldChain": "Chain",
@@ -403,19 +415,6 @@
       "locked": "Đang khoá",
       "unlocked": "Đã mở",
       "remaining": "còn lại"
-    },
-    "cancel": {
-      "btn": "Huỷ lệnh rút",
-      "title": "Huỷ lệnh rút tiền",
-      "subtitle": "Thao tác này không thể hoàn tác — lệnh rút sẽ bị vô hiệu",
-      "warningTitle": "Không thể hoàn tác",
-      "warningBody": "Huỷ sẽ vô hiệu lệnh rút và xoá job đang chờ. Mọi chữ ký đã thu thập sẽ bị huỷ bỏ.",
-      "reasonLabel": "Lý do huỷ",
-      "reasonPlaceholder": "VD: Sai địa chỉ đích",
-      "reasonHint": "Ít nhất 3 ký tự — ghi vào audit log",
-      "confirm": "Huỷ lệnh rút",
-      "success": "Đã huỷ lệnh rút thành công.",
-      "error": "Huỷ thất bại: {{msg}}"
     }
   },
   "sweep": {
@@ -828,6 +827,32 @@
       "queueDepth": "độ sâu: {{depth}}",
       "workerHeartbeat": "heartbeat {{sec}}s trước",
       "workerNoHeartbeat": "không có heartbeat"
+    }
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "allMarkedRead": "Tất cả thông báo đã được đánh dấu đã đọc.",
+    "empty": "Không có thông báo",
+    "viewAll": "Xem tất cả trong nhật ký",
+    "prefs": {
+      "title": "Cài đặt thông báo",
+      "menuItem": "Cài đặt thông báo",
+      "saved": "Đã lưu cài đặt.",
+      "channels": "Kênh nhận thông báo",
+      "inApp": "Trong ứng dụng (chuông)",
+      "email": "Email tổng hợp",
+      "slack": "Slack",
+      "eventTypes": "Loại sự kiện"
+    },
+    "eventTypes": {
+      "withdrawal": "Sự kiện rút tiền",
+      "sweep": "Sự kiện quét",
+      "deposit": "Sự kiện nạp tiền",
+      "killSwitch": "Khoá hệ thống",
+      "reorg": "Reorg chuỗi",
+      "health": "Sức khoẻ hệ thống",
+      "coldTimelock": "Hết hạn cold timelock"
     }
   }
 }

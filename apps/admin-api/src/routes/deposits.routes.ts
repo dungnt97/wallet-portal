@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
 // Deposits routes — GET /deposits, GET /deposits/:id, GET /deposits/export.csv
 // POST /deposits/manual-credit — admin + WebAuthn step-up override
 // POST /deposits/:id/add-to-sweep — triggers a sweep for the deposit's user address
@@ -26,12 +26,16 @@ const CSV_ROW_CAP = 50_000;
 const DepositShape = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
+  /** User email — joined from users table */
+  userEmail: z.string().nullable(),
   chain: z.enum(['bnb', 'sol']),
   token: z.enum(['USDT', 'USDC']),
   amount: z.string(),
   status: z.enum(['pending', 'credited', 'swept', 'failed', 'reorg_pending']),
   confirmedBlocks: z.number().int(),
   txHash: z.string().nullable(),
+  /** User's on-chain deposit address — joined from user_addresses */
+  userAddress: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -52,6 +56,14 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
           status: z.enum(['pending', 'credited', 'swept', 'failed', 'reorg_pending']).optional(),
           chain: z.enum(['bnb', 'sol']).optional(),
           token: z.enum(['USDT', 'USDC']).optional(),
+          /** Minimum amount filter (inclusive) — decimal string */
+          minAmount: z.coerce.number().positive().optional(),
+          /** Maximum amount filter (inclusive) — decimal string */
+          maxAmount: z.coerce.number().positive().optional(),
+          /** ISO date string — only deposits on or after this date */
+          dateFrom: z.string().datetime({ offset: true }).optional(),
+          /** ISO date string — only deposits on or before this date */
+          dateTo: z.string().datetime({ offset: true }).optional(),
         }),
         response: {
           200: z.object({
@@ -64,7 +76,8 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (req, reply) => {
-      const { page, limit, status, chain, token } = req.query;
+      const { page, limit, status, chain, token, minAmount, maxAmount, dateFrom, dateTo } =
+        req.query;
       const offset = (page - 1) * limit;
 
       // Build filter conditions
@@ -72,21 +85,52 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
       if (status) conditions.push(eq(schema.deposits.status, status));
       if (chain) conditions.push(eq(schema.deposits.chain, chain));
       if (token) conditions.push(eq(schema.deposits.token, token));
+      if (minAmount !== undefined)
+        conditions.push(gte(sql`CAST(${schema.deposits.amount} AS NUMERIC)`, minAmount));
+      if (maxAmount !== undefined)
+        conditions.push(lte(sql`CAST(${schema.deposits.amount} AS NUMERIC)`, maxAmount));
+      if (dateFrom) conditions.push(gte(schema.deposits.createdAt, new Date(dateFrom)));
+      if (dateTo) conditions.push(lte(schema.deposits.createdAt, new Date(dateTo)));
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [rows, countRows] = await Promise.all([
-        app.db.query.deposits.findMany({
-          where,
-          orderBy: [desc(schema.deposits.createdAt)],
-          limit,
-          offset,
-        }),
+        app.db
+          .select({
+            id: schema.deposits.id,
+            userId: schema.deposits.userId,
+            userEmail: schema.users.email,
+            userAddress: schema.userAddresses.address,
+            chain: schema.deposits.chain,
+            token: schema.deposits.token,
+            amount: schema.deposits.amount,
+            status: schema.deposits.status,
+            confirmedBlocks: schema.deposits.confirmedBlocks,
+            txHash: schema.deposits.txHash,
+            createdAt: schema.deposits.createdAt,
+            updatedAt: schema.deposits.updatedAt,
+          })
+          .from(schema.deposits)
+          .leftJoin(schema.users, eq(schema.deposits.userId, schema.users.id))
+          .leftJoin(
+            schema.userAddresses,
+            and(
+              eq(schema.userAddresses.userId, schema.deposits.userId),
+              eq(schema.userAddresses.chain, schema.deposits.chain)
+            )
+          )
+          .where(where)
+          .orderBy(desc(schema.deposits.createdAt))
+          .limit(limit)
+          .offset(offset),
         app.db.select({ value: count() }).from(schema.deposits).where(where),
       ]);
       const total = Number(countRows[0]?.value ?? 0);
 
       const data = rows.map((r) => ({
         ...r,
+        amount: String(r.amount),
+        userEmail: r.userEmail ?? null,
+        userAddress: r.userAddress ?? null,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
       }));
@@ -337,6 +381,8 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
 
       return reply.code(200).send({
         ...row,
+        userEmail: null,
+        userAddress: null,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       });

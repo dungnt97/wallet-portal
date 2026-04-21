@@ -26,12 +26,14 @@ function toFix(d: Deposit): FixDeposit {
   return {
     id: d.id,
     userId: d.userId,
-    userName: d.userId.slice(0, 10),
+    // Use real email if available; fall back to userId prefix
+    userName: d.userEmail ?? d.userId.slice(0, 10),
     chain: d.chain,
     token: d.token,
     amount: Number.parseFloat(d.amount) || 0,
     status: d.status,
-    address: '—',
+    // Use real on-chain address from JOIN; '—' if not yet assigned
+    address: d.userAddress ?? '—',
     txHash: d.txHash ?? '—',
     confirmations: d.confirmedBlocks,
     requiredConfirmations: d.chain === 'bnb' ? 15 : 32,
@@ -43,6 +45,21 @@ function toFix(d: Deposit): FixDeposit {
   };
 }
 
+// Amount presets: null = all, then cycle through ranges (inclusive min)
+const AMOUNT_PRESETS: { label: string; min?: number; max?: number }[] = [
+  { label: '>$100', min: 100 },
+  { label: '>$1k', min: 1000 },
+  { label: '>$10k', min: 10_000 },
+  { label: '<$100', max: 100 },
+];
+
+// Date presets: offset in days from today
+const DATE_PRESETS: { label: string; days: number }[] = [
+  { label: 'Today', days: 1 },
+  { label: 'Last 7d', days: 7 },
+  { label: 'Last 30d', days: 30 },
+];
+
 export function DepositsPage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -50,6 +67,8 @@ export function DepositsPage() {
   const [tab, setTab] = useState<StatusTab>('all');
   const [chainFilter, setChainFilter] = useState<'bnb' | 'sol' | null>(null);
   const [tokenFilter, setTokenFilter] = useState<'USDT' | 'USDC' | null>(null);
+  const [amountPreset, setAmountPreset] = useState<number | null>(null); // index into AMOUNT_PRESETS
+  const [datePreset, setDatePreset] = useState<number | null>(null); // index into DATE_PRESETS
   const [selected, setSelected] = useState<FixDeposit | null>(null);
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,12 +76,21 @@ export function DepositsPage() {
 
   useDepositSocketListener();
 
+  const amountFilter = amountPreset !== null ? AMOUNT_PRESETS[amountPreset] : null;
+  const dateFilter = datePreset !== null ? DATE_PRESETS[datePreset] : null;
+  const dateFrom = dateFilter
+    ? new Date(Date.now() - dateFilter.days * 24 * 60 * 60 * 1000).toISOString()
+    : undefined;
+
   const { data, refetch, isLoading } = useDeposits({
     page,
     limit: PAGE_SIZE,
     status: tab === 'all' ? undefined : tab,
     chain: chainFilter ?? undefined,
     token: tokenFilter ?? undefined,
+    minAmount: amountFilter?.min,
+    maxAmount: amountFilter?.max,
+    dateFrom,
   });
 
   // Map real API data to table shape; empty array when loading or no data.
@@ -85,7 +113,7 @@ export function DepositsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter signature only
   useEffect(() => {
     setPage(1);
-  }, [tab, chainFilter, tokenFilter]);
+  }, [tab, chainFilter, tokenFilter, amountPreset, datePreset]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -184,8 +212,26 @@ export function DepositsPage() {
             }
             onClear={() => setTokenFilter(null)}
           />
-          <Filter label={t('deposits.fAmount')} />
-          <Filter label={t('deposits.fDate')} />
+          <Filter
+            label={t('deposits.fAmount')}
+            value={amountPreset !== null ? AMOUNT_PRESETS[amountPreset]?.label : undefined}
+            active={amountPreset !== null}
+            onClick={() =>
+              setAmountPreset((p) =>
+                p === null ? 0 : p < AMOUNT_PRESETS.length - 1 ? p + 1 : null
+              )
+            }
+            onClear={() => setAmountPreset(null)}
+          />
+          <Filter
+            label={t('deposits.fDate')}
+            value={datePreset !== null ? DATE_PRESETS[datePreset]?.label : undefined}
+            active={datePreset !== null}
+            onClick={() =>
+              setDatePreset((p) => (p === null ? 0 : p < DATE_PRESETS.length - 1 ? p + 1 : null))
+            }
+            onClear={() => setDatePreset(null)}
+          />
           <span className="text-xs text-muted text-mono">
             {filtered.length}/{deposits.length}
           </span>

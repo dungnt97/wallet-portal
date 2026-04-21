@@ -89,7 +89,24 @@
     "settings": "Cài đặt",
     "signOut": "Đăng xuất",
     "myAccount": "Tài khoản của tôi",
-    "viewProfile": "Xem hồ sơ"
+    "viewProfile": "Xem hồ sơ",
+    "connectWallet": "Kết nối ví",
+    "disconnect": "Ngắt kết nối",
+    "walletStatus": "Ví đã kết nối"
+  },
+  "wallet": {
+    "connect": {
+      "choose": "Chọn ví để kết nối",
+      "evm": "EVM (BNB Chain)",
+      "solana": "Solana",
+      "connecting": "Đang kết nối {{name}}…",
+      "connectingHint": "Chấp nhận yêu cầu kết nối trong ví của bạn",
+      "connected": "Đã kết nối ví",
+      "connectedAs": "Đã kết nối: {{address}}",
+      "error": "Kết nối thất bại",
+      "disclaimer": "Chỉ kết nối ví bạn kiểm soát",
+      "footNote": "Chữ ký off-chain — không tốn phí gas"
+    }
   },
   "pageTitles": {
     "dashboard": "Tổng quan",

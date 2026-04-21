@@ -89,7 +89,24 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "myAccount": "My account",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "connectWallet": "Connect wallet",
+    "disconnect": "Disconnect",
+    "walletStatus": "Connected wallets"
+  },
+  "wallet": {
+    "connect": {
+      "choose": "Connect a wallet",
+      "evm": "EVM (BNB Chain)",
+      "solana": "Solana",
+      "connecting": "Connecting to {{name}}…",
+      "connectingHint": "Approve the connection request in your wallet",
+      "connected": "Wallet connected",
+      "connectedAs": "Connected as {{address}}",
+      "error": "Connection failed",
+      "disclaimer": "Only connect wallets you control",
+      "footNote": "Signatures are off-chain — no gas required"
+    }
   },
   "pageTitles": {
     "dashboard": "Dashboard",

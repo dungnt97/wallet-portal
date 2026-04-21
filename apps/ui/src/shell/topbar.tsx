@@ -12,6 +12,7 @@ import { EnvPicker } from './env-picker';
 import { LangSwitcher } from './lang-switcher';
 import { pageTitleKey } from './nav-structure';
 import { UserMenu } from './user-menu';
+import { WalletWidget } from './wallet-widget';
 
 interface Props {
   viewport: ViewportBucket;
@@ -85,6 +86,7 @@ export function Topbar({
 
       <div className="topbar-actions">
         {!isNarrow && <EnvPicker />}
+        <WalletWidget />
 
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button

@@ -65,7 +65,7 @@ describe('NotifPrefsModal', () => {
       mutate: mockPatch,
       isPending: false,
       isError: false,
-    } as ReturnType<typeof usePatchNotificationPrefs>);
+    } as unknown as ReturnType<typeof usePatchNotificationPrefs>);
   });
 
   it('does not render when closed', () => {

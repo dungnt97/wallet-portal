@@ -61,7 +61,7 @@ describe('AddSignerModal', () => {
       data: [STAFF_CANDIDATE],
       isPending: false,
       isError: false,
-    } as ReturnType<typeof useStaff>);
+    } as unknown as ReturnType<typeof useStaff>);
 
     vi.mocked(useAddSigner).mockReturnValue({
       mutateAsync: mockMutateAsync,
@@ -171,7 +171,7 @@ describe('AddSignerModal', () => {
       data: [],
       isPending: false,
       isError: false,
-    } as ReturnType<typeof useStaff>);
+    } as unknown as ReturnType<typeof useStaff>);
 
     render(
       <Wrapper>

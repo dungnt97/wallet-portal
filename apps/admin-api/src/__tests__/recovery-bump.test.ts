@@ -120,12 +120,17 @@ vi.mock('node:fetch', () => ({
 describe('bumpTx', () => {
   // notifyFn defined outside beforeEach — re-stubbed each time to ensure it returns a Promise
   // (vi.resetAllMocks() would clear the resolved-value stub, causing .catch() to fail)
-  let notifyFn: ReturnType<typeof vi.fn>;
+  // Typed to match service signature so TS accepts it as the 3rd argument to bumpTx.
+  let notifyFn: (opts: { title: string; body: string; actionId: string }) => Promise<void>;
 
   beforeEach(() => {
     vi.resetAllMocks();
     // Re-create after resetAllMocks so mockResolvedValue stub is always fresh
-    notifyFn = vi.fn().mockResolvedValue(undefined);
+    notifyFn = vi.fn().mockResolvedValue(undefined) as (opts: {
+      title: string;
+      body: string;
+      actionId: string;
+    }) => Promise<void>;
     process.env.RECOVERY_ENABLED = undefined;
     // Reset global fetch mock to return success by default
     global.fetch = vi.fn().mockResolvedValue({

@@ -73,9 +73,10 @@ describe('listStuckTxs', () => {
     const db = makeMockDb([makeWithdrawal({ broadcastAt: minAgo(11) })], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].entityType).toBe('withdrawal');
-    expect(result.items[0].canBump).toBe(true);
-    expect(result.items[0].canCancel).toBe(true);
+    // Non-null safe: toHaveLength(1) above guarantees item exists
+    expect(result.items[0]?.entityType).toBe('withdrawal');
+    expect(result.items[0]?.canBump).toBe(true);
+    expect(result.items[0]?.canCancel).toBe(true);
   });
 
   it('does NOT return withdrawal broadcast just 9 minutes ago (below EVM threshold)', async () => {
@@ -89,26 +90,27 @@ describe('listStuckTxs', () => {
     const db = makeMockDb([], [makeSweep()]);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].entityType).toBe('sweep');
+    expect(result.items[0]?.entityType).toBe('sweep');
   });
 
   it('cold-tier withdrawal: canBump=false, canCancel=false', async () => {
     const db = makeMockDb([makeWithdrawal({ sourceTier: 'cold' })], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
-    expect(result.items[0].canBump).toBe(false);
-    expect(result.items[0].canCancel).toBe(false);
+    // Non-null safe: mock supplies exactly 1 row
+    expect(result.items[0]?.canBump).toBe(false);
+    expect(result.items[0]?.canCancel).toBe(false);
   });
 
   it('Solana withdrawal: canCancel=false (no nonce semantics)', async () => {
     const db = makeMockDb([makeWithdrawal({ chain: 'sol' })], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
-    expect(result.items[0].canCancel).toBe(false);
+    expect(result.items[0]?.canCancel).toBe(false);
   });
 
   it('bump_count >= maxBumps: canBump=false', async () => {
     const db = makeMockDb([makeWithdrawal({ bumpCount: 3 })], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
-    expect(result.items[0].canBump).toBe(false);
+    expect(result.items[0]?.canBump).toBe(false);
   });
 
   it('excludes rows with null txHash or null broadcastAt', async () => {
@@ -136,13 +138,14 @@ describe('listStuckTxs', () => {
     const newer = makeWithdrawal({ id: 'wd-new', broadcastAt: minAgo(12) });
     const db = makeMockDb([newer, older], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
-    expect(result.items[0].entityId).toBe('wd-old');
-    expect(result.items[1].entityId).toBe('wd-new');
+    // Non-null safe: mock supplies 2 rows
+    expect(result.items[0]?.entityId).toBe('wd-old');
+    expect(result.items[1]?.entityId).toBe('wd-new');
   });
 
   it('cancelling withdrawal: canCancel=false', async () => {
     const db = makeMockDb([makeWithdrawal({ status: 'cancelling' })], []);
     const result = await listStuckTxs(db, DEFAULT_CONFIG);
-    expect(result.items[0].canCancel).toBe(false);
+    expect(result.items[0]?.canCancel).toBe(false);
   });
 });

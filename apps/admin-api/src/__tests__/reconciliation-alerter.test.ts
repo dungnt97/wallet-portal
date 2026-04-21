@@ -35,7 +35,9 @@ function getFirstCallInput() {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('reconciliation-alerter — critical drift', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('calls notifyStaff with severity=critical when criticalCount > 0', async () => {
     await alertOnSnapshotComplete(mockDb, mockIo, mockEmailQ, mockSlackQ, {
@@ -68,7 +70,9 @@ describe('reconciliation-alerter — critical drift', () => {
 });
 
 describe('reconciliation-alerter — warning only', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('calls notifyStaff with severity=warning when no criticals but warnings exist', async () => {
     await alertOnSnapshotComplete(mockDb, mockIo, mockEmailQ, mockSlackQ, {
@@ -87,7 +91,9 @@ describe('reconciliation-alerter — warning only', () => {
 });
 
 describe('reconciliation-alerter — zero drifts', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('calls notifyStaff with severity=info + role=admin when no drifts above warning', async () => {
     await alertOnSnapshotComplete(mockDb, mockIo, mockEmailQ, mockSlackQ, {
@@ -120,7 +126,9 @@ describe('reconciliation-alerter — zero drifts', () => {
 });
 
 describe('reconciliation-alerter — error resilience', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('does not throw when notifyStaff rejects', async () => {
     vi.mocked(notifyStaff).mockRejectedValueOnce(new Error('DB down'));

@@ -81,10 +81,13 @@ describe('updateUserKyc', () => {
     // Audit insert called once with correct changes
     expect(db.insert).toHaveBeenCalledOnce();
     const insertCall = db.insert.mock.calls[0];
-    // insert receives the auditLog table — verify values() was called
-    const values = (db.insert.mock.results[0]?.value as { values: typeof vi.fn }).values;
+    // insert receives the auditLog table — verify values() was called.
+    // toHaveBeenCalledOnce() above guarantees results[0] is populated; use ?. to satisfy linter.
+    const values = (db.insert.mock.results[0]?.value as { values: typeof vi.fn } | undefined)
+      ?.values;
     expect(values).toHaveBeenCalledOnce();
-    const auditPayload = (values as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+    // toHaveBeenCalledOnce() above guarantees calls[0] exists; use ?. to satisfy linter.
+    const auditPayload = (values as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
       changes: { before: { kycTier: string }; after: { kycTier: string } };
     };
     expect(auditPayload.changes.before.kycTier).toBe('none');

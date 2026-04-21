@@ -87,7 +87,7 @@ describe('NotificationsPanel', () => {
     vi.mocked(useNotifications).mockReturnValue({
       data: { data: ITEMS, total: ITEMS.length },
       isLoading: false,
-    } as ReturnType<typeof useNotifications>);
+    } as unknown as ReturnType<typeof useNotifications>);
 
     vi.mocked(useUnreadCount).mockReturnValue({
       data: { count: 1 },
@@ -97,12 +97,12 @@ describe('NotificationsPanel', () => {
     vi.mocked(useMarkRead).mockReturnValue({
       mutate: mockMarkRead,
       isPending: false,
-    } as ReturnType<typeof useMarkRead>);
+    } as unknown as ReturnType<typeof useMarkRead>);
 
     vi.mocked(useMarkAllRead).mockReturnValue({
       mutate: mockMarkAllRead,
       isPending: false,
-    } as ReturnType<typeof useMarkAllRead>);
+    } as unknown as ReturnType<typeof useMarkAllRead>);
   });
 
   it('does not render when closed', () => {
@@ -185,7 +185,7 @@ describe('NotificationsPanel', () => {
     vi.mocked(useNotifications).mockReturnValue({
       data: { data: [], total: 0 },
       isLoading: false,
-    } as ReturnType<typeof useNotifications>);
+    } as unknown as ReturnType<typeof useNotifications>);
 
     vi.mocked(useUnreadCount).mockReturnValue({
       data: { count: 0 },

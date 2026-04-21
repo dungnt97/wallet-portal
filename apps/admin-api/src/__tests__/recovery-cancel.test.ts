@@ -73,11 +73,16 @@ function makeMockDb(
 
 describe('cancelTx', () => {
   // Re-created in beforeEach so vi.resetAllMocks() doesn't strip the Promise stub
-  let notifyFn: ReturnType<typeof vi.fn>;
+  // Typed to match service signature so TS accepts it as the 3rd argument to cancelTx.
+  let notifyFn: (opts: { title: string; body: string; actionId: string }) => Promise<void>;
 
   beforeEach(() => {
     vi.resetAllMocks();
-    notifyFn = vi.fn().mockResolvedValue(undefined);
+    notifyFn = vi.fn().mockResolvedValue(undefined) as (opts: {
+      title: string;
+      body: string;
+      actionId: string;
+    }) => Promise<void>;
     process.env.RECOVERY_ENABLED = undefined;
     process.env.HOT_SAFE_ADDRESS_BNB = '0xHotSafe000000000000000000000000000000001';
     // Default fetch: wallet-engine cancel succeeds

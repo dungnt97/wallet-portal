@@ -1,9 +1,9 @@
+import { and, count, desc, eq } from 'drizzle-orm';
 // Deposits routes — GET /deposits, GET /deposits/:id
 // Internal credit endpoint lives in internal.routes.ts (bearer auth, D4)
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { eq, desc, count, and } from 'drizzle-orm';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
 
@@ -14,7 +14,7 @@ const DepositShape = z.object({
   chain: z.enum(['bnb', 'sol']),
   token: z.enum(['USDT', 'USDC']),
   amount: z.string(),
-  status: z.enum(['pending', 'credited', 'swept', 'failed']),
+  status: z.enum(['pending', 'credited', 'swept', 'failed', 'reorg_pending']),
   confirmedBlocks: z.number().int(),
   txHash: z.string().nullable(),
   createdAt: z.string(),
@@ -34,7 +34,7 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
         querystring: z.object({
           page: z.coerce.number().int().positive().default(1),
           limit: z.coerce.number().int().positive().max(100).default(20),
-          status: z.enum(['pending', 'credited', 'swept', 'failed']).optional(),
+          status: z.enum(['pending', 'credited', 'swept', 'failed', 'reorg_pending']).optional(),
           chain: z.enum(['bnb', 'sol']).optional(),
           token: z.enum(['USDT', 'USDC']).optional(),
         }),
@@ -66,10 +66,7 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
           limit,
           offset,
         }),
-        app.db
-          .select({ value: count() })
-          .from(schema.deposits)
-          .where(where),
+        app.db.select({ value: count() }).from(schema.deposits).where(where),
       ]);
       const total = Number(countRows[0]?.value ?? 0);
 
@@ -80,7 +77,7 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
       }));
 
       return reply.code(200).send({ data, total, page, limit });
-    },
+    }
   );
 
   // GET /deposits/:id — single deposit by ID
@@ -103,7 +100,9 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (!row) {
-        return reply.code(404).send({ code: 'NOT_FOUND', message: `Deposit ${req.params.id} not found` });
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `Deposit ${req.params.id} not found` });
       }
 
       return reply.code(200).send({
@@ -111,7 +110,7 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       });
-    },
+    }
   );
 };
 

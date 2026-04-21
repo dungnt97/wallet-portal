@@ -42,6 +42,18 @@ const EnvSchema = z.object({
   USDC_BNB_ADDRESS: z.string().default('0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'),
   USDT_SOL_MINT: z.string().default('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'),
   USDC_SOL_MINT: z.string().default('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
+
+  // Watcher tuning
+  WATCHER_BNB_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(3_000),
+  WATCHER_SOLANA_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(2_000),
+  WATCHER_BNB_CONFIRM_DEPTH: z.coerce.number().int().positive().default(12),
+  WATCHER_SOLANA_CONFIRM_DEPTH: z.coerce.number().int().positive().default(32),
+  // Set false to disable watchers (CI / unit test mode — avoids hitting public RPC)
+  WATCHER_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v.toLowerCase() !== 'false'),
+
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('wallet-engine'),

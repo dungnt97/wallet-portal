@@ -22,10 +22,10 @@ import {
   registry as metricsRegistry,
 } from './telemetry/metrics.js';
 import { initSentry } from './telemetry/sentry.js';
-import { startAddressRegistry } from './watcher/address-registry.js';
-import { startBnbWatcher } from './watcher/bnb-watcher.js';
-import { detectBnbDeposits } from './watcher/deposit-detector.js';
-import { startSolanaWatcher } from './watcher/solana-watcher.js';
+import { AddressRegistry } from './watcher/address-registry.js';
+import { BlockCheckpoint } from './watcher/block-checkpoint.js';
+import { BnbWatcher } from './watcher/bnb-watcher.js';
+import { SolanaWatcher } from './watcher/solana-watcher.js';
 
 // Pino logger with OTel trace context injection
 function makeLogger(level: string) {
@@ -33,7 +33,6 @@ function makeLogger(level: string) {
   return pino({
     name: 'wallet-engine',
     level,
-    // Inject active OTel span IDs into every log record
     formatters: {
       log(obj: Record<string, unknown>) {
         const span = trace.getActiveSpan();
@@ -55,6 +54,8 @@ async function start(): Promise<void> {
   initSentry();
 
   const logger = makeLogger(cfg.LOG_LEVEL);
+
+  const watcherEnabled = cfg.WATCHER_ENABLED;
 
   // --- Fastify health server ---
   const fastify = Fastify({
@@ -81,7 +82,6 @@ async function start(): Promise<void> {
     let redisStatus: 'ok' | 'error' = 'ok';
 
     try {
-      // Lightweight DB ping — select 1
       await db.execute('select 1' as unknown as Parameters<typeof db.execute>[0]);
     } catch {
       dbStatus = 'error';
@@ -125,69 +125,76 @@ async function start(): Promise<void> {
   const bnbPool = makeBnbPool(bnbRpcUrls(cfg));
   const solPool = makeSolanaPool(solanaRpcUrls(cfg));
 
-  // Verify connectivity and log latest block/slot
+  // Verify connectivity
   try {
     const bnbBlock = await bnbPool.provider.getBlockNumber();
     logger.info({ block: bnbBlock }, 'BNB connected, latest block');
   } catch (err) {
-    logger.warn({ err }, 'BNB RPC connection degraded — continuing (skeleton mode)');
+    logger.warn({ err }, 'BNB RPC connection degraded — continuing');
   }
 
   try {
     const slot = await solanaCall(solPool, (c) => c.getSlot());
     logger.info({ slot }, 'Solana connected, latest slot');
   } catch (err) {
-    logger.warn({ err }, 'Solana RPC connection degraded — continuing (skeleton mode)');
+    logger.warn({ err }, 'Solana RPC connection degraded — continuing');
   }
 
   // --- Address registry ---
-  const { registry, stop: stopRegistry } = await startAddressRegistry(db);
-  logger.info({ bnb: registry.bnb.size, sol: registry.sol.size }, 'Loaded watched addresses');
+  const registry = new AddressRegistry();
+  await registry.refresh(db);
+  registry.startAutoRefresh(db);
+  logger.info({ size: registry.size() }, 'Loaded watched addresses');
 
-  // --- BNB block watcher ---
-  let lastBnbBlock = -1;
-  const bnbWatcher = startBnbWatcher(bnbPool.provider, async (blockNumber) => {
-    const fromBlock = lastBnbBlock < 0 ? blockNumber : lastBnbBlock + 1;
-    lastBnbBlock = blockNumber;
-    await detectBnbDeposits(
-      bnbPool.provider,
-      db,
-      depositQueue,
-      fromBlock,
-      blockNumber,
-      registry.bnb,
-      cfg.USDT_BNB_ADDRESS,
-      cfg.USDC_BNB_ADDRESS
+  // --- Block checkpoint ---
+  const checkpoint = new BlockCheckpoint(db);
+
+  // --- BNB watcher ---
+  const bnbWatcher = new BnbWatcher(bnbPool.provider, db, depositQueue, registry, checkpoint, {
+    pollIntervalMs: cfg.WATCHER_BNB_POLL_INTERVAL_MS,
+    usdtAddress: cfg.USDT_BNB_ADDRESS,
+    usdcAddress: cfg.USDC_BNB_ADDRESS,
+  });
+
+  // --- Solana watcher ---
+  const solWatcher = new SolanaWatcher(solPool.primary, db, depositQueue, registry, checkpoint, {
+    pollIntervalMs: cfg.WATCHER_SOLANA_POLL_INTERVAL_MS,
+    usdtMint: cfg.USDT_SOL_MINT,
+    usdcMint: cfg.USDC_SOL_MINT,
+  });
+
+  if (watcherEnabled) {
+    await bnbWatcher.start();
+    await solWatcher.start();
+    logger.info(
+      {
+        bnbLastBlock: bnbWatcher.getLastProcessedBlock(),
+        solLastSlot: solWatcher.getLastProcessedSlot(),
+      },
+      'Watcher started: BNB chapel, Solana devnet'
     );
-  });
-
-  // --- Solana slot watcher (skeleton — full SPL parsing in Phase 09) ---
-  const solWatcher = startSolanaWatcher(solPool.primary, async (slot) => {
-    logger.debug({ slot }, 'Solana slot — SPL deposit scanning deferred to Phase 09');
-  });
+  } else {
+    logger.info('WATCHER_ENABLED=false — watchers disabled (CI / unit test mode)');
+  }
 
   // --- Start HTTP server ---
   await fastify.listen({ port: cfg.PORT, host: '0.0.0.0' });
   logger.info(`listening :${cfg.PORT}`);
 
-  // --- Start BullMQ deposit confirm worker ---
+  // --- BullMQ workers ---
   const depositWorker = startDepositConfirmWorker(redis, cfg);
-  logger.info('deposit_confirm worker started');
-
-  // --- Start BullMQ withdrawal execute worker ---
   const withdrawalExecuteWorker = startWithdrawalExecuteWorker(redis, cfg);
-  logger.info('withdrawal_execute worker started');
-
-  // --- Start BullMQ sweep execute worker ---
   const sweepWorker = startSweepExecuteWorker(redis, cfg, { bnbPool, solPool });
-  logger.info('sweep_execute worker started');
+  logger.info('BullMQ workers started');
 
   // --- Graceful shutdown ---
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal — closing wallet-engine');
-    bnbWatcher.stop();
-    await solWatcher.stop();
-    stopRegistry();
+    if (watcherEnabled) {
+      await bnbWatcher.stop();
+      await solWatcher.stop();
+    }
+    registry.stop();
     await depositWorker.close();
     await withdrawalExecuteWorker.close();
     await sweepWorker.close();
@@ -207,7 +214,6 @@ async function start(): Promise<void> {
 }
 
 void start().catch((err) => {
-  // Use pino directly here since logger is scoped inside start()
   pino({ name: 'wallet-engine' }).error({ err }, 'Fatal startup error');
   process.exit(1);
 });

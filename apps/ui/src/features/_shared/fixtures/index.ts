@@ -6,13 +6,11 @@
 // See `./README.md` for the one-fixture-per-domain convention.
 export * from './alerts';
 export * from './audit';
-export * from './cold';
 export * from './deposits';
 export * from './multisig';
 export * from './notifs';
 export * from './recon';
 export * from './recovery';
-export * from './signers';
 export * from './staff';
 export * from './sweeps';
 export * from './transactions';

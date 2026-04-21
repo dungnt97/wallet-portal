@@ -10,3 +10,4 @@ export * from './wallet.js';
 export * from './withdrawal.js';
 export * from './notification.js';
 export * from './reconciliation.js';
+export * from './recovery.js';

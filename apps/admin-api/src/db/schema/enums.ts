@@ -49,12 +49,14 @@ export const depositStatusEnum = pgEnum('deposit_status', [
   'reorg_pending',
 ]);
 
-/** Withdrawal state machine */
+/** Withdrawal state machine — 'broadcast', 'cancelling' added in migration 0016 (Slice 11) */
 export const withdrawalStatusEnum = pgEnum('withdrawal_status', [
   'pending',
   'approved',
   'time_locked',
   'executing',
+  'broadcast',
+  'cancelling',
   'completed',
   'cancelled',
   'failed',

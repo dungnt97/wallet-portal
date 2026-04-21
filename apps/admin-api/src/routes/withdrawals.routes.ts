@@ -52,6 +52,8 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
               'approved',
               'time_locked',
               'executing',
+              'broadcast',
+              'cancelling',
               'completed',
               'cancelled',
               'failed',

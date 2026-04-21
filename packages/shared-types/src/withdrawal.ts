@@ -6,6 +6,8 @@ export const WithdrawalStatus = z.enum([
   'approved',
   'time_locked',
   'executing',
+  'broadcast',
+  'cancelling',
   'completed',
   'cancelled',
   'failed',

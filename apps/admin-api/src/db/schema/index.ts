@@ -22,3 +22,4 @@ export * from './notifications';
 export * from './signer-ceremonies';
 export * from './reconciliation-snapshots';
 export * from './reconciliation-drifts';
+export * from './recovery-actions';

@@ -27,6 +27,8 @@ const EnvSchema = z.object({
   AUTH_DEV_MODE: z.string().default('false'),
   // Policy Engine
   POLICY_ENGINE_URL: z.string().url().default('http://localhost:3003'),
+  // Wallet Engine internal API (service-to-service, bearer = SVC_BEARER_TOKEN)
+  WALLET_ENGINE_URL: z.string().url().default('http://localhost:3002'),
   // RPC endpoints for cold balance probes (Slice 7)
   RPC_BNB_PRIMARY: z.string().url().default('https://bsc-dataseed.binance.org'),
   RPC_SOLANA_PRIMARY: z.string().url().default('https://api.mainnet-beta.solana.com'),

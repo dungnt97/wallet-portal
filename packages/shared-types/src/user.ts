@@ -24,7 +24,39 @@ export const UserAddress = z.object({
   chain: Chain,
   address: z.string(),
   derivationPath: z.string().nullable(),
+  /** 0-based HD derivation index, unique per chain across all users */
+  derivationIndex: z.number().int().min(0),
   tier: Tier,
   createdAt: z.string().datetime(),
 });
 export type UserAddress = z.infer<typeof UserAddress>;
+
+// On-chain balance per token as returned by GET /users/:id/addresses (Redis cache)
+export const AddressBalance = z.object({
+  USDT: z.string().nullable(),
+  USDC: z.string().nullable(),
+});
+export type AddressBalance = z.infer<typeof AddressBalance>;
+
+// Address with cached on-chain balance
+export const UserAddressWithBalance = UserAddress.extend({
+  balance: AddressBalance.nullable(),
+  cached: z.boolean(),
+});
+export type UserAddressWithBalance = z.infer<typeof UserAddressWithBalance>;
+
+// Ledger-derived balance summary per currency
+export const UserBalance = z.object({
+  USDT: z.string(),
+  USDC: z.string(),
+});
+export type UserBalance = z.infer<typeof UserBalance>;
+
+// Derived address returned by wallet-engine after HD derivation
+export const DerivedAddress = z.object({
+  chain: Chain,
+  address: z.string(),
+  derivationPath: z.string(),
+  derivationIndex: z.number().int().min(0),
+});
+export type DerivedAddress = z.infer<typeof DerivedAddress>;

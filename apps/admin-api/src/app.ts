@@ -1,21 +1,22 @@
-// Fastify app factory — builds and configures the Fastify instance with all plugins
-import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import { trace } from '@opentelemetry/api';
+// Fastify app factory — builds and configures the Fastify instance with all plugins
+import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { trace } from '@opentelemetry/api';
 import type { Config } from './config/env.js';
 import dbPlugin from './plugins/db.plugin.js';
-import redisPlugin from './plugins/redis.plugin.js';
+import errorHandlerPlugin from './plugins/error-handler.plugin.js';
 import queuePlugin from './plugins/queue.plugin.js';
+import redisPlugin from './plugins/redis.plugin.js';
 import socketPlugin from './plugins/socket.plugin.js';
 import swaggerPlugin from './plugins/swagger.plugin.js';
 import telemetryPlugin from './plugins/telemetry.plugin.js';
-import errorHandlerPlugin from './plugins/error-handler.plugin.js';
 import routes from './routes/index.js';
+import { startColdTimelockScheduler } from './services/cold-timelock-scheduler.js';
 
 export async function buildApp(cfg: Config) {
   const app = Fastify({
@@ -98,6 +99,13 @@ export async function buildApp(cfg: Config) {
 
   // All routes — pass full cfg so auth routes can access OIDC + WebAuthn vars
   await app.register(routes, { cfg });
+
+  // Cold timelock scheduler — on-boot reconciliation + 5min periodic fallback (Slice 7)
+  // Must start after DB, queue plugins are registered. Cleanup registered as onClose hook.
+  app.addHook('onReady', async () => {
+    const stopScheduler = startColdTimelockScheduler(app.db, app.coldTimelockQueue);
+    app.addHook('onClose', async () => stopScheduler());
+  });
 
   return app;
 }

@@ -11,6 +11,7 @@ import { closeRedisConnection, getRedisConnection } from './queue/connection.js'
 import { makeDepositConfirmQueue } from './queue/deposit-confirm.js';
 import { makeSweepExecuteQueue } from './queue/sweep-execute.js';
 import { makeWithdrawalExecuteQueue } from './queue/withdrawal-execute.js';
+import { startColdTimelockBroadcastWorker } from './queue/workers/cold-timelock-broadcast-worker.js';
 import { startDepositConfirmWorker } from './queue/workers/deposit-confirm-worker.js';
 import { startSweepExecuteWorker } from './queue/workers/sweep-execute-worker.js';
 import { startWithdrawalExecuteWorker } from './queue/workers/withdrawal-execute-worker.js';
@@ -185,6 +186,7 @@ async function start(): Promise<void> {
   const depositWorker = startDepositConfirmWorker(redis, cfg);
   const withdrawalExecuteWorker = startWithdrawalExecuteWorker(redis, cfg);
   const sweepWorker = startSweepExecuteWorker(redis, cfg, { bnbPool, solPool });
+  const coldTimelockWorker = startColdTimelockBroadcastWorker(redis, cfg);
   logger.info('BullMQ workers started');
 
   // --- Graceful shutdown ---
@@ -198,6 +200,7 @@ async function start(): Promise<void> {
     await depositWorker.close();
     await withdrawalExecuteWorker.close();
     await sweepWorker.close();
+    await coldTimelockWorker.close();
     await depositQueue.close();
     await withdrawalExecuteQueue.close();
     await sweepExecuteQueue.close();

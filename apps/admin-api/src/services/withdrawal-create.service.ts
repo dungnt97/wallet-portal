@@ -1,3 +1,4 @@
+import type { Queue } from 'bullmq';
 // Withdrawal create service — atomic: validate → policy-check → DB insert → emit.
 // Throws PolicyRejectedError (403), NotFoundError (404), ValidationError (422).
 import { eq, sql } from 'drizzle-orm';
@@ -8,6 +9,14 @@ import { emitAudit } from './audit.service.js';
 import { KillSwitchEnabledError, getState as getKillSwitchState } from './kill-switch.service.js';
 import { PolicyRejectedError, checkPolicy } from './policy-client.js';
 import type { PolicyClientOptions } from './policy-client.js';
+
+// ── Cold-timelock BullMQ job ──────────────────────────────────────────────────
+
+export const COLD_TIMELOCK_QUEUE = 'cold_timelock_broadcast';
+
+export interface ColdTimelockJobData {
+  withdrawalId: string;
+}
 
 // ── Error types ───────────────────────────────────────────────────────────────
 
@@ -52,11 +61,20 @@ export interface CreateWithdrawalResult {
 
 const HOT_LARGE_THRESHOLD = 50_000; // USD equivalent
 
+/** Dev fast-forward: SLICE7_TIMELOCK_FASTFORWARD=true → 5 seconds instead of 48h for cold */
+function isFastForward(): boolean {
+  return process.env.SLICE7_TIMELOCK_FASTFORWARD === 'true';
+}
+
 function computeTimeLockExpiresAt(tier: 'hot' | 'cold', amount: string): Date | null {
   const numeric = Number(amount);
   if (tier === 'cold') {
     const d = new Date();
-    d.setHours(d.getHours() + 48);
+    if (isFastForward()) {
+      d.setSeconds(d.getSeconds() + 5);
+    } else {
+      d.setHours(d.getHours() + 48);
+    }
     return d;
   }
   if (tier === 'hot' && numeric >= HOT_LARGE_THRESHOLD) {
@@ -115,7 +133,9 @@ export async function createWithdrawal(
   input: CreateWithdrawalInput,
   staffId: string,
   socketEmitter: SocketIOServer,
-  policyOpts: PolicyClientOptions
+  policyOpts: PolicyClientOptions,
+  /** Optional BullMQ queue for cold-timelock delayed broadcast scheduling */
+  timelockQueue?: Queue<ColdTimelockJobData>
 ): Promise<CreateWithdrawalResult> {
   const { userId, chain, token, amount, destinationAddr, sourceTier } = input;
 
@@ -167,7 +187,11 @@ export async function createWithdrawal(
   let multisigOp: typeof schema.multisigOperations.$inferSelect | undefined;
 
   await db.transaction(async (tx) => {
-    // Insert withdrawal row (status = pending → draft for pre-multisig state)
+    // Insert withdrawal row.
+    // Cold tier: initial status = 'time_locked' (not 'pending') — auto-broadcast fires after expiry.
+    // Hot tier: initial status = 'pending' (existing behaviour).
+    const initialStatus = sourceTier === 'cold' && timeLockExpiresAt ? 'time_locked' : 'pending';
+
     const [newWithdrawal] = await tx
       .insert(schema.withdrawals)
       .values({
@@ -176,7 +200,7 @@ export async function createWithdrawal(
         token,
         amount,
         destinationAddr,
-        status: 'pending',
+        status: initialStatus,
         sourceTier,
         timeLockExpiresAt: timeLockExpiresAt ?? undefined,
         createdBy: staffId,
@@ -223,16 +247,36 @@ export async function createWithdrawal(
       resourceType: 'withdrawal',
       resourceId: newWithdrawal.id,
       changes: {
-        status: { from: null, to: 'pending' },
+        status: { from: null, to: initialStatus },
         amount,
         chain,
         token,
         destinationAddr,
         sourceTier,
         multisigOpId: newOp.id,
+        timeLockExpiresAt: timeLockExpiresAt?.toISOString() ?? null,
       },
     });
   });
+
+  // Enqueue cold-timelock delayed broadcast job after DB commit.
+  // Job fires at timeLockExpiresAt; worker re-checks status + sigs before broadcasting.
+  // jobId = withdrawalId ensures idempotency (re-enqueueing same ID is a no-op in BullMQ).
+  if (sourceTier === 'cold' && timeLockExpiresAt && timelockQueue && withdrawal) {
+    const delayMs = Math.max(0, timeLockExpiresAt.getTime() - Date.now());
+    await timelockQueue.add(
+      COLD_TIMELOCK_QUEUE,
+      { withdrawalId: withdrawal.id },
+      {
+        jobId: withdrawal.id, // idempotent — same withdrawal can only have one pending job
+        delay: delayMs,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10_000 },
+        removeOnComplete: { count: 500 },
+        removeOnFail: { count: 1000 },
+      }
+    );
+  }
 
   // 7. Emit Socket.io event after commit
   socketEmitter.of('/stream').emit('withdrawal.created', {

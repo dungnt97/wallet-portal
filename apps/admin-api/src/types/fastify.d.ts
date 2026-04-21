@@ -11,6 +11,8 @@ declare module 'fastify' {
     io: SocketIOServer;
     queue: Queue;
     sweepQueue: Queue;
+    /** BullMQ queue for cold-timelock delayed broadcast jobs (Slice 7) */
+    coldTimelockQueue: Queue;
   }
 
   interface Session {

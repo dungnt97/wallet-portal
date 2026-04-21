@@ -137,7 +137,8 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
           req.body,
           staffId,
           app.io,
-          getPolicyOpts()
+          getPolicyOpts(),
+          app.coldTimelockQueue
         );
         return reply.code(201).send({
           withdrawal: {
@@ -318,6 +319,15 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
         .update(schema.withdrawals)
         .set({ status: 'cancelled', updatedAt: new Date() })
         .where(eq(schema.withdrawals.id, req.params.id));
+
+      // Remove the cold-timelock BullMQ delayed job if one exists.
+      // jobId = withdrawalId (set at enqueue time) — safe no-op if job not present.
+      try {
+        const job = await app.coldTimelockQueue.getJob(req.params.id);
+        if (job) await job.remove();
+      } catch {
+        // Non-fatal — job may not exist (hot-tier, already fired, or Redis eviction)
+      }
 
       // Emit audit inline (no transaction needed for cancel)
       const { emitAudit } = await import('../services/audit.service.js');

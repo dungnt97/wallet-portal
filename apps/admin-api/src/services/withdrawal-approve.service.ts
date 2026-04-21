@@ -88,7 +88,9 @@ export async function approveWithdrawal(
   });
   if (!withdrawal) throw new NotFoundError(`Withdrawal ${withdrawalId} not found`);
 
-  if (!['pending', 'approved'].includes(withdrawal.status)) {
+  // Cold tier starts in 'time_locked'; hot tier starts in 'pending'.
+  // Both can receive additional approvals before reaching threshold.
+  if (!['pending', 'approved', 'time_locked'].includes(withdrawal.status)) {
     throw new ConflictError(
       `Withdrawal ${withdrawalId} is in status '${withdrawal.status}' — cannot approve`
     );

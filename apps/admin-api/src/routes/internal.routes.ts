@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 // Internal routes — service-to-service endpoints protected by shared bearer token (D4)
 // POST /internal/deposits/:id/credit        — credited by wallet-engine after confirmation
 // POST /internal/withdrawals/:id/broadcasted — wallet-engine signals tx broadcast
@@ -11,6 +12,7 @@ import { timingSafeEqual } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import * as schema from '../db/schema/index.js';
 import { emitDepositCredited } from '../events/emit-deposit-credited.js';
 import { ConflictError, NotFoundError, creditDeposit } from '../services/deposit-credit.service.js';
 import {
@@ -19,10 +21,12 @@ import {
   recordSweepConfirmed,
 } from '../services/sweep-create.service.js';
 import {
+  ConflictError as ExecConflictError,
   NotFoundError as WdNotFoundError,
   recordBroadcasted,
   recordConfirmed,
 } from '../services/withdrawal-execute.service.js';
+import { executeWithdrawal } from '../services/withdrawal-execute.service.js';
 
 const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, opts) => {
   const r = app.withTypeProvider<ZodTypeProvider>();
@@ -150,6 +154,106 @@ const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, 
       }
     }
   );
+  // ── GET /internal/withdrawals/:id ────────────────────────────────────────────
+  // Called by wallet-engine cold-timelock-broadcast worker to verify state before broadcasting
+  r.get(
+    '/internal/withdrawals/:id',
+    {
+      schema: {
+        tags: ['internal'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({
+            id: z.string().uuid(),
+            status: z.string(),
+            sourceTier: z.string(),
+            multisigOpId: z.string().uuid().nullable(),
+            timeLockExpiresAt: z.string().nullable(),
+            collectedSigs: z.number().int().optional(),
+            requiredSigs: z.number().int().optional(),
+          }),
+          401: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const withdrawal = await app.db.query.withdrawals.findFirst({
+        where: eq(schema.withdrawals.id, req.params.id),
+      });
+      if (!withdrawal) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `Withdrawal ${req.params.id} not found` });
+      }
+
+      // Fetch associated multisig op for sig counts
+      let collectedSigs: number | undefined;
+      let requiredSigs: number | undefined;
+      if (withdrawal.multisigOpId) {
+        const op = await app.db.query.multisigOperations.findFirst({
+          where: eq(schema.multisigOperations.id, withdrawal.multisigOpId),
+        });
+        if (op) {
+          collectedSigs = op.collectedSigs;
+          requiredSigs = op.requiredSigs;
+        }
+      }
+
+      return reply.code(200).send({
+        id: withdrawal.id,
+        status: withdrawal.status,
+        sourceTier: withdrawal.sourceTier,
+        multisigOpId: withdrawal.multisigOpId ?? null,
+        timeLockExpiresAt: withdrawal.timeLockExpiresAt?.toISOString() ?? null,
+        collectedSigs,
+        requiredSigs,
+      });
+    }
+  );
+
+  // ── POST /internal/withdrawals/:id/execute ────────────────────────────────────
+  // Called by wallet-engine cold-timelock-broadcast worker to trigger broadcast
+  r.post(
+    '/internal/withdrawals/:id/execute',
+    {
+      schema: {
+        tags: ['internal'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ jobId: z.string() }),
+          401: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      // For internal execution (worker-triggered), use a system staff ID sentinel
+      const systemStaffId = '00000000-0000-0000-0000-000000000000';
+      try {
+        const result = await executeWithdrawal(
+          app.db,
+          req.params.id,
+          systemStaffId,
+          app.queue,
+          app.io
+        );
+        return reply.code(200).send({ jobId: result.jobId });
+      } catch (err) {
+        if (err instanceof WdNotFoundError) {
+          return reply.code(404).send({ code: err.code, message: err.message });
+        }
+        if (err instanceof ExecConflictError) {
+          return reply.code(409).send({ code: err.code, message: err.message });
+        }
+        throw err;
+      }
+    }
+  );
+
   // ── POST /internal/sweeps/:id/broadcasted ────────────────────────────────
   // Called by wallet-engine after HD-signed sweep tx is submitted to the network
   r.post(

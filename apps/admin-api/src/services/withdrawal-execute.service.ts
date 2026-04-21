@@ -62,13 +62,16 @@ export async function executeWithdrawal(
   });
   if (!withdrawal) throw new NotFoundError(`Withdrawal ${withdrawalId} not found`);
 
-  if (withdrawal.status !== 'approved') {
+  // Cold tier: accept 'time_locked' OR 'approved'; timelock must have expired.
+  // Hot tier: only 'approved' is valid (no timelock transition to time_locked).
+  const executableStatuses = ['approved', 'time_locked'];
+  if (!executableStatuses.includes(withdrawal.status)) {
     throw new ConflictError(
-      `Withdrawal ${withdrawalId} status is '${withdrawal.status}' — must be 'approved' to execute`
+      `Withdrawal ${withdrawalId} status is '${withdrawal.status}' — must be 'approved' or 'time_locked' to execute`
     );
   }
 
-  // Time-lock guard
+  // Time-lock guard — rejects if timelock has not yet expired
   if (withdrawal.timeLockExpiresAt && new Date(withdrawal.timeLockExpiresAt) > new Date()) {
     throw new ConflictError(
       `Withdrawal ${withdrawalId} time-lock active until ${withdrawal.timeLockExpiresAt.toISOString()}`

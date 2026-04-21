@@ -1,3 +1,5 @@
+import { ApiError } from '@/api/client';
+import { useAddDepositToSweep } from '@/api/queries';
 import { ChainPill, Risk, StatusBadge, TokenPill } from '@/components/custody';
 import { DetailSheet, useToast } from '@/components/overlays';
 // Deposit detail side-sheet — lifecycle timeline + details definition list.
@@ -16,6 +18,7 @@ interface Props {
 export function DepositSheet({ deposit, onClose }: Props) {
   const toast = useToast();
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
+  const addToSweepMutation = useAddDepositToSweep(deposit?.id ?? '');
   if (!deposit) return null;
   const d = deposit;
 
@@ -43,12 +46,21 @@ export function DepositSheet({ deposit, onClose }: Props) {
             <button
               type="button"
               className="btn btn-accent"
+              disabled={addToSweepMutation.isPending}
               onClick={() => {
-                toast('Added to sweep queue.', 'success');
-                onClose();
+                addToSweepMutation.mutate(undefined, {
+                  onSuccess: () => {
+                    toast('Added to sweep queue.', 'success');
+                    onClose();
+                  },
+                  onError: (err) => {
+                    const msg = err instanceof ApiError ? err.message : String(err);
+                    toast(`Failed to add to sweep: ${msg}`, 'error');
+                  },
+                });
               }}
             >
-              Add to sweep
+              {addToSweepMutation.isPending ? '…' : 'Add to sweep'}
             </button>
           )}
         </>

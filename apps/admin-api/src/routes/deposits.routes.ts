@@ -1,6 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 // Deposits routes — GET /deposits, GET /deposits/:id, GET /deposits/export.csv
 // POST /deposits/manual-credit — admin + WebAuthn step-up override
+// POST /deposits/:id/add-to-sweep — triggers a sweep for the deposit's user address
 // Internal credit endpoint lives in internal.routes.ts (bearer auth, D4)
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -199,6 +200,113 @@ const depositsRoutes: FastifyPluginAsync = async (app) => {
         }
         throw err;
       }
+    }
+  );
+
+  // POST /deposits/:id/add-to-sweep — create a sweep trigger for the deposit's user address
+  // Must be registered BEFORE /deposits/:id to avoid route conflict (Fastify matches first)
+  r.post(
+    '/deposits/:id/add-to-sweep',
+    {
+      preHandler: requirePerm('sweeps.trigger'),
+      schema: {
+        tags: ['deposits'],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          201: z.object({ sweepId: z.string().uuid(), userAddressId: z.string().uuid() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+          409: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const staffId = (req.session.staff ?? { id: '' }).id;
+
+      // Fetch deposit with its userId
+      const deposit = await app.db.query.deposits.findFirst({
+        where: eq(schema.deposits.id, req.params.id),
+      });
+      if (!deposit) {
+        return reply
+          .code(404)
+          .send({ code: 'NOT_FOUND', message: `Deposit ${req.params.id} not found` });
+      }
+      if (deposit.status !== 'credited') {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `Deposit must be in 'credited' status to add to sweep (current: ${deposit.status})`,
+        });
+      }
+
+      // Look up the user's chain address (required for sweep FK)
+      const userAddress = await app.db.query.userAddresses.findFirst({
+        where: and(
+          eq(schema.userAddresses.userId, deposit.userId),
+          eq(schema.userAddresses.chain, deposit.chain)
+        ),
+      });
+      if (!userAddress) {
+        return reply.code(404).send({
+          code: 'NOT_FOUND',
+          message: `No user address found for userId=${deposit.userId} chain=${deposit.chain}`,
+        });
+      }
+
+      // Resolve hot-safe destination from wallets registry
+      const hotSafeWallet = await app.db.query.wallets.findFirst({
+        where: and(
+          eq(schema.wallets.chain, deposit.chain),
+          eq(schema.wallets.purpose, 'operational')
+        ),
+      });
+      const toMultisig =
+        hotSafeWallet?.address ??
+        (deposit.chain === 'bnb'
+          ? (process.env.SAFE_ADDRESS ?? '0x0000000000000000000000000000000000000001')
+          : (process.env.SQUADS_MULTISIG_ADDRESS ?? '11111111111111111111111111111111'));
+
+      // Check no pending sweep already exists for this address+token combo
+      const existing = await app.db.query.sweeps.findFirst({
+        where: and(
+          eq(schema.sweeps.userAddressId, userAddress.id),
+          eq(schema.sweeps.token, deposit.token),
+          eq(schema.sweeps.status, 'pending')
+        ),
+      });
+      if (existing) {
+        return reply.code(409).send({
+          code: 'CONFLICT',
+          message: `A pending sweep already exists for this address+token (sweepId=${existing.id})`,
+        });
+      }
+
+      const [sweep] = await app.db
+        .insert(schema.sweeps)
+        .values({
+          userAddressId: userAddress.id,
+          chain: deposit.chain,
+          token: deposit.token,
+          fromAddr: userAddress.address,
+          toMultisig,
+          amount: deposit.amount,
+          status: 'pending',
+          createdBy: staffId || null,
+        })
+        .returning();
+
+      if (!sweep) throw new Error('INSERT sweep returned no row');
+
+      const { emitAudit } = await import('../services/audit.service.js');
+      await emitAudit(app.db, {
+        staffId,
+        action: 'deposit.add_to_sweep',
+        resourceType: 'deposit',
+        resourceId: deposit.id,
+        changes: { sweepId: sweep.id, userAddressId: userAddress.id },
+      });
+
+      app.io.of('/stream').emit('sweep.created', { sweepId: sweep.id, depositId: deposit.id });
+      return reply.code(201).send({ sweepId: sweep.id, userAddressId: userAddress.id });
     }
   );
 

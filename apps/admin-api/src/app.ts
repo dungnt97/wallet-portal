@@ -59,7 +59,8 @@ export async function buildApp(cfg: Config) {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  // OpenTelemetry stub (trace-id propagation only; real exporter in P10)
+  // Registers Prometheus /metrics endpoint + per-request HTTP counter/duration
+  // hooks. OTel SDK (trace_id/span_id injection into Pino) initialised in server.ts.
   await app.register(telemetryPlugin);
 
   // Security headers

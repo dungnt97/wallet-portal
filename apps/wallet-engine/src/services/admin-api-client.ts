@@ -1,5 +1,6 @@
 // Typed fetch client for admin-api internal routes — D4: bearer auth
-// Only stubs the credit endpoint; actual wiring done in Phase 09.
+// Implements authenticated POST calls to /internal/* with Bearer token, structured
+// error logging, and non-throwing error returns so callers can decide on retry.
 import pino from 'pino';
 
 const logger = pino({ name: 'admin-api-client' });
@@ -20,11 +21,12 @@ export interface CreditDepositResult {
  * Signals admin-api to credit the deposit to the user's ledger.
  * Returns success:false (non-throwing) on 4xx/5xx so caller can handle retry.
  *
- * NOTE: Full implementation wired in Phase 09. This is a skeleton.
+ * Sends an authenticated POST to admin-api. Returns success:false (non-throwing)
+ * on 4xx/5xx so the caller can decide whether to retry or dead-letter the job.
  */
 export async function creditDeposit(
   opts: AdminApiClientOptions,
-  depositId: string,
+  depositId: string
 ): Promise<CreditDepositResult> {
   const url = `${opts.baseUrl}/internal/deposits/${encodeURIComponent(depositId)}/credit`;
 
@@ -45,7 +47,7 @@ export async function creditDeposit(
   if (!response.ok) {
     logger.warn(
       { status: response.status, depositId },
-      'admin-api credit request returned non-2xx',
+      'admin-api credit request returned non-2xx'
     );
     return { success: false, status: response.status };
   }

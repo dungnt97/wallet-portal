@@ -60,6 +60,15 @@ SELECT EXISTS(
 -- GetKillSwitchEnabled reads the enabled flag from the singleton kill-switch row.
 SELECT enabled FROM system_kill_switch WHERE id = 1;
 
+-- name: HasActiveCeremony :one
+-- CeremonyGate rule: true when any signer ceremony is active (in_progress or partial)
+-- for the given chain. Blocks withdrawal/sweep ops from racing owner-management txs.
+SELECT EXISTS(
+    SELECT 1 FROM signer_ceremonies
+    WHERE status IN ('in_progress', 'partial')
+      AND (chain_states->>$1::text)::jsonb->>'status' IN ('executing', 'confirmed', 'signing')
+) AS has_active;
+
 -- name: IsColdReserveWallet :one
 -- Rebalance fast-path: true when destination is a registered cold_reserve wallet on the
 -- given chain with tier=cold. Scoped by (chain, address) to prevent cross-chain matching.

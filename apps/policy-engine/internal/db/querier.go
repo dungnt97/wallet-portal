@@ -28,4 +28,8 @@ type Querier interface {
 	// GetApprovalsForWithdrawal: returns all approvals (with signer address) for a withdrawal.
 	// Used by hw-attested rule to verify each approval's attestation blob.
 	GetApprovalsForWithdrawal(ctx context.Context, withdrawalID pgtype.UUID) ([]ApprovalWithSigner, error)
+	// HasActiveCeremony: returns true when any signer ceremony with status 'in_progress' or
+	// 'partial' has an active chain state for the given chain key ("bnb" or "solana").
+	// Used by ceremony_gate rule to block withdrawals/sweeps during owner-management ops.
+	HasActiveCeremony(ctx context.Context, chainKey string) (bool, error)
 }

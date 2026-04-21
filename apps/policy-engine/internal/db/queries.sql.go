@@ -295,3 +295,22 @@ func (q *Queries) IsColdReserveWallet(ctx context.Context, arg IsColdReserveWall
 	err := row.Scan(&isColdReserve)
 	return isColdReserve, err
 }
+
+const hasActiveCeremony = `-- name: HasActiveCeremony :one
+-- CeremonyGate: true when any signer ceremony is in_progress/partial for the given chain.
+SELECT EXISTS(
+    SELECT 1 FROM signer_ceremonies
+    WHERE status IN ('in_progress', 'partial')
+      AND (chain_states->>$1::text)::jsonb->>'status' IN ('executing', 'confirmed', 'signing')
+) AS has_active
+`
+
+// HasActiveCeremony returns true when a signer ceremony is actively executing on the given chain.
+// The chain argument must be the JSON key used in chain_states (e.g. "bnb" or "solana").
+// Hand-written: signer_ceremonies table is not in sqlc schema.sql.
+func (q *Queries) HasActiveCeremony(ctx context.Context, chainKey string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasActiveCeremony, chainKey)
+	var hasActive bool
+	err := row.Scan(&hasActive)
+	return hasActive, err
+}

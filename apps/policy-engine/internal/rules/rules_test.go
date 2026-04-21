@@ -48,6 +48,9 @@ type fakeQuerier struct {
 
 	approvalsForWithdrawal    []db.ApprovalWithSigner
 	approvalsForWithdrawalErr error
+
+	hasActiveCeremony    bool
+	hasActiveCeremonyErr error
 }
 
 func (f *fakeQuerier) GetSigningKeyByAddress(_ context.Context, _ db.GetSigningKeyByAddressParams) (db.StaffSigningKey, error) {
@@ -106,6 +109,10 @@ func (f *fakeQuerier) IsColdReserveWallet(_ context.Context, _ db.IsColdReserveW
 
 func (f *fakeQuerier) GetApprovalsForWithdrawal(_ context.Context, _ pgtype.UUID) ([]db.ApprovalWithSigner, error) {
 	return f.approvalsForWithdrawal, f.approvalsForWithdrawalErr
+}
+
+func (f *fakeQuerier) HasActiveCeremony(_ context.Context, _ string) (bool, error) {
+	return f.hasActiveCeremony, f.hasActiveCeremonyErr
 }
 
 // ── AuthorizedSigner tests ────────────────────────────────────────────────────
@@ -837,5 +844,133 @@ func TestKillSwitchCheck_CacheTTL(t *testing.T) {
 
 	if callCount != 1 {
 		t.Errorf("expected 1 DB call (cache hit on 2nd call), got %d", callCount)
+	}
+}
+
+// ── CeremonyGate tests ────────────────────────────────────────────────────────
+
+func TestCeremonyGate(t *testing.T) {
+	rule := rules.CeremonyGate{}
+	ctx := context.Background()
+
+	tests := []struct {
+		name      string
+		req       rules.EvaluateRequest
+		querier   *fakeQuerier
+		wantPass  bool
+		wantApply bool
+	}{
+		{
+			name:      "withdrawal — no active ceremony — allowed",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal", Chain: "bnb"},
+			querier:   &fakeQuerier{hasActiveCeremony: false},
+			wantPass:  true,
+			wantApply: true,
+		},
+		{
+			name:      "withdrawal — active ceremony on chain — denied",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal", Chain: "bnb"},
+			querier:   &fakeQuerier{hasActiveCeremony: true},
+			wantPass:  false,
+			wantApply: true,
+		},
+		{
+			name:      "sweep — active ceremony — denied",
+			req:       rules.EvaluateRequest{OperationType: "sweep", Chain: "sol"},
+			querier:   &fakeQuerier{hasActiveCeremony: true},
+			wantPass:  false,
+			wantApply: true,
+		},
+		{
+			name:      "hot_to_cold — active ceremony — denied",
+			req:       rules.EvaluateRequest{OperationType: "hot_to_cold", Chain: "bnb"},
+			querier:   &fakeQuerier{hasActiveCeremony: true},
+			wantPass:  false,
+			wantApply: true,
+		},
+		{
+			name:      "deposit — rule does not apply",
+			req:       rules.EvaluateRequest{OperationType: "deposit", Chain: "bnb"},
+			querier:   &fakeQuerier{hasActiveCeremony: true},
+			wantPass:  true, // N/A — AppliesTo false
+			wantApply: false,
+		},
+		{
+			name:      "withdrawal — no chain — rule does not apply",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal", Chain: ""},
+			querier:   &fakeQuerier{hasActiveCeremony: true},
+			wantPass:  true,
+			wantApply: false,
+		},
+		{
+			name:      "DB error — fail closed",
+			req:       rules.EvaluateRequest{OperationType: "withdrawal", Chain: "bnb"},
+			querier:   &fakeQuerier{hasActiveCeremonyErr: errors.New("db down")},
+			wantPass:  false,
+			wantApply: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if rule.AppliesTo(tc.req) != tc.wantApply {
+				t.Fatalf("AppliesTo = %v, want %v", rule.AppliesTo(tc.req), tc.wantApply)
+			}
+			if !tc.wantApply {
+				return
+			}
+			pass, reason, err := rule.Check(ctx, tc.req, tc.querier)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if pass != tc.wantPass {
+				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
+			}
+		})
+	}
+}
+
+// ── AuthorizedSigner revoked-key tests ────────────────────────────────────────
+
+func TestAuthorizedSigner_RevokedKey(t *testing.T) {
+	// The SQL query filters revoked_at IS NULL, so the querier returns an error
+	// (no rows) when the key is revoked. Verify the rule correctly denies.
+	rule := rules.AuthorizedSigner{}
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		req      rules.EvaluateRequest
+		querier  *fakeQuerier
+		wantPass bool
+	}{
+		{
+			name: "active key (revoked_at IS NULL) — allowed",
+			req:  rules.EvaluateRequest{SignerAddress: "0xactive", Chain: "bnb", Tier: "hot"},
+			querier: &fakeQuerier{signingKey: &db.StaffSigningKey{
+				Address: "0xactive", Chain: db.ChainBnb, Tier: db.TierHot,
+			}},
+			wantPass: true,
+		},
+		{
+			name: "revoked key — SQL returns no rows — denied",
+			// When revoked_at IS NOT NULL, the DB query returns no row (ErrNoRows).
+			// The querier simulates this by returning an error.
+			req:      rules.EvaluateRequest{SignerAddress: "0xrevoked", Chain: "bnb", Tier: "hot"},
+			querier:  &fakeQuerier{signingKeyErr: errors.New("no rows in result set")},
+			wantPass: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			pass, reason, err := rule.Check(ctx, tc.req, tc.querier)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if pass != tc.wantPass {
+				t.Errorf("pass = %v (reason: %q), want %v", pass, reason, tc.wantPass)
+			}
+		})
 	}
 }

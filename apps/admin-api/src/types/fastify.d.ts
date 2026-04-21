@@ -13,6 +13,10 @@ declare module 'fastify' {
     sweepQueue: Queue;
     /** BullMQ queue for cold-timelock delayed broadcast jobs (Slice 7) */
     coldTimelockQueue: Queue;
+    /** BullMQ queue for immediate email notifications (Slice 5) */
+    emailQueue: Queue;
+    /** BullMQ queue for Slack webhook notifications (Slice 5) */
+    slackQueue: Queue;
   }
 
   interface Session {

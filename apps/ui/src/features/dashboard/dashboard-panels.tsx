@@ -1,38 +1,97 @@
 // Port of ~/Documents/portal/src/page_dashboard.jsx (sub-sections) — visual fidelity verified 2026-04-20.
 // Dashboard panel components — System status / Gas wallets / SLA / Compliance / Alerts.
 // Split from dashboard-page.tsx to keep each file under 200 LOC.
+import { type OpsHealth, useOpsHealth } from '@/api/queries';
 import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
-import { LiveDot, LiveTimeAgo, useRealtime } from '../_shared/realtime';
+import type { NotificationPayload } from '@wp/shared-types';
+import { LiveDot, LiveTimeAgo } from '../_shared/realtime';
+import { useNotifications } from '../notifs/use-notifications';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function probeVariant(status: string): 'ok' | 'warn' | 'err' {
+  return status === 'ok' ? 'ok' : 'err';
+}
+
+function workerVariant(agoSec: number | null): 'ok' | 'warn' | 'err' {
+  if (agoSec === null) return 'err';
+  if (agoSec < 60) return 'ok';
+  if (agoSec < 300) return 'warn';
+  return 'err';
+}
+
+function queueVariant(depth: number, status: string): 'ok' | 'warn' | 'err' {
+  if (status !== 'ok') return 'err';
+  if (depth > 100) return 'err';
+  if (depth > 20) return 'warn';
+  return 'ok';
+}
+
+function buildStatusRows(
+  health: OpsHealth
+): { name: string; variant: 'ok' | 'warn' | 'err'; meta: string }[] {
+  const rows: { name: string; variant: 'ok' | 'warn' | 'err'; meta: string }[] = [];
+
+  // Core services
+  rows.push({
+    name: 'Postgres',
+    variant: probeVariant(health.db.status),
+    meta: health.db.error ?? 'connected',
+  });
+  rows.push({
+    name: 'Redis · queue',
+    variant: probeVariant(health.redis.status),
+    meta: health.redis.error ?? 'connected',
+  });
+  rows.push({
+    name: 'Policy engine',
+    variant: probeVariant(health.policyEngine.status),
+    meta: health.policyEngine.error ?? 'online',
+  });
+
+  // Chains
+  for (const c of health.chains) {
+    const lag = c.lagBlocks ?? 0;
+    const block = c.latestBlock?.toLocaleString() ?? '—';
+    const meta = `block ${block} · lag ${lag} blk${c.error ? ` · ${c.error}` : ''}`;
+    rows.push({ name: `${c.id.toUpperCase()} RPC`, variant: probeVariant(c.status), meta });
+  }
+
+  // Workers
+  for (const w of health.workers) {
+    const ago = w.lastHeartbeatAgoSec;
+    const meta =
+      ago === null ? 'no heartbeat' : `last tick ${ago}s ago${w.error ? ` · ${w.error}` : ''}`;
+    rows.push({ name: w.name, variant: workerVariant(ago), meta });
+  }
+
+  // Queues
+  for (const q of health.queues) {
+    const meta = `depth ${q.depth}${q.error ? ` · ${q.error}` : ''}`;
+    rows.push({ name: `${q.name} queue`, variant: queueVariant(q.depth, q.status), meta });
+  }
+
+  return rows;
+}
+
+// ── Panels ────────────────────────────────────────────────────────────────────
 
 export function SystemStatusList() {
-  const rt = useRealtime();
-  const rows: { name: string; variant: 'ok' | 'warn' | 'err'; meta: string }[] = [
-    {
-      name: 'BNB RPC primary',
-      variant: 'ok',
-      meta: `${rt.rpc.bnb.ms}ms · block ${rt.blocks.bnb.toLocaleString()}`,
-    },
-    {
-      name: 'BNB RPC backup',
-      variant: 'ok',
-      meta: `${rt.rpc.bnb.ms + 12}ms · lag ${rt.rpc.bnb.lagBlocks}`,
-    },
-    {
-      name: 'Solana RPC',
-      variant: 'ok',
-      meta: `${rt.rpc.sol.ms}ms · slot ${rt.blocks.sol.toLocaleString()}`,
-    },
-    {
-      name: 'Deposit watcher',
-      variant: 'ok',
-      meta: `lag ${rt.rpc.bnb.lagBlocks} blk · last tick 2s ago`,
-    },
-    { name: 'Sweep executor', variant: 'warn', meta: '3 jobs queued · 1 retry' },
-    { name: 'Multisig tracker', variant: 'ok', meta: 'synced · last 18s ago' },
-    { name: 'Postgres', variant: 'ok', meta: 'p95 12ms · 14/40 conn' },
-    { name: 'Redis · queue', variant: 'ok', meta: '2 active · 0 dead' },
-  ];
+  const { data: health, isLoading } = useOpsHealth();
+
+  if (isLoading || !health) {
+    return (
+      <div className="status-list">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="status-row skeleton-row" />
+        ))}
+      </div>
+    );
+  }
+
+  const rows = buildStatusRows(health);
+
   return (
     <div className="status-list">
       {rows.map((s) => (
@@ -47,66 +106,58 @@ export function SystemStatusList() {
 }
 
 export function GasWalletList() {
-  const rt = useRealtime();
-  const rows = [
-    {
-      chain: 'bnb' as const,
-      name: 'Sweep ops · BSC',
-      bal: 0.842,
-      low: 0.5,
-      price: `${rt.gasPrice.bnb} gwei`,
-      unit: 'BNB',
-    },
-    {
-      chain: 'bnb' as const,
-      name: 'Withdrawals · BSC',
-      bal: 2.14,
-      low: 1.0,
-      price: `${rt.gasPrice.bnb} gwei`,
-      unit: 'BNB',
-    },
-    {
-      chain: 'sol' as const,
-      name: 'Sweep ops · Solana',
-      bal: 4.22,
-      low: 2.0,
-      price: '5000 μLp',
-      unit: 'SOL',
-    },
-    {
-      chain: 'sol' as const,
-      name: 'Withdrawals · SOL',
-      bal: 0.188,
-      low: 0.5,
-      price: '5000 μLp',
-      unit: 'SOL',
-    },
-  ];
+  const { data: health, isLoading } = useOpsHealth();
+
+  // Gas wallet native-token balances (BNB/SOL) are not exposed by /cold/balances
+  // (which only returns USDT/USDC). Until a dedicated /ops/gas-wallets endpoint
+  // is added (tracked in roadmap), we derive RPC status from health and show
+  // chain connectivity as a proxy for operational readiness.
+  if (isLoading || !health) {
+    return (
+      <div className="gas-list">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="gas-row skeleton-row" />
+        ))}
+      </div>
+    );
+  }
+
+  const chainRows = health.chains.map((c) => {
+    const chainId = c.id.toLowerCase().startsWith('sol') ? 'sol' : ('bnb' as const);
+    const lag = c.lagBlocks ?? 0;
+    const isWarn = c.status !== 'ok' || lag > 5;
+    return {
+      chain: chainId as 'bnb' | 'sol',
+      name: `${c.id.toUpperCase()} RPC`,
+      lag,
+      status: c.status,
+      isWarn,
+    };
+  });
+
   return (
     <div className="gas-list">
-      {rows.map((g, i) => {
-        const low = g.bal < g.low;
-        const pct = Math.min(100, (g.bal / (g.low * 3)) * 100);
-        return (
-          <div key={i} className="gas-row">
-            <ChainPill chain={g.chain} />
-            <div className="gas-info">
-              <div className="gas-name">{g.name}</div>
-              <div className="gas-meta text-xs text-muted text-mono">
-                {g.price} · min {g.low} {g.unit}
-              </div>
-            </div>
-            <div className="gas-bal">
-              <div className={`text-mono fw-600 ${low ? 'text-err' : ''}`}>
-                {g.bal.toFixed(3)} <span className="text-xs text-muted">{g.unit}</span>
-              </div>
-              <div className="gas-bar">
-                <div className={`gas-bar-fill ${low ? 'low' : ''}`} style={{ width: `${pct}%` }} />
-              </div>
+      {chainRows.map((g) => (
+        <div key={g.name} className="gas-row">
+          <ChainPill chain={g.chain} />
+          <div className="gas-info">
+            <div className="gas-name">{g.name}</div>
+            <div className="gas-meta text-xs text-muted text-mono">
+              lag {g.lag} blk · status {g.status}
             </div>
           </div>
-        );
-      })}
+          <div className="gas-bal">
+            <span className={`text-mono fw-600 text-xs ${g.isWarn ? 'text-err' : 'text-ok'}`}>
+              {g.isWarn ? 'degraded' : 'healthy'}
+            </span>
+          </div>
+        </div>
+      ))}
+      <div className="gas-row" style={{ opacity: 0.55, fontSize: 11 }}>
+        <span className="text-muted text-xs">
+          Native gas balances (BNB/SOL) available once /ops/gas-wallets endpoint is added.
+        </span>
+      </div>
     </div>
   );
 }
@@ -131,6 +182,8 @@ function SLACell({ label, target, actual, pct, ok = true }: SLAProps) {
   );
 }
 
+// SLA targets are contractual/operational targets — not derived from real-time data.
+// Real SLA tracking would require a dedicated time-series endpoint (not in scope).
 export function SLAGrid() {
   return (
     <div className="sla-grid">
@@ -144,6 +197,9 @@ export function SLAGrid() {
   );
 }
 
+// Compliance checks are currently policy-only (AML, sanctions) — no live API endpoint
+// provides these aggregates. Retains static display until a /compliance/summary
+// endpoint is implemented.
 export function ComplianceList() {
   const rows: { label: string; value: string; meta: string; variant: 'ok' | 'warn' }[] = [
     { label: 'AML screening', value: '0 hits', meta: '240 addrs scanned · last 6m', variant: 'ok' },
@@ -168,45 +224,65 @@ export function ComplianceList() {
   );
 }
 
+function severityToAlertClass(severity: NotificationPayload['severity']): string {
+  if (severity === 'critical') return 'alert-err';
+  if (severity === 'warning') return 'alert-warn';
+  return 'alert-info';
+}
+
+function severityIcon(severity: NotificationPayload['severity']) {
+  if (severity === 'critical') return <I.AlertTri size={11} />;
+  if (severity === 'warning') return <I.AlertTri size={11} />;
+  return <I.Info size={11} />;
+}
+
 export function AlertsList() {
-  const alerts = [
-    {
-      id: 'al1',
-      severity: 'warn',
-      title: 'BNB sweep threshold reached',
-      text: '12 deposit addresses now exceed the 500 USDT sweep threshold.',
-      when: new Date(Date.now() - 8 * 60_000).toISOString(),
-    },
-    {
-      id: 'al2',
-      severity: 'info',
-      title: 'Multisig op_40003 awaiting 2 signatures',
-      text: 'Withdrawal of 12,400 USDT to 0x71C2…fA09 expires in 5h 42m.',
-      when: new Date(Date.now() - 22 * 60_000).toISOString(),
-    },
-    {
-      id: 'al3',
-      severity: 'err',
-      title: 'Sweep batch b_8104 partially failed',
-      text: '1 of 6 transactions reverted (insufficient gas). Retry available.',
-      when: new Date(Date.now() - 96 * 60_000).toISOString(),
-    },
-  ];
+  // Fetch latest 20 notifications, surface critical + warning unread ones first
+  const { data, isLoading } = useNotifications(20);
+
+  if (isLoading) {
+    return (
+      <div className="alert-list">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="alert-compact skeleton-row" />
+        ))}
+      </div>
+    );
+  }
+
+  const notifs = data?.data ?? [];
+
+  // Show critical/warning unread first, fall back to most recent 5
+  const critical = notifs
+    .filter((n) => (n.severity === 'critical' || n.severity === 'warning') && !n.readAt)
+    .slice(0, 5);
+  const displayed = critical.length > 0 ? critical : notifs.slice(0, 5);
+
+  if (displayed.length === 0) {
+    return (
+      <div className="alert-list">
+        <div className="alert-compact alert-info">
+          <div className="alert-compact-head">
+            <I.Check size={11} />
+            <span className="alert-compact-title">No active alerts</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="alert-list">
-      {alerts.map((a) => (
-        <div
-          key={a.id}
-          className={`alert-compact alert-${a.severity === 'err' ? 'err' : a.severity === 'warn' ? 'warn' : 'info'}`}
-        >
+      {displayed.map((n) => (
+        <div key={n.id} className={`alert-compact ${severityToAlertClass(n.severity)}`}>
           <div className="alert-compact-head">
-            <I.AlertTri size={11} />
-            <span className="alert-compact-title">{a.title}</span>
+            {severityIcon(n.severity)}
+            <span className="alert-compact-title">{n.title}</span>
             <span className="text-xs text-faint text-mono">
-              <LiveTimeAgo at={a.when} />
+              <LiveTimeAgo at={n.createdAt} />
             </span>
           </div>
-          <div className="alert-compact-text">{a.text}</div>
+          {n.body && <div className="alert-compact-text">{n.body}</div>}
         </div>
       ))}
     </div>

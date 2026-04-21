@@ -15,6 +15,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
+import { sendEmail } from '../services/notif-email-transport.service.js';
 
 // ── Shared Zod shapes ─────────────────────────────────────────────────────────
 
@@ -81,9 +82,25 @@ async function fireTestToChannel(
   log.info(`[notif-admin] Test firing to channel ${channel.id} kind=${channel.kind}`);
 
   if (channel.kind === 'email') {
-    // Email test — log only (SMTP worker integration is out of scope for this stub,
-    // since the email worker reads from per-staff prefs queue; a future slice can wire it)
-    log.info(`[notif-admin] Test email would send to: ${channel.target}`);
+    // Fire test email via SMTP (same transport used by notification workers)
+    const smtpCfg = {
+      host: process.env.SMTP_HOST ?? 'localhost',
+      port: Number(process.env.SMTP_PORT ?? 587),
+      user: process.env.SMTP_USER ?? '',
+      pass: process.env.SMTP_PASS ?? '',
+      from: process.env.SMTP_FROM ?? 'noreply@wallet-portal.local',
+    };
+    try {
+      await sendEmail({
+        to: channel.target,
+        subject: testPayload.title,
+        html: `<p>${testPayload.body}</p><p style="color:#888;font-size:12px">Channel: ${channel.name} · ${channel.id}</p>`,
+        cfg: smtpCfg,
+      });
+      log.info(`[notif-admin] Test email dispatched to: ${channel.target}`);
+    } catch (err) {
+      log.info(`[notif-admin] Test email failed: ${String(err)}`);
+    }
     return;
   }
 

@@ -1,8 +1,9 @@
-// Users tables — staff table + end-users table.
+import type { UserRecord } from '@/api/users';
+import { KYC_LABELS } from '@/api/users';
+// Users tables — staff table + end-users table (real API shape, Slice 8).
 import { Address, Risk } from '@/components/custody';
 import { ROLES } from '@/lib/constants';
-import { fmtUSD } from '@/lib/format';
-import type { EnrichedUser, StaffRow } from '../_shared/fixtures';
+import type { StaffRow } from '../_shared/fixtures';
 import { ROLE_DESCRIPTIONS } from '../_shared/fixtures';
 import { LiveTimeAgo } from '../_shared/realtime';
 
@@ -59,53 +60,57 @@ export function StaffTable({ rows }: StaffTableProps) {
 }
 
 interface EndUsersTableProps {
-  rows: EnrichedUser[];
+  rows: UserRecord[];
+  loading: boolean;
   showRiskFlags: boolean;
-  onSelect: (u: EnrichedUser) => void;
+  onSelect: (u: UserRecord) => void;
 }
 
-export function EndUsersTable({ rows, showRiskFlags, onSelect }: EndUsersTableProps) {
+export function EndUsersTable({ rows, loading, showRiskFlags, onSelect }: EndUsersTableProps) {
+  if (loading) {
+    return (
+      <div className="table-empty" style={{ padding: 40, textAlign: 'center' }}>
+        <span className="text-muted text-sm">Loading users…</span>
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="table-empty" style={{ padding: 40, textAlign: 'center' }}>
+        <span className="text-muted text-sm">No users yet. Click Add user.</span>
+      </div>
+    );
+  }
+
   return (
     <table className="table table-tight">
       <thead>
         <tr>
-          <th>User</th>
           <th>Email</th>
           <th>KYC</th>
-          <th>BNB address</th>
-          <th>Solana address</th>
-          <th className="num">USDT</th>
-          <th className="num">USDC</th>
+          <th>Status</th>
           {showRiskFlags && <th>Risk</th>}
           <th>Joined</th>
         </tr>
       </thead>
       <tbody>
-        {rows.slice(0, 22).map((u) => (
+        {rows.map((u) => (
           <tr key={u.id} onClick={() => onSelect(u)} style={{ cursor: 'pointer' }}>
+            <td className="text-sm">{u.email}</td>
             <td>
-              <div className="hstack">
-                <div className="avatar" style={{ width: 20, height: 20, fontSize: 9 }}>
-                  {u.initials}
-                </div>
-                <span className="fw-500 text-sm">{u.name}</span>
-              </div>
-            </td>
-            <td className="text-sm text-muted">{u.email}</td>
-            <td>
-              <span className="badge muted">{u.kycTierShort}</span>
+              <span className="badge muted">{KYC_LABELS[u.kycTier]}</span>
             </td>
             <td>
-              <Address value={u.addresses.bnb} chain="bnb" />
+              <span className={`badge ${u.status === 'active' ? 'ok' : ''}`}>
+                <span className="dot" />
+                {u.status}
+              </span>
             </td>
-            <td>
-              <Address value={u.addresses.sol} chain="sol" />
-            </td>
-            <td className="num text-mono">{fmtUSD(u.balances.USDT)}</td>
-            <td className="num text-mono">{fmtUSD(u.balances.USDC)}</td>
             {showRiskFlags && (
               <td>
-                <Risk level={u.risk} />
+                {/* riskScore is 0-100; map to low/med/high for display */}
+                <Risk level={u.riskScore >= 70 ? 'high' : u.riskScore >= 40 ? 'med' : 'low'} />
               </td>
             )}
             <td className="text-xs text-muted">

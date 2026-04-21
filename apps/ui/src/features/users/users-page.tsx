@@ -1,4 +1,6 @@
-// Users page — staff directory + end-user list. Ports prototype page_users.jsx.
+import type { KycTier, UserRecord } from '@/api/users';
+import { useUserList } from '@/api/users';
+// Users page — staff directory + end-user list. Real API wiring (Slice 8).
 import { useAuth } from '@/auth/use-auth';
 import { Filter, PageFrame, Tabs } from '@/components/custody';
 import { useToast } from '@/components/overlays';
@@ -6,7 +8,7 @@ import { I } from '@/icons';
 import { useTweaksStore } from '@/stores/tweaks-store';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ENRICHED_USERS, type EnrichedUser, STAFF_DIRECTORY } from '../_shared/fixtures';
+import { STAFF_DIRECTORY } from '../_shared/fixtures';
 import { downloadCSV } from '../_shared/helpers';
 import { LiveDot } from '../_shared/realtime';
 import { UserDetailSheet } from './users-detail-sheet';
@@ -22,25 +24,30 @@ export function UsersPage() {
   const toast = useToast();
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
   const [tab, setTab] = useState<Tab>('staff');
-  const [selected, setSelected] = useState<EnrichedUser | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [kycFilter, setKycFilter] = useState<KycTier | ''>('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addUserOpen, setAddUserOpen] = useState(false);
 
   const canManageStaff = staff?.role === 'admin';
   const canCreateUser = staff?.role === 'admin' || staff?.role === 'operator';
 
+  // Server-side filtered + paginated user list
+  const usersQuery = useUserList({
+    q: search || undefined,
+    kycTier: kycFilter || undefined,
+    limit: 50,
+  });
+
+  const endUsers = usersQuery.data?.data ?? [];
+  const totalUsers = usersQuery.data?.total ?? 0;
+
   const staffFiltered = STAFF_DIRECTORY.filter(
     (s) =>
       !search ||
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase())
-  );
-  const endUsers = ENRICHED_USERS.filter(
-    (u) =>
-      !search ||
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
   );
 
   const doExport = () => {
@@ -53,17 +60,8 @@ export function UsersPage() {
     } else {
       downloadCSV(
         'users.csv',
-        endUsers.map((u) => [
-          u.name,
-          u.email,
-          u.kycTierShort,
-          u.addresses.bnb,
-          u.addresses.sol,
-          u.balances.USDT,
-          u.balances.USDC,
-          u.createdAt,
-        ]),
-        ['name', 'email', 'kyc', 'bnb_addr', 'sol_addr', 'USDT', 'USDC', 'created']
+        endUsers.map((u) => [u.email, u.kycTier, u.status, u.createdAt]),
+        ['email', 'kyc', 'status', 'created']
       );
     }
     toast('Exported.', 'success');
@@ -134,7 +132,7 @@ export function UsersPage() {
           )}
         </>
       }
-      kpis={<UsersKpiStrip users={ENRICHED_USERS} staff={STAFF_DIRECTORY} />}
+      kpis={<UsersKpiStrip users={endUsers} totalUsers={totalUsers} staff={STAFF_DIRECTORY} />}
     >
       <div className="card pro-card" style={{ marginTop: 14 }}>
         <div className="pro-card-header">
@@ -144,7 +142,7 @@ export function UsersPage() {
             embedded
             tabs={[
               { value: 'staff', label: 'Staff', count: STAFF_DIRECTORY.length },
-              { value: 'endusers', label: 'End users', count: ENRICHED_USERS.length },
+              { value: 'endusers', label: 'End users', count: totalUsers },
             ]}
           />
           <div className="spacer" />
@@ -156,25 +154,44 @@ export function UsersPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          {tab === 'staff' ? <Filter label="Role" /> : <Filter label="KYC tier" />}
+          {tab === 'staff' ? (
+            <Filter label="Role" />
+          ) : (
+            <select
+              className="input"
+              style={{ fontSize: 12, padding: '4px 8px' }}
+              value={kycFilter}
+              onChange={(e) => setKycFilter(e.target.value as KycTier | '')}
+            >
+              <option value="">All KYC tiers</option>
+              <option value="none">None</option>
+              <option value="basic">T1 Basic</option>
+              <option value="enhanced">T3 Enhanced</option>
+            </select>
+          )}
           <span className="text-xs text-muted text-mono">
-            {tab === 'staff' ? staffFiltered.length : endUsers.length}
+            {tab === 'staff' ? staffFiltered.length : totalUsers}
           </span>
         </div>
 
         {tab === 'staff' ? (
           <StaffTable rows={staffFiltered} />
         ) : (
-          <EndUsersTable rows={endUsers} showRiskFlags={showRiskFlags} onSelect={setSelected} />
+          <EndUsersTable
+            rows={endUsers}
+            loading={usersQuery.isLoading}
+            showRiskFlags={showRiskFlags}
+            onSelect={(u) => setSelectedId(u.id)}
+          />
         )}
       </div>
 
       <InviteStaffModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
       <AddUserModal open={addUserOpen} onClose={() => setAddUserOpen(false)} />
       <UserDetailSheet
-        user={selected}
+        userId={selectedId}
         showRiskFlags={showRiskFlags}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
       />
     </PageFrame>
   );

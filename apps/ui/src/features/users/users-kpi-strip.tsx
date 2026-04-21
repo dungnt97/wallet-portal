@@ -1,20 +1,20 @@
-// Users KPI strip — thin wrapper around the shared `<KpiStrip>` primitive.
+import type { UserRecord } from '@/api/users';
+// Users KPI strip — counts from real API data (Slice 8).
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
-import type { EnrichedUser, StaffRow } from '../_shared/fixtures';
+import type { StaffRow } from '../_shared/fixtures';
 
 interface Props {
-  users: EnrichedUser[];
+  users: UserRecord[];
+  totalUsers: number;
   staff: StaffRow[];
 }
 
-export function UsersKpiStrip({ users, staff }: Props) {
-  const totalUserBal = users.reduce((s, u) => s + u.balances.USDT + u.balances.USDC, 0);
-  const t1 = users.filter((u) => u.kycTierShort === 'T1').length;
-  const t2 = users.filter((u) => u.kycTierShort === 'T2').length;
-  const t3 = users.filter((u) => u.kycTierShort === 'T3').length;
-  const highRisk = users.filter((u) => u.risk === 'high' || u.risk === 'med').length;
+export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
+  const t1 = users.filter((u) => u.kycTier === 'basic').length;
+  const t3 = users.filter((u) => u.kycTier === 'enhanced').length;
+  const highRisk = users.filter((u) => u.riskScore >= 40).length;
 
   return (
     <KpiStrip
@@ -48,12 +48,11 @@ export function UsersKpiStrip({ users, staff }: Props) {
               End users
             </>
           ),
-          value: users.length.toLocaleString(),
+          value: totalUsers.toLocaleString(),
           foot: (
             <>
-              <span className="text-xs delta-up">+14 · 7d</span>
               <span className="text-xs text-muted text-mono">
-                T1·{t1} T2·{t2} T3·{t3}
+                T1·{t1} T3·{t3}
               </span>
             </>
           ),
@@ -63,11 +62,11 @@ export function UsersKpiStrip({ users, staff }: Props) {
           label: (
             <>
               <I.Database size={10} />
-              Total custody
+              Active users (page)
             </>
           ),
-          value: `$${fmtCompact(totalUserBal)}`,
-          foot: <span className="text-xs text-muted text-mono">across {users.length} wallets</span>,
+          value: `${fmtCompact(users.length)}`,
+          foot: <span className="text-xs text-muted text-mono">shown on this page</span>,
         },
         {
           key: 'flags',

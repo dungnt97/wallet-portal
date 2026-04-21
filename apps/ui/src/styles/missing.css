@@ -852,10 +852,15 @@
 .section-tag { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 
 /* Change / channel / alert rows */
-.change-row, .ch-row, .alert-list > * {
+.change-row, .alert-list > * {
   display: grid; grid-template-columns: auto 1fr auto; gap: 12px;
   padding: 10px 14px; border-bottom: 1px solid var(--line-soft);
   align-items: center; font-size: 12.5px;
+}
+.ch-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-bottom: 1px solid var(--line-soft);
+  font-size: 12.5px;
 }
 .change-kind, .ch-kind { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; color: var(--text-muted); }
 .alert-compact { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }

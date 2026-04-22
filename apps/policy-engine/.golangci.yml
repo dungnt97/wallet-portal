@@ -1,0 +1,29 @@
+# golangci-lint configuration for policy-engine
+# Runs in CI via lint-typecheck job. Only enable linters with clear signal-to-noise ratio.
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck      # Unchecked errors — must handle or explicitly ignore
+    - govet         # Mirrors go vet (vet-based checks)
+    - staticcheck   # Comprehensive static analysis (SA, S, QF checks)
+    - unused        # Dead code detection
+    - gosimple      # Simplifications for Go code
+    - ineffassign   # Detects ineffectual assignments
+    - typecheck     # Syntax + type checking (always enabled)
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false  # Allow unguarded type assertions in test helpers
+    check-blank: false            # Allow explicit _ = expr discards
+
+issues:
+  # Increase max issues per linter to see full picture
+  max-issues-per-linter: 50
+  max-same-issues: 5
+  # Exclude generated files (sqlc output)
+  exclude-files:
+    - ".*\\.gen\\.go$"
+    - "queries/.*\\.go$"

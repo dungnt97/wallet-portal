@@ -33,8 +33,10 @@ env:
   # wallet-engine: stub RPC URLs (service must start; actual chain calls not made in smoke tests)
   RPC_BNB_PRIMARY: 'http://localhost:18545'
   RPC_SOLANA_PRIMARY: 'http://localhost:18899'
-  # wallet-engine: stub BIP32 xpub (valid format prefix; signing not exercised in smoke tests)
-  HD_MASTER_XPUB_BNB: 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4fLeKR1uHQToQoQYzR9MAQN6s1Aw8tAw73yKe3bQSFjzNDEQmX6JtAz3vBn5kk6RbHVBmvTpgbf'
+  # wallet-engine: HD_MASTER_XPUB_BNB is a BIP39 mnemonic despite its name (code calls Mnemonic.fromPhrase).
+  # Smoke-e2e job overrides this with the standard test vector in "Generate ephemeral HD seeds" step.
+  # Unit tests mock the env directly; lint-typecheck never starts wallet-engine.
+  HD_MASTER_XPUB_BNB: 'test test test test test test test test test test test junk'
 
 # ─── Job 1: Lint + Typecheck ──────────────────────────────────────────────────
 jobs:
@@ -81,6 +83,13 @@ jobs:
         run: |
           go vet ./...
           go build ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: apps/policy-engine
+          version: v1.64.8
+          args: --timeout=5m
 
 # ─── Job 2: Unit Tests ────────────────────────────────────────────────────────
   unit-tests:
@@ -140,8 +149,7 @@ jobs:
 
       - name: Generate ephemeral HD seeds
         run: |
-          echo "HD_MASTER_SEED_EVM=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 64)" >> "$GITHUB_ENV"
 
       - name: Run DB migrations
         run: pnpm --filter @wp/admin-api db:migrate
@@ -237,8 +245,10 @@ jobs:
 
       - name: Generate ephemeral HD seeds
         run: |
-          echo "HD_MASTER_SEED_EVM=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          # HD_MASTER_XPUB_BNB must be a valid BIP39 mnemonic (wallet-engine calls Mnemonic.fromPhrase).
+          # Using the well-known public test vector — no real funds, CI only.
+          echo "HD_MASTER_XPUB_BNB=test test test test test test test test test test test junk" >> "$GITHUB_ENV"
+          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 64)" >> "$GITHUB_ENV"
 
       - name: Run DB migrations + seed
         run: |

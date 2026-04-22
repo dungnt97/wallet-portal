@@ -88,7 +88,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: apps/policy-engine
-          version: v1.64.8
+          version: v2.11.4
           args: --timeout=5m
 
 # ─── Job 2: Unit Tests ────────────────────────────────────────────────────────

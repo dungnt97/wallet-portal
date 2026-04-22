@@ -1,4 +1,4 @@
-// Smoke: multisig page loads with vault cards visible.
+// Smoke: multisig — BNB+SOL vault cards, treasurer team, tab switch, sync button.
 import { expect, gotoApp, seedRealAuth, test } from './dev-login-fixture';
 
 test('multisig smoke', async ({ page }) => {
@@ -13,13 +13,29 @@ test('multisig smoke', async ({ page }) => {
 
   await expect(page.locator('h1, .page-title').first()).toBeVisible({ timeout: 12_000 });
 
-  // Vault cards (BSC + Solana) should render
+  // BNB + SOL vault cards
   const vaultCards = page.locator('.card', { hasText: /BSC|Solana|Safe|Squads/i });
   await expect(vaultCards.first()).toBeVisible({ timeout: 10_000 });
 
-  // Sync / retry button should be present (may be disabled while loading)
+  // Treasurer team section visible
+  const teamSection = page.locator('.card, .pro-card', { hasText: /treasurer|team|signer/i });
+  if (await teamSection.count()) await expect(teamSection.first()).toBeVisible({ timeout: 6_000 });
+
+  // Tab switch: Pending → Failed
+  const pendingTab = page.locator('.tab, [role="tab"]', { hasText: /pending/i });
+  if (await pendingTab.count()) await pendingTab.first().click();
+
+  const failedTab = page.locator('.tab, [role="tab"]', { hasText: /failed/i });
+  if (await failedTab.count()) await failedTab.first().click();
+
+  // Back to pending
+  if (await pendingTab.count()) await pendingTab.first().click();
+
+  // Sync / retry button visible ("Thử lại" in VI, "Retry" / "Sync" in EN)
   const syncBtn = page.locator('button', { hasText: /retry|sync|thử lại/i });
   await expect(syncBtn.first()).toBeVisible({ timeout: 8_000 });
+  // Click it if enabled
+  if (!(await syncBtn.first().isDisabled())) await syncBtn.first().click();
 
   expect(errors.filter((e) => !e.includes('favicon'))).toEqual([]);
 });

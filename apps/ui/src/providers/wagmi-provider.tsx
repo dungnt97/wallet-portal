@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { bscTestnet } from 'viem/chains';
 import { http, WagmiProvider as BaseWagmiProvider, createConfig } from 'wagmi';
-import { metaMask, walletConnect } from 'wagmi/connectors';
+import { coinbaseWallet, metaMask, walletConnect } from 'wagmi/connectors';
 
 const BNB_CHAPEL_RPC =
   import.meta.env.VITE_BNB_TESTNET_RPC ?? 'https://data-seed-prebsc-1-s1.bnbchain.org:8545';
@@ -11,9 +11,11 @@ const BNB_CHAPEL_RPC =
 const wcProjectId: string = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? '';
 
 // WalletConnect covers Ledger Connect Kit path (D0.2)
+// Coinbase Wallet is self-configured — no env var required
 const connectors = [
   metaMask(),
   ...(wcProjectId ? [walletConnect({ projectId: wcProjectId, showQrModal: true })] : []),
+  coinbaseWallet({ appName: 'Wallet Portal' }),
 ];
 
 export const wagmiConfig = createConfig({

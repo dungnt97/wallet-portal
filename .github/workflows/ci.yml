@@ -30,6 +30,11 @@ env:
   SVC_BEARER_TOKEN: ci-bearer-min-32-characters-required!!
   SESSION_SECRET: ci-session-secret-min-32-chars-required-here
   NODE_ENV: test
+  # wallet-engine: stub RPC URLs (service must start; actual chain calls not made in smoke tests)
+  RPC_BNB_PRIMARY: 'http://localhost:18545'
+  RPC_SOLANA_PRIMARY: 'http://localhost:18899'
+  # wallet-engine: stub BIP32 xpub (valid format prefix; signing not exercised in smoke tests)
+  HD_MASTER_XPUB_BNB: 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4fLeKR1uHQToQoQYzR9MAQN6s1Aw8tAw73yKe3bQSFjzNDEQmX6JtAz3vBn5kk6RbHVBmvTpgbf'
 
 # ─── Job 1: Lint + Typecheck ──────────────────────────────────────────────────
 jobs:

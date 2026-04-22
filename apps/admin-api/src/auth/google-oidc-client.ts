@@ -1,9 +1,9 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import type { JWTPayload } from 'jose';
 // Google Workspace OIDC helpers — authorization URL, token exchange, ID token verification
 // Uses oauth4webapi for PKCE/token exchange and jose for JWKS-backed JWT verification.
 // NEVER log id_token, access_token, or client_secret in any code path.
 import * as oauth from 'oauth4webapi';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-import type { JWTPayload } from 'jose';
 
 // Google OIDC discovery — well-known endpoints
 const GOOGLE_ISSUER = new URL('https://accounts.google.com');
@@ -32,11 +32,7 @@ export interface OidcClientConfig {
  * Build the Google OAuth2 authorization URL with PKCE (S256).
  * Returns the URL string to redirect the user to.
  */
-export function buildAuthUrl(
-  cfg: OidcClientConfig,
-  state: string,
-  codeChallenge: string,
-): string {
+export function buildAuthUrl(cfg: OidcClientConfig, state: string, codeChallenge: string): string {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('redirect_uri', cfg.redirectUri);
@@ -58,7 +54,7 @@ export function buildAuthUrlWithDomain(
   cfg: OidcClientConfig,
   state: string,
   codeChallenge: string,
-  workspaceDomain: string,
+  workspaceDomain: string
 ): string {
   const url = new URL(buildAuthUrl(cfg, state, codeChallenge));
   if (workspaceDomain) {
@@ -78,7 +74,7 @@ export function buildAuthUrlWithDomain(
 export async function exchangeCodeForIdToken(
   cfg: OidcClientConfig,
   code: string,
-  codeVerifier: string,
+  codeVerifier: string
 ): Promise<string> {
   const issuer = GOOGLE_ISSUER;
   const discoveryResponse = await oauth.discoveryRequest(issuer, { algorithm: 'oidc' });
@@ -100,7 +96,7 @@ export async function exchangeCodeForIdToken(
     clientAuth,
     callbackParams,
     cfg.redirectUri,
-    codeVerifier,
+    codeVerifier
   );
 
   const result = await oauth.processAuthorizationCodeResponse(as, client, codeGrantResponse);
@@ -115,10 +111,7 @@ export async function exchangeCodeForIdToken(
  * Verify the Google ID token against Google's JWKS.
  * Validates: signature, iss, aud, exp, nbf.
  */
-export async function verifyIdToken(
-  idToken: string,
-  clientId: string,
-): Promise<GoogleIdPayload> {
+export async function verifyIdToken(idToken: string, clientId: string): Promise<GoogleIdPayload> {
   const { payload } = await jwtVerify(idToken, googleJwks, {
     issuer: 'https://accounts.google.com',
     audience: clientId,
@@ -126,26 +119,26 @@ export async function verifyIdToken(
 
   const p = payload as JWTPayload & Record<string, unknown>;
 
-  if (!p['email'] || typeof p['email'] !== 'string') {
+  if (!p.email || typeof p.email !== 'string') {
     throw new Error('ID token missing email claim');
   }
-  if (!p['sub'] || typeof p['sub'] !== 'string') {
+  if (!p.sub || typeof p.sub !== 'string') {
     throw new Error('ID token missing sub claim');
   }
 
   const result: GoogleIdPayload = {
-    sub: p['sub'],
-    email: p['email'],
-    email_verified: Boolean(p['email_verified']),
-    name: typeof p['name'] === 'string' ? p['name'] : '',
+    sub: p.sub,
+    email: p.email,
+    email_verified: Boolean(p.email_verified),
+    name: typeof p.name === 'string' ? p.name : '',
   };
 
   // Only set optional fields when present — exactOptionalPropertyTypes requires this
-  if (typeof p['picture'] === 'string') {
-    result.picture = p['picture'];
+  if (typeof p.picture === 'string') {
+    result.picture = p.picture;
   }
-  if (typeof p['hd'] === 'string') {
-    result.hd = p['hd'];
+  if (typeof p.hd === 'string') {
+    result.hd = p.hd;
   }
 
   return result;
@@ -158,7 +151,7 @@ export async function verifyIdToken(
  */
 export function isAllowedWorkspaceDomain(
   payload: GoogleIdPayload,
-  requiredDomain: string,
+  requiredDomain: string
 ): boolean {
   // Empty string = no domain restriction
   if (!requiredDomain) return true;

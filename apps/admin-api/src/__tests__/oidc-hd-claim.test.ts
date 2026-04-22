@@ -1,11 +1,14 @@
 // Unit tests for Google OIDC hd-claim domain enforcement (D3)
-import { describe, it, expect } from 'vitest';
-import {
-  isAllowedWorkspaceDomain,
-} from '../auth/google-oidc-client.js';
+import { describe, expect, it } from 'vitest';
+import { isAllowedWorkspaceDomain } from '../auth/google-oidc-client.js';
 import type { GoogleIdPayload } from '../auth/google-oidc-client.js';
 
-function makePayload(overrides: Partial<Omit<GoogleIdPayload, 'hd' | 'picture'>> & { hd?: string | undefined; picture?: string | undefined } = {}): GoogleIdPayload {
+function makePayload(
+  overrides: Partial<Omit<GoogleIdPayload, 'hd' | 'picture'>> & {
+    hd?: string | undefined;
+    picture?: string | undefined;
+  } = {}
+): GoogleIdPayload {
   const base: GoogleIdPayload = {
     sub: 'google-sub-123',
     email: 'alice@company.com',
@@ -19,14 +22,14 @@ function makePayload(overrides: Partial<Omit<GoogleIdPayload, 'hd' | 'picture'>>
     if (overrides.hd !== undefined) {
       result.hd = overrides.hd;
     } else {
-      delete result.hd;
+      result.hd = undefined;
     }
   }
   if ('picture' in overrides) {
     if (overrides.picture !== undefined) {
       result.picture = overrides.picture;
     } else {
-      delete result.picture;
+      result.picture = undefined;
     }
   }
   return result;
@@ -52,7 +55,7 @@ describe('isAllowedWorkspaceDomain', () => {
   it('rejects missing hd claim when domain is required', () => {
     // Create payload without hd property
     const payload = makePayload();
-    delete payload.hd;
+    payload.hd = undefined;
     expect(isAllowedWorkspaceDomain(payload, 'company.com')).toBe(false);
   });
 
@@ -63,7 +66,7 @@ describe('isAllowedWorkspaceDomain', () => {
 
   it('allows no-hd payload when requiredDomain is empty', () => {
     const payload = makePayload();
-    delete payload.hd;
+    payload.hd = undefined;
     expect(isAllowedWorkspaceDomain(payload, '')).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 // Unit tests for env config validation
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../config/env.js';
 
 const VALID_ENV = {
@@ -42,32 +42,32 @@ describe('loadConfig', () => {
 
   it('applies PORT default of 3002', () => {
     Object.assign(process.env, VALID_ENV);
-    delete process.env['PORT'];
+    process.env.PORT = undefined;
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3002);
   });
 
   it('throws when DATABASE_URL missing', () => {
     Object.assign(process.env, VALID_ENV);
-    delete process.env['DATABASE_URL'];
+    process.env.DATABASE_URL = undefined;
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 
   it('throws when SVC_BEARER_TOKEN too short', () => {
     Object.assign(process.env, VALID_ENV);
-    process.env['SVC_BEARER_TOKEN'] = 'short';
+    process.env.SVC_BEARER_TOKEN = 'short';
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 
   it('throws when RPC_BNB_PRIMARY is not a URL', () => {
     Object.assign(process.env, VALID_ENV);
-    process.env['RPC_BNB_PRIMARY'] = 'not-a-url';
+    process.env.RPC_BNB_PRIMARY = 'not-a-url';
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 
   it('accepts optional RPC_BNB_FALLBACK', () => {
     Object.assign(process.env, VALID_ENV);
-    process.env['RPC_BNB_FALLBACK'] = 'https://bsc-dataseed.binance.org/';
+    process.env.RPC_BNB_FALLBACK = 'https://bsc-dataseed.binance.org/';
     const cfg = loadConfig();
     expect(cfg.RPC_BNB_FALLBACK).toBe('https://bsc-dataseed.binance.org/');
   });

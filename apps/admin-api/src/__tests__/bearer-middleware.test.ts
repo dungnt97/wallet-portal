@@ -1,6 +1,6 @@
 // Unit tests for bearer token middleware — constant-time compare, 401 paths
 // Async preHandlers: "allow" = returns undefined; "deny" = calls reply.code(N).send(...)
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const VALID_TOKEN = 'supersecretbearertoken1234';
 
@@ -9,8 +9,14 @@ describe('requireBearer', () => {
     const state = { statusCode: null as number | null, body: null as unknown };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reply: any = {
-      code(n: number) { state.statusCode = n; return reply; },
-      send(b: unknown) { state.body = b; return reply; },
+      code(n: number) {
+        state.statusCode = n;
+        return reply;
+      },
+      send(b: unknown) {
+        state.body = b;
+        return reply;
+      },
     };
     return { reply, state };
   };

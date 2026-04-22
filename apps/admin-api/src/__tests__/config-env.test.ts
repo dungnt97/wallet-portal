@@ -1,5 +1,5 @@
 // Unit tests for config/env.ts — validates Zod env schema parsing
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../config/env.js';
 
 const VALID_ENV = {
@@ -40,16 +40,16 @@ describe('loadConfig', () => {
   });
 
   it('coerces PORT string to number', () => {
-    process.env['PORT'] = '4000';
+    process.env.PORT = '4000';
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(4000);
     expect(typeof cfg.PORT).toBe('number');
   });
 
   it('applies defaults for optional vars', () => {
-    delete process.env['PORT'];
-    delete process.env['REDIS_URL'];
-    delete process.env['LOG_LEVEL'];
+    process.env.PORT = undefined;
+    process.env.REDIS_URL = undefined;
+    process.env.LOG_LEVEL = undefined;
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3001);
     expect(cfg.REDIS_URL).toBe('redis://localhost:6379');
@@ -57,17 +57,17 @@ describe('loadConfig', () => {
   });
 
   it('throws on missing DATABASE_URL', () => {
-    delete process.env['DATABASE_URL'];
+    process.env.DATABASE_URL = undefined;
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 
   it('throws on SESSION_SECRET shorter than 32 chars', () => {
-    process.env['SESSION_SECRET'] = 'tooshort';
+    process.env.SESSION_SECRET = 'tooshort';
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 
   it('throws on invalid NODE_ENV value', () => {
-    process.env['NODE_ENV'] = 'staging';
+    process.env.NODE_ENV = 'staging';
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 });

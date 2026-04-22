@@ -31,7 +31,7 @@ export function makeDepositConfirmQueue(connection: IORedis): Queue<DepositConfi
 /** Enqueue a deposit_confirm job */
 export async function enqueueDepositConfirm(
   queue: Queue<DepositConfirmJobData>,
-  data: DepositConfirmJobData,
+  data: DepositConfirmJobData
 ): Promise<void> {
   const job = await queue.add('deposit_confirm', data, {
     jobId: `deposit:${data.txHash}`, // Idempotent — deduplicates by tx hash

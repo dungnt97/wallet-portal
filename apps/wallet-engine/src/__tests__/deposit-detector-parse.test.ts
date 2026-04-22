@@ -1,8 +1,8 @@
-// Unit tests for BNB ERC-20 Transfer log parser — fixture logs, no real RPC
-import { describe, it, expect } from 'vitest';
-import { parseBnbTransferLog } from '../watcher/deposit-detector.js';
 import { id as ethersId } from 'ethers';
 import type { Log } from 'ethers';
+// Unit tests for BNB ERC-20 Transfer log parser — fixture logs, no real RPC
+import { describe, expect, it } from 'vitest';
+import { parseBnbTransferLog } from '../watcher/deposit-detector.js';
 
 const TRANSFER_TOPIC = ethersId('Transfer(address,address,uint256)');
 const USDT = '0x55d398326f99059fF775485246999027B3197955';

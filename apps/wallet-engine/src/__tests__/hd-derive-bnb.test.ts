@@ -1,11 +1,10 @@
 // Unit tests for BNB HD derivation — BIP44 golden vector validation
 // Uses standard BIP39 test mnemonic; verifies deterministic addresses
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { deriveBnbAddress, deriveBnbAddressBatch } from '../hd/bnb-derive.js';
 
 // Standard BIP39 test mnemonic (public domain test vector)
-const TEST_MNEMONIC =
-  'test test test test test test test test test test test junk';
+const TEST_MNEMONIC = 'test test test test test test test test test test test junk';
 
 describe('deriveBnbAddress', () => {
   it('derives a deterministic address at index 0', () => {
@@ -36,9 +35,7 @@ describe('deriveBnbAddress', () => {
     // Hardhat default: "test test test test test test test test test test test junk"
     // index 0 = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (well-known value)
     const result = deriveBnbAddress(TEST_MNEMONIC, 0);
-    expect(result.address.toLowerCase()).toBe(
-      '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
-    );
+    expect(result.address.toLowerCase()).toBe('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266');
   });
 });
 

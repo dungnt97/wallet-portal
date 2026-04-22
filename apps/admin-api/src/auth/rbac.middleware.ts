@@ -1,5 +1,5 @@
 // RBAC preHandler middleware — checks session staff role against permission matrix
-import type { FastifyRequest, FastifyReply, preHandlerHookHandler } from 'fastify';
+import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastify';
 import { PERMS, type Permission } from './permissions.js';
 
 /**

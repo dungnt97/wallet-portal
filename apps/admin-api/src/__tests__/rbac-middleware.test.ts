@@ -1,5 +1,5 @@
 // Unit tests for RBAC middleware — requirePerm and requireAuth
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PERMS } from '../auth/permissions.js';
 import type { Permission, Role } from '../auth/permissions.js';
 
@@ -15,7 +15,7 @@ describe('PERMS matrix', () => {
 
   it('viewer has only read permissions', () => {
     const viewerPerms = (Object.keys(PERMS) as Permission[]).filter((p) =>
-      PERMS[p].includes('viewer'),
+      PERMS[p].includes('viewer')
     );
     for (const perm of viewerPerms) {
       expect(perm).toMatch(/\.read$/);
@@ -57,8 +57,14 @@ describe('requirePerm logic', () => {
     const state = { statusCode: null as number | null, body: null as unknown };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reply: any = {
-      code(n: number) { state.statusCode = n; return reply; },
-      send(b: unknown) { state.body = b; return reply; },
+      code(n: number) {
+        state.statusCode = n;
+        return reply;
+      },
+      send(b: unknown) {
+        state.body = b;
+        return reply;
+      },
     };
     return { reply, state };
   };
@@ -78,7 +84,9 @@ describe('requirePerm logic', () => {
     const { requirePerm } = await import('../auth/rbac.middleware.js');
     const handler = requirePerm('staff.manage');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const req: any = { session: { staff: { id: '1', email: 'v@x.com', name: 'V', role: 'viewer' } } };
+    const req: any = {
+      session: { staff: { id: '1', email: 'v@x.com', name: 'V', role: 'viewer' } },
+    };
     const { reply, state } = makeCtx();
     await (handler as unknown as Function).call(undefined, req, reply);
     expect(state.statusCode).toBe(403);
@@ -89,7 +97,9 @@ describe('requirePerm logic', () => {
     const { requirePerm } = await import('../auth/rbac.middleware.js');
     const handler = requirePerm('deposits.read');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const req: any = { session: { staff: { id: '1', email: 'a@x.com', name: 'A', role: 'viewer' } } };
+    const req: any = {
+      session: { staff: { id: '1', email: 'a@x.com', name: 'A', role: 'viewer' } },
+    };
     const { reply, state } = makeCtx();
     const result = await (handler as unknown as Function).call(undefined, req, reply);
     // No reply was sent — handler returned undefined to let Fastify proceed

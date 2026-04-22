@@ -110,7 +110,7 @@ export function CommandPalette({ open, onClose }: Props) {
         setCursor((c) => Math.max(c - 1, 0));
       } else if (e.key === 'Enter' && items[cursor]) {
         e.preventDefault();
-        go(items[cursor]!.to);
+        go(items[cursor]?.to);
       }
     };
     window.addEventListener('keydown', handler);

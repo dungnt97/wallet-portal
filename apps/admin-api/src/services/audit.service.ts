@@ -23,10 +23,7 @@ export interface EmitAuditParams {
  * Insert one audit_log row inside an existing drizzle transaction.
  * The DB trigger fills prev_hash + hash automatically on insert.
  */
-export async function emitAudit(
-  tx: Db,
-  params: EmitAuditParams,
-): Promise<void> {
+export async function emitAudit(tx: Db, params: EmitAuditParams): Promise<void> {
   await tx.insert(schema.auditLog).values({
     staffId: params.staffId ?? undefined,
     action: params.action,

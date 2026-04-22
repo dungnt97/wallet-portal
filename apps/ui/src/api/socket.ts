@@ -10,7 +10,7 @@
 //       disconnectSocket();                    // decrements refcount, only closes when 0
 //     };
 //   }, []);
-import { io, type Socket } from 'socket.io-client';
+import { type Socket, io } from 'socket.io-client';
 
 let _socket: Socket | null = null;
 // Reference count: incremented by connectSocket(), decremented by disconnectSocket()

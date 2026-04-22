@@ -17,7 +17,7 @@ export type Db = ReturnType<typeof makeDb>;
 
 /** Convenience singleton for scripts — reads DATABASE_URL from environment */
 const getEnvDatabaseUrl = (): string => {
-  const url = process.env['DATABASE_URL'];
+  const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL environment variable is required');
   return url;
 };

@@ -1,6 +1,6 @@
 // Unit tests for RPC pool retry/failover logic — no real network calls
-import { describe, it, expect, vi } from 'vitest';
-import { withRetry, withFailover } from '../rpc/pool.js';
+import { describe, expect, it, vi } from 'vitest';
+import { withFailover, withRetry } from '../rpc/pool.js';
 
 describe('withRetry', () => {
   it('returns value on first success', async () => {
@@ -24,9 +24,7 @@ describe('withRetry', () => {
 
   it('throws after exhausting all attempts', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('permanent'));
-    await expect(withRetry(fn, { maxAttempts: 3, baseDelayMs: 1 })).rejects.toThrow(
-      'permanent',
-    );
+    await expect(withRetry(fn, { maxAttempts: 3, baseDelayMs: 1 })).rejects.toThrow('permanent');
     expect(fn).toHaveBeenCalledTimes(3);
   });
 });
@@ -54,15 +52,13 @@ describe('withFailover', () => {
   it('throws when all providers fail', async () => {
     const providers = ['p1', 'p2'];
     const fn = vi.fn().mockRejectedValue(new Error('all broken'));
-    await expect(withFailover(providers, fn, { maxAttempts: 1 })).rejects.toThrow(
-      'all broken',
-    );
+    await expect(withFailover(providers, fn, { maxAttempts: 1 })).rejects.toThrow('all broken');
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it('throws with message when providers list is empty', async () => {
-    await expect(
-      withFailover([], async () => 'x', { maxAttempts: 1 }),
-    ).rejects.toThrow('All RPC providers failed');
+    await expect(withFailover([], async () => 'x', { maxAttempts: 1 })).rejects.toThrow(
+      'All RPC providers failed'
+    );
   });
 });

@@ -1,5 +1,5 @@
 // Solana RPC connection pool — manual failover (no built-in fallback in @solana/web3.js)
-import { Connection, type Commitment } from '@solana/web3.js';
+import { type Commitment, Connection } from '@solana/web3.js';
 import pino from 'pino';
 import { withFailover } from './pool.js';
 
@@ -21,9 +21,7 @@ export function makeSolanaPool(urls: string[]): SolanaPool {
     throw new Error('Solana pool requires at least one RPC URL');
   }
 
-  const connections = urls.map(
-    (url) => new Connection(url, DEFAULT_COMMITMENT),
-  );
+  const connections = urls.map((url) => new Connection(url, DEFAULT_COMMITMENT));
 
   logger.info({ urls }, 'Solana RPC pool initialised');
   return { primary: connections[0]!, connections, urls };
@@ -35,7 +33,7 @@ export function makeSolanaPool(urls: string[]): SolanaPool {
  */
 export async function solanaCall<T>(
   pool: SolanaPool,
-  fn: (conn: Connection) => Promise<T>,
+  fn: (conn: Connection) => Promise<T>
 ): Promise<T> {
   return withFailover(pool.connections, fn);
 }

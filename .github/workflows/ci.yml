@@ -64,7 +64,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Biome check
-        run: pnpm -r exec biome check .
+        run: pnpm exec biome check .
 
       - name: TypeScript typecheck
         run: pnpm -r typecheck

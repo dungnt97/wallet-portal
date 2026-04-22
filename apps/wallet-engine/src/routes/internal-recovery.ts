@@ -132,12 +132,10 @@ const internalRecoveryPlugin: FastifyPluginAsync<InternalRecoveryPluginOpts> = a
 
         // Solana bump
         if (!body.originalTxBase64) {
-          return reply
-            .code(400)
-            .send({
-              code: 'MISSING_TX_BASE64',
-              message: 'originalTxBase64 required for Solana bump',
-            });
+          return reply.code(400).send({
+            code: 'MISSING_TX_BASE64',
+            message: 'originalTxBase64 required for Solana bump',
+          });
         }
         const result = await bumpSolanaTx(
           {

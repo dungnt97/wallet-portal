@@ -24,7 +24,7 @@ const healthRoutes: FastifyPluginAsync = async (app) => {
     },
     async (_req, reply) => {
       return reply.code(200).send({ status: 'ok' });
-    },
+    }
   );
 
   // Readiness — can the process serve traffic? Check DB + Redis.
@@ -65,7 +65,7 @@ const healthRoutes: FastifyPluginAsync = async (app) => {
         db: dbStatus,
         redis: redisStatus,
       });
-    },
+    }
   );
 };
 

@@ -1,16 +1,15 @@
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 // OpenTelemetry SDK bootstrap — MUST be imported before any other module in server.ts
 // Instruments HTTP (Fastify), pg, ioredis, BullMQ automatically via auto-instrumentations.
 import { NodeSDK, tracing } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 
 const { ParentBasedSampler, TraceIdRatioBasedSampler, AlwaysOnSampler } = tracing;
 
 const isDev = (process.env.NODE_ENV ?? 'development') !== 'production';
 
 // OTLP endpoint — default to local otel-collector; override via env in compose
-const otlpEndpoint =
-  (process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318') + '/v1/traces';
+const otlpEndpoint = `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318'}/v1/traces`;
 
 const serviceName = process.env.OTEL_SERVICE_NAME ?? 'admin-api';
 

@@ -2,16 +2,16 @@
 // Handles registration (attestation) and authentication (assertion) ceremonies.
 // NOTE: @simplewebauthn/server v10 bundles all types — no separate @simplewebauthn/types package.
 import {
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
   generateAuthenticationOptions,
+  generateRegistrationOptions,
   verifyAuthenticationResponse,
+  verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 import type {
-  GenerateRegistrationOptionsOpts,
-  VerifyRegistrationResponseOpts,
   GenerateAuthenticationOptionsOpts,
+  GenerateRegistrationOptionsOpts,
   VerifyAuthenticationResponseOpts,
+  VerifyRegistrationResponseOpts,
 } from '@simplewebauthn/server';
 
 export interface WebAuthnConfig {
@@ -21,7 +21,14 @@ export interface WebAuthnConfig {
 }
 
 // Transport strings — v10 bundles these types; we use string literals directly
-type AuthenticatorTransport = 'ble' | 'hybrid' | 'internal' | 'nfc' | 'usb' | 'smart-card' | 'cable';
+type AuthenticatorTransport =
+  | 'ble'
+  | 'hybrid'
+  | 'internal'
+  | 'nfc'
+  | 'usb'
+  | 'smart-card'
+  | 'cable';
 
 export interface StoredCredential {
   credentialId: string;
@@ -45,7 +52,7 @@ export async function buildRegistrationOptions(
   userId: string,
   userName: string,
   userDisplayName: string,
-  excludeCredentialIds: string[],
+  excludeCredentialIds: string[]
 ): Promise<Record<string, unknown>> {
   const opts: GenerateRegistrationOptionsOpts = {
     rpID: cfg.rpId,
@@ -75,7 +82,7 @@ export async function confirmRegistration(
   cfg: WebAuthnConfig,
   // Response body is an opaque JSON object from the browser — type-cast at call site
   response: VerifyRegistrationResponseOpts['response'],
-  expectedChallenge: string,
+  expectedChallenge: string
 ) {
   const opts: VerifyRegistrationResponseOpts = {
     response,
@@ -97,7 +104,7 @@ export async function confirmRegistration(
 // transitive @simplewebauthn/types package which is not directly installed (TS2742).
 export async function buildAuthenticationOptions(
   cfg: WebAuthnConfig,
-  allowCredentialIds: string[],
+  allowCredentialIds: string[]
 ): Promise<Record<string, unknown>> {
   const opts: GenerateAuthenticationOptionsOpts = {
     rpID: cfg.rpId,
@@ -121,7 +128,7 @@ export async function confirmAuthentication(
   cfg: WebAuthnConfig,
   response: VerifyAuthenticationResponseOpts['response'],
   expectedChallenge: string,
-  credential: StoredCredential,
+  credential: StoredCredential
 ) {
   const opts: VerifyAuthenticationResponseOpts = {
     response,

@@ -1,8 +1,8 @@
-// Swagger/OpenAPI plugin — serves OpenAPI 3.1 spec at /openapi.json + UI at /docs
-import fp from 'fastify-plugin';
-import type { FastifyPluginAsync } from 'fastify';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import type { FastifyPluginAsync } from 'fastify';
+// Swagger/OpenAPI plugin — serves OpenAPI 3.1 spec at /openapi.json + UI at /docs
+import fp from 'fastify-plugin';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 
 const swaggerPlugin: FastifyPluginAsync = async (app) => {

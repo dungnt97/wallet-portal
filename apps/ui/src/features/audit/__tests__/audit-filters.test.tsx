@@ -118,7 +118,7 @@ describe('AuditPage filter bar', () => {
         b.textContent?.toLowerCase().includes('csv')
     ) as HTMLButtonElement | undefined;
     expect(exportBtn).toBeDefined();
-    expect(exportBtn!.disabled).toBe(false);
+    expect(exportBtn?.disabled).toBe(false);
   });
 
   it('export button is disabled when Sign-ins tab is active', () => {
@@ -140,7 +140,7 @@ describe('AuditPage filter bar', () => {
 
     expect(exportBtn).toBeDefined();
     // The button has disabled attribute — check via getAttribute for jsdom compatibility
-    const isDisabled = exportBtn!.disabled || exportBtn!.getAttribute('disabled') !== null;
+    const isDisabled = exportBtn?.disabled || exportBtn?.getAttribute('disabled') !== null;
     expect(isDisabled).toBe(true);
   });
 

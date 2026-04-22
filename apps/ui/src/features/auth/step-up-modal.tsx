@@ -1,9 +1,9 @@
+import { cn } from '@/lib/utils';
+import { Loader2, ShieldCheck, X } from 'lucide-react';
 // StepUpModal — prompts the user to verify with their security key / passkey
 // Opened by StepUpProvider when an API call returns 403 STEP_UP_REQUIRED.
 // On success: resolves the pending promise so the original request is retried.
 import { useState } from 'react';
-import { ShieldCheck, Loader2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useStepUp } from './use-step-up';
 
 interface Props {
@@ -41,7 +41,7 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
       <div
         className={cn(
           'relative w-full max-w-sm mx-4 rounded-xl border border-[var(--line)]',
-          'bg-[var(--bg-elev)] shadow-xl p-6 space-y-5',
+          'bg-[var(--bg-elev)] shadow-xl p-6 space-y-5'
         )}
       >
         {/* Close */}
@@ -60,15 +60,19 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
             <ShieldCheck size={20} />
           </div>
           <div>
-            <div className="text-[14px] font-semibold text-[var(--text)]">Security verification required</div>
-            <div className="text-[12px] text-[var(--text-muted)]">Verify with your security key or passkey.</div>
+            <div className="text-[14px] font-semibold text-[var(--text)]">
+              Security verification required
+            </div>
+            <div className="text-[12px] text-[var(--text-muted)]">
+              Verify with your security key or passkey.
+            </div>
           </div>
         </div>
 
         {/* Body */}
         <p className="text-[13px] text-[var(--text-muted)]">
-          This action requires step-up authentication. Touch your security key or use your device&apos;s built-in
-          authenticator when prompted.
+          This action requires step-up authentication. Touch your security key or use your
+          device&apos;s built-in authenticator when prompted.
         </p>
 
         {errorMsg && (
@@ -93,7 +97,7 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
             className={cn(
               'flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-[13px] font-medium',
               'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
             {state === 'pending' && <Loader2 size={14} className="animate-spin" />}

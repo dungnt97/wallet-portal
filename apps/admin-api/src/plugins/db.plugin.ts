@@ -1,8 +1,8 @@
+import type { FastifyPluginAsync } from 'fastify';
 // Drizzle DB plugin — decorates app.db with a typed Drizzle instance
 import fp from 'fastify-plugin';
-import type { FastifyPluginAsync } from 'fastify';
-import { makeDb } from '../db/index.js';
 import type { Config } from '../config/env.js';
+import { makeDb } from '../db/index.js';
 
 const dbPlugin: FastifyPluginAsync<Pick<Config, 'DATABASE_URL'>> = async (app, opts) => {
   const db = makeDb(opts.DATABASE_URL);

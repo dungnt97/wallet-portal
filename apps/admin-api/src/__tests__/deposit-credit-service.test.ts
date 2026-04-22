@@ -2,8 +2,8 @@
 // Uses in-memory mocks for DB — no real Postgres required.
 // Note: vi.resetModules() is avoided here because it creates separate module instances
 // that break instanceof checks. Error shapes are validated by name/statusCode instead.
-import { describe, it, expect, vi } from 'vitest';
-import { creditDeposit, ConflictError, NotFoundError } from '../services/deposit-credit.service.js';
+import { describe, expect, it, vi } from 'vitest';
+import { ConflictError, NotFoundError, creditDeposit } from '../services/deposit-credit.service.js';
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
@@ -26,7 +26,9 @@ function buildInsertMock(returnVal: unknown = [{ id: 'tx-uuid-0001' }]) {
   const onConflictDoUpdate = vi.fn().mockResolvedValue(returnVal);
   const returning = vi.fn().mockReturnValue({ onConflictDoUpdate });
   // Second-level insert mock for ledger rows (no onConflictDoUpdate, just values())
-  const values = vi.fn().mockReturnValue({ returning, onConflictDoUpdate: vi.fn().mockResolvedValue([]) });
+  const values = vi
+    .fn()
+    .mockReturnValue({ returning, onConflictDoUpdate: vi.fn().mockResolvedValue([]) });
   return { insert: vi.fn().mockReturnValue({ values }) };
 }
 
@@ -81,9 +83,9 @@ function buildMockDb(opts: {
         findFirst: vi.fn().mockResolvedValue(opts.findFirst),
       },
     },
-    transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) =>
-      cb(txMock),
-    ),
+    transaction: vi
+      .fn()
+      .mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(txMock)),
   };
 }
 
@@ -93,21 +95,21 @@ describe('creditDeposit service', () => {
   it('throws NotFoundError when deposit does not exist', async () => {
     const db = buildMockDb({ findFirst: undefined });
     await expect(
-      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'non-existent-uuid'),
+      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'non-existent-uuid')
     ).rejects.toMatchObject({ name: 'NotFoundError', statusCode: 404, code: 'NOT_FOUND' });
   });
 
   it('throws ConflictError when deposit is already credited', async () => {
     const db = buildMockDb({ findFirst: makeDeposit({ status: 'credited' }) });
     await expect(
-      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001'),
+      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001')
     ).rejects.toMatchObject({ name: 'ConflictError', statusCode: 409, code: 'CONFLICT' });
   });
 
   it('throws ConflictError when deposit is in failed state', async () => {
     const db = buildMockDb({ findFirst: makeDeposit({ status: 'failed' }) });
     await expect(
-      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001'),
+      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001')
     ).rejects.toMatchObject({ name: 'ConflictError', statusCode: 409 });
   });
 
@@ -117,7 +119,7 @@ describe('creditDeposit service', () => {
       updateStatus: 'failed', // concurrent update changed the status
     });
     await expect(
-      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001'),
+      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001')
     ).rejects.toMatchObject({ name: 'ConflictError', statusCode: 409 });
   });
 
@@ -127,7 +129,7 @@ describe('creditDeposit service', () => {
       updateRowCount: 0,
     });
     await expect(
-      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001'),
+      creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], 'dep-uuid-0001')
     ).rejects.toMatchObject({ name: 'ConflictError', statusCode: 409 });
   });
 
@@ -137,7 +139,7 @@ describe('creditDeposit service', () => {
 
     const result = await creditDeposit(
       db as unknown as Parameters<typeof creditDeposit>[0],
-      deposit.id,
+      deposit.id
     );
 
     expect(result).toMatchObject({
@@ -157,7 +159,7 @@ describe('creditDeposit service', () => {
 
     const result = await creditDeposit(
       db as unknown as Parameters<typeof creditDeposit>[0],
-      deposit.id,
+      deposit.id
     );
 
     expect(result.txHash).toMatch(/^sys_/);
@@ -167,10 +169,7 @@ describe('creditDeposit service', () => {
     const deposit = makeDeposit({ status: 'pending' });
     const db = buildMockDb({ findFirst: deposit });
 
-    await creditDeposit(
-      db as unknown as Parameters<typeof creditDeposit>[0],
-      deposit.id,
-    );
+    await creditDeposit(db as unknown as Parameters<typeof creditDeposit>[0], deposit.id);
 
     expect(db.transaction).toHaveBeenCalledTimes(1);
   });

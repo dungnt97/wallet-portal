@@ -1,10 +1,11 @@
+import { registerStepUpHandler, unregisterStepUpHandler } from '@/api/client';
+import { StepUpModal } from '@/features/auth/step-up-modal';
 // StepUpProvider — global context that intercepts 403 STEP_UP_REQUIRED responses
 // Wraps the app so any component can trigger step-up via useStepUpContext().
 // When a 403 with code STEP_UP_REQUIRED is caught, opens StepUpModal,
 // waits for completion, then signals the caller to retry the original request.
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StepUpModal } from '@/features/auth/step-up-modal';
-import { registerStepUpHandler, unregisterStepUpHandler } from '@/api/client';
+import type React from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 interface StepUpContextValue {
   /**

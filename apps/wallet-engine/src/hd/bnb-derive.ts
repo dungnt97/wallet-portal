@@ -24,7 +24,7 @@ export function deriveBnbAddress(
   mnemonic: string,
   index: number,
   account = 0,
-  change = 0,
+  change = 0
 ): DerivedBnbAddress {
   const path = `m/44'/60'/${account}'/${change}/${index}`;
   // fromSeed creates a depth-0 root node — derivePath with "m/..." is valid here
@@ -47,9 +47,9 @@ export function deriveBnbAddressBatch(
   startIndex: number,
   count: number,
   account = 0,
-  change = 0,
+  change = 0
 ): DerivedBnbAddress[] {
   return Array.from({ length: count }, (_, i) =>
-    deriveBnbAddress(mnemonic, startIndex + i, account, change),
+    deriveBnbAddress(mnemonic, startIndex + i, account, change)
   );
 }

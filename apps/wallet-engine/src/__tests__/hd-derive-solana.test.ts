@@ -1,6 +1,6 @@
 // Unit tests for Solana HD derivation — SLIP-0010 ed25519 golden vectors
 // No real network calls — pure deterministic math
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { deriveSolanaAddress, deriveSolanaAddressBatch } from '../hd/solana-derive.js';
 
 // BIP39 test seed in hex — derived from mnemonic "test test test ... junk" via bip39.mnemonicToSeedHex

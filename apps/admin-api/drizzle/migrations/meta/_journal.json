@@ -2,24 +2,138 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    { "idx": 0, "version": "7", "when": 1776686606930, "tag": "0000_young_fantastic_four", "breakpoints": true },
-    { "idx": 1, "version": "7", "when": 1776686607000, "tag": "0001_audit_trigger", "breakpoints": true },
-    { "idx": 4, "version": "7", "when": 1745020800000, "tag": "0004_policy_tables", "breakpoints": true },
-    { "idx": 5, "version": "7", "when": 1745150400000, "tag": "0005_webauthn", "breakpoints": true },
-    { "idx": 6, "version": "7", "when": 1745280000000, "tag": "0006_sweep_user_address", "breakpoints": true },
-    { "idx": 9, "version": "7", "when": 1745366400000, "tag": "0009_watcher_checkpoints", "breakpoints": true },
-    { "idx": 10, "version": "7", "when": 1745452800000, "tag": "0010_kill_switch", "breakpoints": true },
-    { "idx": 11, "version": "7", "when": 1745496000000, "tag": "0011_slice7_cold_rebalance", "breakpoints": true },
-    { "idx": 12, "version": "7", "when": 1745500000000, "tag": "0012_notifications", "breakpoints": true },
-    { "idx": 13, "version": "7", "when": 1745510000000, "tag": "0013_signer_ceremony", "breakpoints": true },
-    { "idx": 14, "version": "7", "when": 1745539200000, "tag": "0014_slice8_users", "breakpoints": true },
-    { "idx": 15, "version": "7", "when": 1745600000000, "tag": "0015_reconciliation", "breakpoints": true },
-    { "idx": 16, "version": "7", "when": 1745650000000, "tag": "0016_slice11_recovery", "breakpoints": true },
-    { "idx": 17, "version": "7", "when": 1745700000000, "tag": "0017_login_history", "breakpoints": true },
-    { "idx": 18, "version": "7", "when": 1745750000000, "tag": "0018_account_settings_invite", "breakpoints": true },
-    { "idx": 19, "version": "7", "when": 1745800000000, "tag": "0019_user_risk_tier", "breakpoints": true },
-    { "idx": 20, "version": "7", "when": 1745850000000, "tag": "0020_manual_credit_deposit", "breakpoints": true },
-    { "idx": 22, "version": "7", "when": 1745900000000, "tag": "0022_backups_table", "breakpoints": true },
-    { "idx": 23, "version": "7", "when": 1745950000000, "tag": "0023_notification_channels", "breakpoints": true }
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1776686606930,
+      "tag": "0000_young_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776686607000,
+      "tag": "0001_audit_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1745020800000,
+      "tag": "0004_policy_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1745150400000,
+      "tag": "0005_webauthn",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1745280000000,
+      "tag": "0006_sweep_user_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1745366400000,
+      "tag": "0009_watcher_checkpoints",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745452800000,
+      "tag": "0010_kill_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1745496000000,
+      "tag": "0011_slice7_cold_rebalance",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1745500000000,
+      "tag": "0012_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1745510000000,
+      "tag": "0013_signer_ceremony",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1745539200000,
+      "tag": "0014_slice8_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1745600000000,
+      "tag": "0015_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1745650000000,
+      "tag": "0016_slice11_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1745700000000,
+      "tag": "0017_login_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1745750000000,
+      "tag": "0018_account_settings_invite",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1745800000000,
+      "tag": "0019_user_risk_tier",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1745850000000,
+      "tag": "0020_manual_credit_deposit",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1745900000000,
+      "tag": "0022_backups_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1745950000000,
+      "tag": "0023_notification_channels",
+      "breakpoints": true
+    }
   ]
 }

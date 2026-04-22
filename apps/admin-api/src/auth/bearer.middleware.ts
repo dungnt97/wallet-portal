@@ -1,7 +1,7 @@
+import { timingSafeEqual } from 'node:crypto';
 // Bearer token middleware for /internal/* routes (Decision D4)
 // Uses constant-time comparison to prevent timing attacks on the shared secret.
-import type { FastifyRequest, FastifyReply, preHandlerHookHandler } from 'fastify';
-import { timingSafeEqual } from 'node:crypto';
+import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from 'fastify';
 
 /**
  * Returns a preHandler that enforces Bearer token authentication.
@@ -10,7 +10,7 @@ import { timingSafeEqual } from 'node:crypto';
  */
 export function requireBearer(expectedToken: string): preHandlerHookHandler {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    const authHeader = request.headers['authorization'];
+    const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return reply.code(401).send({

@@ -1,23 +1,16 @@
+import { trace } from '@opentelemetry/api';
+import type { FastifyPluginAsync } from 'fastify';
 // Fastify telemetry plugin — exposes /metrics (Prometheus) and wires request hooks
 // for HTTP counters + duration histograms. OTel SDK is initialised in server.ts before
 // this plugin loads; this plugin only adds the Fastify-level instrumentation.
 import fp from 'fastify-plugin';
-import type { FastifyPluginAsync } from 'fastify';
-import { trace } from '@opentelemetry/api';
-import {
-  registry,
-  httpRequestsTotal,
-  httpRequestDurationSeconds,
-} from '../telemetry/metrics.js';
+import { httpRequestDurationSeconds, httpRequestsTotal, registry } from '../telemetry/metrics.js';
 
 const telemetryPlugin: FastifyPluginAsync = async (app) => {
   // ── Prometheus /metrics endpoint ─────────────────────────────────────────
   app.get('/metrics', { schema: { hide: true } }, async (_req, reply) => {
     const metrics = await registry.metrics();
-    void reply
-      .code(200)
-      .header('Content-Type', registry.contentType)
-      .send(metrics);
+    void reply.code(200).header('Content-Type', registry.contentType).send(metrics);
   });
 
   // ── Per-request hooks — record duration + count ──────────────────────────
@@ -26,8 +19,7 @@ const telemetryPlugin: FastifyPluginAsync = async (app) => {
     (request as typeof request & { _startTime: number })._startTime = Date.now();
 
     // Echo or generate x-request-id
-    const reqId =
-      (request.headers['x-request-id'] as string | undefined) ?? request.id;
+    const reqId = (request.headers['x-request-id'] as string | undefined) ?? request.id;
     void reply.header('x-request-id', reqId);
   });
 

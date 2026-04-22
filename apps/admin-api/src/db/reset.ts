@@ -3,13 +3,13 @@
 import 'dotenv/config';
 import postgres from 'postgres';
 
-const url = process.env['DATABASE_URL'];
+const url = process.env.DATABASE_URL;
 if (!url) {
   console.error('ERROR: DATABASE_URL environment variable is required');
   process.exit(1);
 }
 
-if (process.env['NODE_ENV'] === 'production') {
+if (process.env.NODE_ENV === 'production') {
   console.error('ERROR: db:reset is not allowed in production');
   process.exit(1);
 }

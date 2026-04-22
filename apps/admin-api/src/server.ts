@@ -2,9 +2,9 @@
 // OTel MUST be imported first — instruments pg, ioredis, HTTP before any other require
 import './telemetry/otel.js';
 import 'dotenv/config';
-import { initSentry } from './telemetry/sentry.js';
-import { loadConfig } from './config/env.js';
 import { buildApp } from './app.js';
+import { loadConfig } from './config/env.js';
+import { initSentry } from './telemetry/sentry.js';
 
 async function start(): Promise<void> {
   const cfg = loadConfig();

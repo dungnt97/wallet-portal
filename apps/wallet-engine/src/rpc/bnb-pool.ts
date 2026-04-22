@@ -19,15 +19,15 @@ export function makeBnbPool(urls: string[]): BnbPool {
     throw new Error('BNB pool requires at least one RPC URL');
   }
 
-  const providers = urls.map((url, i) =>
-    new JsonRpcProvider(url, undefined, { staticNetwork: true }),
+  const providers = urls.map(
+    (url, i) => new JsonRpcProvider(url, undefined, { staticNetwork: true })
   );
 
   // FallbackProvider: quorum=1 means first-response wins; weight distributes priority
   const provider = new FallbackProvider(
     providers.map((p, i) => ({ provider: p, priority: i + 1, weight: i === 0 ? 2 : 1 })),
     undefined,
-    { quorum: 1 },
+    { quorum: 1 }
   );
 
   logger.info({ urls }, 'BNB RPC pool initialised');

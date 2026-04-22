@@ -14,17 +14,13 @@ const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BASE_DELAY_MS = 200;
 
 /** Sleep helper */
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Retry a thunk with exponential backoff.
  * Throws the last error if all attempts exhaust.
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  opts: PoolOptions = {},
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, opts: PoolOptions = {}): Promise<T> {
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const baseDelay = opts.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   let lastError: unknown;
@@ -35,7 +31,7 @@ export async function withRetry<T>(
     } catch (err) {
       lastError = err;
       if (attempt < maxAttempts) {
-        const delay = baseDelay * Math.pow(2, attempt - 1);
+        const delay = baseDelay * 2 ** (attempt - 1);
         logger.warn({ attempt, delay, err }, 'RPC call failed — retrying');
         await sleep(delay);
       }
@@ -52,7 +48,7 @@ export async function withRetry<T>(
 export async function withFailover<TProvider, TResult>(
   providers: TProvider[],
   fn: (provider: TProvider) => Promise<TResult>,
-  opts: PoolOptions = {},
+  opts: PoolOptions = {}
 ): Promise<TResult> {
   let lastError: unknown;
 

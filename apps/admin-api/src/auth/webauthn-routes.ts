@@ -1,3 +1,8 @@
+import type {
+  VerifyAuthenticationResponseOpts,
+  VerifyRegistrationResponseOpts,
+} from '@simplewebauthn/server';
+import { and, eq } from 'drizzle-orm';
 // WebAuthn route handlers — credential registration + step-up assertion
 // POST /auth/webauthn/register/options — generate attestation options (requires session)
 // POST /auth/webauthn/register/verify  — verify + store new credential
@@ -6,17 +11,15 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
-import { staffWebauthnCredentials, staffMembers } from '../db/schema/index.js';
+import type { Config } from '../config/env.js';
+import { staffMembers, staffWebauthnCredentials } from '../db/schema/index.js';
 import { requireAuth } from './rbac.middleware.js';
 import {
-  buildRegistrationOptions,
-  confirmRegistration,
   buildAuthenticationOptions,
+  buildRegistrationOptions,
   confirmAuthentication,
+  confirmRegistration,
 } from './webauthn-server.js';
-import type { Config } from '../config/env.js';
-import type { VerifyRegistrationResponseOpts, VerifyAuthenticationResponseOpts } from '@simplewebauthn/server';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -65,19 +68,19 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
         staff.id,
         staff.email,
         displayName,
-        existing.map((e) => e.credentialId),
+        existing.map((e) => e.credentialId)
       );
 
-      req.session.webauthnChallenge = options['challenge'] as string;
+      req.session.webauthnChallenge = options.challenge as string;
       req.session.webauthnChallengeExpiresAt = Date.now() + CHALLENGE_TTL_MS;
 
       const body = req.body as { deviceName?: string };
       if (body.deviceName) {
-        (req.session as unknown as Record<string, unknown>)['pendingDeviceName'] = body.deviceName;
+        (req.session as unknown as Record<string, unknown>).pendingDeviceName = body.deviceName;
       }
 
       return reply.code(200).send(options as unknown as Record<string, unknown>);
-    },
+    }
   );
 
   // POST /auth/webauthn/register/verify — verify attestation, persist credential
@@ -100,34 +103,42 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       const expiresAt = req.session.webauthnChallengeExpiresAt ?? 0;
 
       if (!challenge || Date.now() > expiresAt) {
-        return reply.code(400).send({ code: 'CHALLENGE_EXPIRED', message: 'Registration challenge expired — restart flow' });
+        return reply.code(400).send({
+          code: 'CHALLENGE_EXPIRED',
+          message: 'Registration challenge expired — restart flow',
+        });
       }
 
       // Clear challenge — one-time use
-      delete (req.session as unknown as Record<string, unknown>)['webauthnChallenge'];
-      delete (req.session as unknown as Record<string, unknown>)['webauthnChallengeExpiresAt'];
+      (req.session as unknown as Record<string, unknown>).webauthnChallenge = undefined;
+      (req.session as unknown as Record<string, unknown>).webauthnChallengeExpiresAt = undefined;
 
       let verification;
       try {
         verification = await confirmRegistration(
           waCfg,
           req.body as unknown as VerifyRegistrationResponseOpts['response'],
-          challenge,
+          challenge
         );
       } catch (err) {
         app.log.warn({ err }, 'WebAuthn registration verification failed');
-        return reply.code(400).send({ code: 'VERIFICATION_FAILED', message: 'Credential verification failed' });
+        return reply
+          .code(400)
+          .send({ code: 'VERIFICATION_FAILED', message: 'Credential verification failed' });
       }
 
       if (!verification.verified || !verification.registrationInfo) {
-        return reply.code(400).send({ code: 'VERIFICATION_FAILED', message: 'Credential not verified' });
+        return reply
+          .code(400)
+          .send({ code: 'VERIFICATION_FAILED', message: 'Credential not verified' });
       }
 
       const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
       const deviceName =
-        ((req.session as unknown as Record<string, unknown>)['pendingDeviceName'] as string | undefined) ??
-        'Security Key';
-      delete (req.session as unknown as Record<string, unknown>)['pendingDeviceName'];
+        ((req.session as unknown as Record<string, unknown>).pendingDeviceName as
+          | string
+          | undefined) ?? 'Security Key';
+      (req.session as unknown as Record<string, unknown>).pendingDeviceName = undefined;
 
       await app.db.insert(staffWebauthnCredentials).values({
         staffId: staff.id,
@@ -139,7 +150,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       });
 
       return reply.code(200).send({ ok: true, credentialId: credentialID });
-    },
+    }
   );
 
   // ── Authentication / step-up ─────────────────────────────────────────────────
@@ -164,14 +175,14 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
 
       const options = await buildAuthenticationOptions(
         waCfg,
-        creds.map((c) => c.credentialId),
+        creds.map((c) => c.credentialId)
       );
 
-      req.session.webauthnChallenge = options['challenge'] as string;
+      req.session.webauthnChallenge = options.challenge as string;
       req.session.webauthnChallengeExpiresAt = Date.now() + CHALLENGE_TTL_MS;
 
       return reply.code(200).send(options as unknown as Record<string, unknown>);
-    },
+    }
   );
 
   // POST /auth/webauthn/verify — verify assertion, set steppedUpAt
@@ -194,13 +205,18 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       const expiresAt = req.session.webauthnChallengeExpiresAt ?? 0;
 
       if (!challenge || Date.now() > expiresAt) {
-        return reply.code(400).send({ code: 'CHALLENGE_EXPIRED', message: 'Authentication challenge expired — restart flow' });
+        return reply.code(400).send({
+          code: 'CHALLENGE_EXPIRED',
+          message: 'Authentication challenge expired — restart flow',
+        });
       }
 
       const responseBody = req.body as { id?: string };
       const credentialId = responseBody.id;
       if (!credentialId) {
-        return reply.code(400).send({ code: 'MISSING_CREDENTIAL_ID', message: 'Response missing credential id' });
+        return reply
+          .code(400)
+          .send({ code: 'MISSING_CREDENTIAL_ID', message: 'Response missing credential id' });
       }
 
       const stored = await app.db
@@ -209,20 +225,23 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
         .where(
           and(
             eq(staffWebauthnCredentials.staffId, staff.id),
-            eq(staffWebauthnCredentials.credentialId, credentialId),
-          ),
+            eq(staffWebauthnCredentials.credentialId, credentialId)
+          )
         )
         .limit(1);
 
       if (!stored[0]) {
-        return reply.code(400).send({ code: 'CREDENTIAL_NOT_FOUND', message: 'Credential not registered to this account' });
+        return reply.code(400).send({
+          code: 'CREDENTIAL_NOT_FOUND',
+          message: 'Credential not registered to this account',
+        });
       }
 
       const row = stored[0];
 
       // Clear challenge — one-time use
-      delete (req.session as unknown as Record<string, unknown>)['webauthnChallenge'];
-      delete (req.session as unknown as Record<string, unknown>)['webauthnChallengeExpiresAt'];
+      (req.session as unknown as Record<string, unknown>).webauthnChallenge = undefined;
+      (req.session as unknown as Record<string, unknown>).webauthnChallengeExpiresAt = undefined;
 
       let verification;
       try {
@@ -234,16 +253,28 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
             credentialId: row.credentialId,
             publicKey: new Uint8Array(row.publicKey as unknown as ArrayBuffer),
             counter: Number(row.counter ?? BigInt(0)),
-            transports: (row.transports ?? []) as ('ble' | 'hybrid' | 'internal' | 'nfc' | 'usb' | 'smart-card' | 'cable')[],
-          },
+            transports: (row.transports ?? []) as (
+              | 'ble'
+              | 'hybrid'
+              | 'internal'
+              | 'nfc'
+              | 'usb'
+              | 'smart-card'
+              | 'cable'
+            )[],
+          }
         );
       } catch (err) {
         app.log.warn({ err }, 'WebAuthn assertion verification failed');
-        return reply.code(400).send({ code: 'VERIFICATION_FAILED', message: 'Assertion verification failed' });
+        return reply
+          .code(400)
+          .send({ code: 'VERIFICATION_FAILED', message: 'Assertion verification failed' });
       }
 
       if (!verification.verified) {
-        return reply.code(400).send({ code: 'VERIFICATION_FAILED', message: 'Assertion not verified' });
+        return reply
+          .code(400)
+          .send({ code: 'VERIFICATION_FAILED', message: 'Assertion not verified' });
       }
 
       // Update counter in DB — prevents cloned-key replay
@@ -259,6 +290,6 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       req.session.steppedUpAt = now;
 
       return reply.code(200).send({ ok: true, steppedUpAt: now });
-    },
+    }
   );
 };

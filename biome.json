@@ -13,7 +13,18 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useTemplate": "warn",
+        "useExponentiationOperator": "warn"
+      },
+      "suspicious": {
+        "noImplicitAnyLet": "warn"
+      },
+      "performance": {
+        "noDelete": "warn"
+      }
     }
   },
   "javascript": {
@@ -30,12 +41,15 @@
       ".opencode/**",
       "claude/**",
       "apps/*/scripts/**",
+      "scripts/**",
       "guide/**",
       "node_modules/**",
+      "infra/**",
       "portable-manifest.json",
       "release-manifest.json",
       ".releaserc.cjs",
       ".commitlintrc.json",
+      "**/tsconfig*.json",
       "apps/ui/src/styles/base.css",
       "apps/ui/src/styles/pro-dashboard.css",
       "apps/ui/src/styles/wallet-flow.css",
@@ -43,6 +57,21 @@
     ]
   },
   "overrides": [
+    {
+      "include": ["**/__tests__/**/*.ts", "**/*.test.ts", "**/*.spec.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "warn",
+            "noThenProperty": "warn"
+          },
+          "complexity": {
+            "noBannedTypes": "warn",
+            "noForEach": "warn"
+          }
+        }
+      }
+    },
     {
       "include": ["infra/chain/scripts/**/*.ts"],
       "linter": {

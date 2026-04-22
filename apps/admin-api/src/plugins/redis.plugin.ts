@@ -1,6 +1,6 @@
+import type { FastifyPluginAsync } from 'fastify';
 // Redis plugin — decorates app.redis with an ioredis client
 import fp from 'fastify-plugin';
-import type { FastifyPluginAsync } from 'fastify';
 import Redis from 'ioredis';
 import type { Config } from '../config/env.js';
 

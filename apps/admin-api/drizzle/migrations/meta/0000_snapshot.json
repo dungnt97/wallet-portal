@@ -84,12 +84,8 @@
           "name": "audit_log_staff_id_staff_members_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "staff_members",
-          "columnsFrom": [
-            "staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -179,12 +175,8 @@
           "name": "deposits_user_id_users_id_fk",
           "tableFrom": "deposits",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -261,9 +253,7 @@
         "staff_members_email_unique": {
           "name": "staff_members_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -341,12 +331,8 @@
           "name": "staff_signing_keys_staff_id_staff_members_id_fk",
           "tableFrom": "staff_signing_keys",
           "tableTo": "staff_members",
-          "columnsFrom": [
-            "staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -415,12 +401,8 @@
           "name": "user_addresses_user_id_users_id_fk",
           "tableFrom": "user_addresses",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -430,9 +412,7 @@
         "user_addresses_address_unique": {
           "name": "user_addresses_address_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "address"
-          ]
+          "columns": ["address"]
         }
       },
       "policies": {},
@@ -501,9 +481,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -588,9 +566,7 @@
         "wallets_address_unique": {
           "name": "wallets_address_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "address"
-          ]
+          "columns": ["address"]
         }
       },
       "policies": {},
@@ -694,12 +670,8 @@
           "name": "withdrawals_user_id_users_id_fk",
           "tableFrom": "withdrawals",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -707,12 +679,8 @@
           "name": "withdrawals_created_by_staff_members_id_fk",
           "tableFrom": "withdrawals",
           "tableTo": "staff_members",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -772,12 +740,8 @@
           "name": "multisig_approvals_op_id_multisig_operations_id_fk",
           "tableFrom": "multisig_approvals",
           "tableTo": "multisig_operations",
-          "columnsFrom": [
-            "op_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["op_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -785,12 +749,8 @@
           "name": "multisig_approvals_staff_id_staff_members_id_fk",
           "tableFrom": "multisig_approvals",
           "tableTo": "staff_members",
-          "columnsFrom": [
-            "staff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -798,12 +758,8 @@
           "name": "multisig_approvals_staff_signing_key_id_staff_signing_keys_id_fk",
           "tableFrom": "multisig_approvals",
           "tableTo": "staff_signing_keys",
-          "columnsFrom": [
-            "staff_signing_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["staff_signing_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1071,9 +1027,7 @@
         "transactions_hash_unique": {
           "name": "transactions_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "hash"
-          ]
+          "columns": ["hash"]
         }
       },
       "policies": {},
@@ -1138,12 +1092,8 @@
           "name": "ledger_entries_tx_id_transactions_id_fk",
           "tableFrom": "ledger_entries",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "tx_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tx_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1159,127 +1109,67 @@
     "public.chain": {
       "name": "chain",
       "schema": "public",
-      "values": [
-        "bnb",
-        "sol"
-      ]
+      "values": ["bnb", "sol"]
     },
     "public.deposit_status": {
       "name": "deposit_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "credited",
-        "swept",
-        "failed"
-      ]
+      "values": ["pending", "credited", "swept", "failed"]
     },
     "public.kyc_tier": {
       "name": "kyc_tier",
       "schema": "public",
-      "values": [
-        "none",
-        "basic",
-        "enhanced"
-      ]
+      "values": ["none", "basic", "enhanced"]
     },
     "public.multisig_status": {
       "name": "multisig_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "collecting",
-        "ready",
-        "submitted",
-        "confirmed",
-        "expired",
-        "failed"
-      ]
+      "values": ["pending", "collecting", "ready", "submitted", "confirmed", "expired", "failed"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "admin",
-        "treasurer",
-        "operator",
-        "viewer"
-      ]
+      "values": ["admin", "treasurer", "operator", "viewer"]
     },
     "public.staff_status": {
       "name": "staff_status",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended",
-        "offboarded"
-      ]
+      "values": ["active", "suspended", "offboarded"]
     },
     "public.sweep_status": {
       "name": "sweep_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "submitted",
-        "confirmed",
-        "failed"
-      ]
+      "values": ["pending", "submitted", "confirmed", "failed"]
     },
     "public.tier": {
       "name": "tier",
       "schema": "public",
-      "values": [
-        "hot",
-        "cold"
-      ]
+      "values": ["hot", "cold"]
     },
     "public.token": {
       "name": "token",
       "schema": "public",
-      "values": [
-        "USDT",
-        "USDC"
-      ]
+      "values": ["USDT", "USDC"]
     },
     "public.tx_status": {
       "name": "tx_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "confirmed",
-        "failed",
-        "dropped"
-      ]
+      "values": ["pending", "confirmed", "failed", "dropped"]
     },
     "public.user_status": {
       "name": "user_status",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended",
-        "closed"
-      ]
+      "values": ["active", "suspended", "closed"]
     },
     "public.wallet_purpose": {
       "name": "wallet_purpose",
       "schema": "public",
-      "values": [
-        "deposit_hd",
-        "operational",
-        "cold_reserve"
-      ]
+      "values": ["deposit_hd", "operational", "cold_reserve"]
     },
     "public.wallet_type": {
       "name": "wallet_type",
       "schema": "public",
-      "values": [
-        "metamask",
-        "phantom",
-        "ledger",
-        "trezor",
-        "hardware_via_metamask",
-        "other"
-      ]
+      "values": ["metamask", "phantom", "ledger", "trezor", "hardware_via_metamask", "other"]
     },
     "public.withdrawal_status": {
       "name": "withdrawal_status",

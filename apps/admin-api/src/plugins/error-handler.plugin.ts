@@ -1,13 +1,16 @@
+import type { FastifyError, FastifyPluginAsync } from 'fastify';
 // Global error handler plugin — structured JSON errors with trace_id
 // Zod validation errors → 400; unknown errors → 500 (no stack leak in prod)
 import fp from 'fastify-plugin';
-import type { FastifyPluginAsync, FastifyError } from 'fastify';
-import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from 'fastify-type-provider-zod';
+import {
+  hasZodFastifySchemaValidationErrors,
+  isResponseSerializationError,
+} from 'fastify-type-provider-zod';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (app) => {
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const traceId = request.headers['x-request-id'] as string | undefined;
-    const isProd = process.env['NODE_ENV'] === 'production';
+    const isProd = process.env.NODE_ENV === 'production';
 
     // Zod request validation errors → 400
     if (hasZodFastifySchemaValidationErrors(error)) {
@@ -35,7 +38,8 @@ const errorHandlerPlugin: FastifyPluginAsync = async (app) => {
 
     return reply.code(statusCode).send({
       code: error.code ?? 'INTERNAL_ERROR',
-      message: isProd && statusCode >= 500 ? 'Internal server error' : (error.message ?? 'Internal error'),
+      message:
+        isProd && statusCode >= 500 ? 'Internal server error' : (error.message ?? 'Internal error'),
       trace_id: traceId,
       ...(isProd ? {} : { stack: error.stack }),
     });

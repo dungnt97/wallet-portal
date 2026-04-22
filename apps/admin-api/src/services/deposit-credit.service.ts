@@ -4,8 +4,8 @@
 import { eq } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import * as schema from '../db/schema/index.js';
-import { recordCredit } from './ledger.service.js';
 import { emitAudit } from './audit.service.js';
+import { recordCredit } from './ledger.service.js';
 
 export class ConflictError extends Error {
   readonly statusCode = 409;
@@ -56,7 +56,7 @@ export async function creditDeposit(db: Db, depositId: string): Promise<CreditDe
 
   if (existing.status !== 'pending') {
     throw new ConflictError(
-      `Deposit ${depositId} is already in status '${existing.status}' — cannot credit twice`,
+      `Deposit ${depositId} is already in status '${existing.status}' — cannot credit twice`
     );
   }
 

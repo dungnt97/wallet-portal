@@ -1,0 +1,152 @@
+# Safe Transaction Service — self-hosted stack for wallet-portal
+#
+# Runs independently from the main docker-compose.yml.
+# Usage:
+#   docker compose -f infra/docker/safe-tx-service.compose.yml up -d
+#
+# Required env vars (set in infra/docker/.env.safe-tx or export before running):
+#   DJANGO_SECRET_KEY   — generate with: python3 -c "import secrets; print(secrets.token_hex(50))"
+#   ETHEREUM_NODE_URL   — Chapel RPC, e.g. https://data-seed-prebsc-1-s1.bnbchain.org:8545
+#   START_BLOCK         — Optional: recent Chapel block to skip genesis indexing (saves hours)
+#
+# After first startup verify with:
+#   curl http://localhost:8888/api/v1/about/
+#
+# Set SAFE_TX_SERVICE_URL=http://localhost:8888 in app env vars after verifying.
+#
+# Network strategy:
+#   - Uses the external `wp-net` network so it can reach the main-stack's `redis` container.
+#   - If you prefer isolation, set REDIS_URL below to point at safe-tx-redis instead and
+#     comment out the `redis` depends_on lines (safe-tx-redis is included but disabled by default).
+
+networks:
+  # Reuse the main dev stack network so redis hostname resolves.
+  # The main stack must be up first: docker compose up -d redis
+  wp-net:
+    external: true
+
+volumes:
+  safe_tx_pg_data:
+
+services:
+  # ── Dedicated Postgres for Safe Tx Service ────────────────────────────────────
+  # Kept separate from the main wallet-portal DB to avoid schema collisions.
+
+  safe-tx-postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: safe_transaction_service
+      POSTGRES_USER: safe
+      POSTGRES_PASSWORD: safe
+    volumes:
+      - safe_tx_pg_data:/var/lib/postgresql/data
+    ports:
+      - '5434:5432'
+    networks:
+      - wp-net
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'safe', '-d', 'safe_transaction_service']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Safe Transaction Service — API ────────────────────────────────────────────
+
+  safe-tx-web:
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.safe-tx
+    environment:
+      # Django/Gunicorn settings
+      PYTHONDONTWRITEBYTECODE: '1'
+      # Database — dedicated Postgres container above
+      DATABASE_URL: postgres://safe:safe@safe-tx-postgres:5432/safe_transaction_service
+      # Broker — reuse main stack redis (on wp-net)
+      CELERY_BROKER_URL: redis://redis:6379/1
+      REDIS_URL: redis://redis:6379/1
+      # Chain config — BNB Chapel testnet
+      ETH_L2_NETWORK: '1'
+      # C_FORCE_ROOT allows celery to run as root in Docker (safe for dev/testnet)
+      C_FORCE_ROOT: '1'
+    command: docker/web/run_web.sh
+    ports:
+      - '8888:8888'
+    networks:
+      - wp-net
+    depends_on:
+      safe-tx-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Safe Transaction Service — Celery Worker ──────────────────────────────────
+
+  safe-tx-worker:
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.safe-tx
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      DATABASE_URL: postgres://safe:safe@safe-tx-postgres:5432/safe_transaction_service
+      CELERY_BROKER_URL: redis://redis:6379/1
+      REDIS_URL: redis://redis:6379/1
+      ETH_L2_NETWORK: '1'
+      C_FORCE_ROOT: '1'
+    command: docker/web/run_worker.sh
+    networks:
+      - wp-net
+    depends_on:
+      safe-tx-postgres:
+        condition: service_healthy
+      safe-tx-web:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Safe Transaction Service — Celery Beat (scheduler) ───────────────────────
+
+  safe-tx-scheduler:
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.safe-tx
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      DATABASE_URL: postgres://safe:safe@safe-tx-postgres:5432/safe_transaction_service
+      CELERY_BROKER_URL: redis://redis:6379/1
+      REDIS_URL: redis://redis:6379/1
+      ETH_L2_NETWORK: '1'
+      C_FORCE_ROOT: '1'
+    command: docker/web/run_scheduler.sh
+    networks:
+      - wp-net
+    depends_on:
+      safe-tx-postgres:
+        condition: service_healthy
+      safe-tx-web:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Safe Transaction Service — Indexer Worker (event/log ingestion) ───────────
+  # Indexes SafeCreated + transaction events from Chapel.
+  # WARNING: indexing from genesis block can take hours on Chapel testnet.
+  # Set START_BLOCK in .env.safe-tx to a recent block to skip history.
+
+  safe-tx-indexer:
+    image: safeglobal/safe-transaction-service:latest
+    env_file:
+      - .env.safe-tx
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      DATABASE_URL: postgres://safe:safe@safe-tx-postgres:5432/safe_transaction_service
+      CELERY_BROKER_URL: redis://redis:6379/1
+      REDIS_URL: redis://redis:6379/1
+      ETH_L2_NETWORK: '1'
+      C_FORCE_ROOT: '1'
+    command: docker/web/run_indexer.sh
+    networks:
+      - wp-net
+    depends_on:
+      safe-tx-postgres:
+        condition: service_healthy
+      safe-tx-web:
+        condition: service_started
+    restart: unless-stopped

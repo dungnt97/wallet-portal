@@ -5,6 +5,8 @@
   "scripts": {
     "deploy:safe-bnb-testnet": "tsx scripts/deploy-safe-bnb-testnet.ts",
     "deploy:squads-devnet": "tsx scripts/deploy-squads-devnet.ts",
+    "sync-envs": "tsx scripts/sync-deployed-envs.ts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -18,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2"
   }
 }

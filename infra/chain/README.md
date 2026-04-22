@@ -154,6 +154,34 @@ SQUADS_MULTISIG_PDA_DEVNET=<multisig-pda>
 
 ---
 
+## After deploy — sync to apps
+
+After any deploy script succeeds, run the sync helper to automatically propagate
+the addresses from `.deployed.json` into each app's `.env.local`:
+
+```bash
+pnpm --filter @wp/chain-scripts sync-envs
+```
+
+This single command:
+- Reads `infra/chain/.deployed.json`
+- Writes/updates `apps/ui/.env.local` with `VITE_`-prefixed keys
+- Writes/updates `apps/admin-api/.env.local` with bare key names
+- Writes/updates `apps/wallet-engine/.env.local` with bare key names
+- **Preserves** all unrelated keys already in each `.env.local`
+- Is **idempotent** — re-running with unchanged `.deployed.json` produces no diff
+
+Keys written by this command:
+
+| `.deployed.json` key | `apps/ui` | `apps/admin-api` / `apps/wallet-engine` |
+|---|---|---|
+| `SQUADS_MULTISIG_PDA_DEVNET` | `VITE_SQUADS_MULTISIG_PDA_DEVNET` | `SQUADS_MULTISIG_PDA_DEVNET` |
+| `SQUADS_VAULT_PDA_DEVNET` | `VITE_SQUADS_VAULT_PDA_DEVNET` | `SQUADS_VAULT_PDA_DEVNET` |
+
+> All `.env.local` files are git-ignored. No secrets are committed.
+
+---
+
 ## Deployed Address Registry
 
 Successful deploys are recorded in `.deployed.json` (git-ignored).

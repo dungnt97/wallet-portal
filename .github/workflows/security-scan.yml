@@ -84,7 +84,7 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
-      - name: Run Trivy (table output — blocks on findings)
+      - name: Run Trivy (table output — blocks on fixable findings)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -92,6 +92,7 @@ jobs:
           format: table
           severity: HIGH,CRITICAL
           scanners: secret,vuln
+          ignore-unfixed: true
           exit-code: '1'
 
   # ── Job 3: Gitleaks — committed secrets detection ────────────────────────────

@@ -1,5 +1,7 @@
 # Claude Code Boilerplate
 
+![CI](https://github.com/dungnt97/wallet-portal/actions/workflows/ci.yml/badge.svg)
+
 A comprehensive boilerplate template for building professional software projects with **CLI Coding Agents** (**Claude Code** and **Open Code**). This template provides a complete development environment with AI-powered agent orchestration, automated workflows, and intelligent project management.
 
 ## What is Claude Code?

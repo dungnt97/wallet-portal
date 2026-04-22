@@ -49,7 +49,7 @@ export async function deriveUserAddresses(
       method: 'POST',
       headers: {
         Authorization: `Bearer ${bearerToken}`,
-        'Content-Type': 'application/json',
+        // No Content-Type — body is empty; including it with no body causes Fastify 400
       },
       signal: controller.signal,
     });

@@ -30,7 +30,9 @@ export function App() {
           </StepUpProvider>
         </AuthProvider>
       </ChainProviders>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      {import.meta.env.DEV && !import.meta.env.VITE_TEST_MODE && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 }

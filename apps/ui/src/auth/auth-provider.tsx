@@ -37,6 +37,9 @@ export const PERMS: Record<string, RoleId[]> = {
   'export.csv': ['admin', 'operator', 'treasurer', 'viewer'],
   'audit.view': ['admin', 'treasurer'],
   'architecture.view': ['admin', 'treasurer', 'operator', 'viewer'],
+  // Ops page — kill-switch + health
+  'ops.read': ['admin', 'operator', 'treasurer'],
+  'ops.killswitch.toggle': ['admin'],
 };
 
 interface AuthContextValue {

@@ -5,11 +5,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
 
-  // Parallel workers — 2 in CI, unbounded locally
-  workers: process.env.CI ? 2 : undefined,
+  // Functional smoke tests share dev-login localStorage + single dev server —
+  // parallel workers race. Serial run completes in ~50s, acceptable for smoke.
+  workers: 1,
+  fullyParallel: false,
 
   // Retry once on failure before marking red (reduces transient flakes)
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 1 : 1,
 
   // HTML reporter for artifact upload on failure
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],

@@ -1,15 +1,89 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - 'plans/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - 'plans/**'
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─── Shared env used by all JS jobs ──────────────────────────────────────────
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal_test
+  REDIS_URL: redis://localhost:6379
+  AUTH_DEV_MODE: 'true'
+  VITE_AUTH_DEV_MODE: 'true'
+  POLICY_DEV_MODE: 'true'
+  SVC_BEARER_TOKEN: ci-bearer-min-32-characters-required!!
+  SESSION_SECRET: ci-session-secret-min-32-chars-required-here
+  NODE_ENV: test
+
+# ─── Job 1: Lint + Typecheck ──────────────────────────────────────────────────
 jobs:
-  node:
-    name: Node lint / typecheck / test / build
+  lint-typecheck:
+    name: Lint + Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/policy-engine/go.mod
+          cache-dependency-path: apps/policy-engine/go.sum
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome check
+        run: pnpm -r exec biome check .
+
+      - name: TypeScript typecheck
+        run: pnpm -r typecheck
+
+      - name: Go vet + build
+        working-directory: apps/policy-engine
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go vet ./...
+          go build ./...
+
+# ─── Job 2: Unit Tests ────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -36,52 +110,63 @@ jobs:
         ports:
           - 6379:6379
 
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal_test
-      REDIS_URL: redis://localhost:6379
-      NODE_ENV: test
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
-      - name: Restore turbo cache
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/policy-engine/go.mod
+          cache-dependency-path: apps/policy-engine/go.sum
+
+      - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
-      - name: Install dependencies
+      - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm -r lint
+      - name: Generate ephemeral HD seeds
+        run: |
+          echo "HD_MASTER_SEED_EVM=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
-      - name: Typecheck
-        run: pnpm -r typecheck
+      - name: Run DB migrations
+        run: pnpm --filter @wp/admin-api db:migrate
 
-      - name: Test
-        run: pnpm -r test
+      - name: Seed DB
+        run: pnpm --filter @wp/admin-api db:seed
 
-      - name: Build
-        run: pnpm -r build
+      - name: Test admin-api
+        run: pnpm --filter @wp/admin-api test
 
-  go:
-    name: Go test / build (policy-engine)
+      - name: Test wallet-engine
+        run: pnpm --filter @wp/wallet-engine test
+
+      - name: Test ui (unit)
+        run: pnpm --filter @wp/ui test
+
+      - name: Test policy-engine (Go)
+        working-directory: apps/policy-engine
+        run: go test ./...
+
+# ─── Job 3: Smoke E2E ─────────────────────────────────────────────────────────
+  smoke-e2e:
+    name: Smoke E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: unit-tests
 
     services:
       postgres:
@@ -98,23 +183,103 @@ jobs:
         ports:
           - 5432:5432
 
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal_test
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 6379:6379
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go 1.22
-        uses: actions/setup-go@v5
+      - uses: pnpm/action-setup@v4
         with:
-          go-version: '1.24'
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/policy-engine/go.mod
           cache-dependency-path: apps/policy-engine/go.sum
 
-      - name: Run tests (with race detector)
-        working-directory: apps/policy-engine
-        run: go test ./... -race
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
-      - name: Build binary
-        working-directory: apps/policy-engine
-        run: CGO_ENABLED=0 go build -ldflags="-s -w" -o /dev/null ./cmd/server
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/ui/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @wp/ui exec playwright install chromium --with-deps
+
+      - name: Install Playwright system deps (cached browsers)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @wp/ui exec playwright install-deps chromium
+
+      - name: Generate ephemeral HD seeds
+        run: |
+          echo "HD_MASTER_SEED_EVM=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "HD_MASTER_SEED_SOLANA=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: Run DB migrations + seed
+        run: |
+          pnpm --filter @wp/admin-api db:migrate
+          pnpm --filter @wp/admin-api db:seed
+
+      - name: Start backend services
+        run: |
+          pnpm --filter @wp/admin-api start &
+          pnpm --filter @wp/wallet-engine start &
+          (cd apps/policy-engine && go run ./cmd/server) &
+          # Poll /health/live on all three services (max 30s each)
+          for url in \
+            http://localhost:3001/health/live \
+            http://localhost:3002/health/live \
+            http://localhost:3003/health/live; do
+            for i in $(seq 1 30); do
+              curl -sf "$url" && break
+              sleep 1
+              [ "$i" -eq 30 ] && echo "Timed out waiting for $url" && exit 1
+            done
+          done
+
+      - name: Run smoke E2E suite
+        working-directory: apps/ui
+        env:
+          CI: 'true'
+          VITE_TEST_MODE: 'true'
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/functional/smoke-*.spec.ts \
+            --reporter=list \
+            --project=chromium-desktop
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            apps/ui/test-results/
+            apps/ui/playwright-report/
+          retention-days: 7

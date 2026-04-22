@@ -17,19 +17,20 @@ function makePayload(
     hd: 'company.com',
   };
   // Manually apply overrides to handle exactOptionalPropertyTypes
+  // (must use delete, not = undefined, because exactOptionalPropertyTypes disallows explicit undefined)
   const result: GoogleIdPayload = { ...base };
   if ('hd' in overrides) {
     if (overrides.hd !== undefined) {
       result.hd = overrides.hd;
     } else {
-      result.hd = undefined;
+      delete result.hd;
     }
   }
   if ('picture' in overrides) {
     if (overrides.picture !== undefined) {
       result.picture = overrides.picture;
     } else {
-      result.picture = undefined;
+      delete result.picture;
     }
   }
   return result;
@@ -55,7 +56,7 @@ describe('isAllowedWorkspaceDomain', () => {
   it('rejects missing hd claim when domain is required', () => {
     // Create payload without hd property
     const payload = makePayload();
-    payload.hd = undefined;
+    delete payload.hd;
     expect(isAllowedWorkspaceDomain(payload, 'company.com')).toBe(false);
   });
 
@@ -66,7 +67,7 @@ describe('isAllowedWorkspaceDomain', () => {
 
   it('allows no-hd payload when requiredDomain is empty', () => {
     const payload = makePayload();
-    payload.hd = undefined;
+    delete payload.hd;
     expect(isAllowedWorkspaceDomain(payload, '')).toBe(true);
   });
 });

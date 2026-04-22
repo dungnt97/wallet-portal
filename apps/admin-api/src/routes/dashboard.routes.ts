@@ -85,7 +85,7 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
       };
       // Drizzle sum() returns decimal strings (e.g. "10000.000000000000000000") — strip
       // the fractional part before BigInt conversion to avoid SyntaxError on decimals.
-      const toBigIntSafe = (v: string) => BigInt(v ? v.split('.')[0] : '0');
+      const toBigIntSafe = (v: string) => BigInt(v ? (v.split('.')[0] ?? '0') : '0');
       const aggTotal = (a: string, b: string) => (toBigIntSafe(a) + toBigIntSafe(b)).toString();
 
       return reply.code(200).send({

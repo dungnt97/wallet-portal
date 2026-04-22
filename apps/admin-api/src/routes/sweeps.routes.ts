@@ -269,9 +269,11 @@ const sweepsRoutes: FastifyPluginAsync<{ sweepQueue: Queue<SweepExecuteJobData> 
         else if (statuses.has('pending') || statuses.has('submitted')) batchStatus = 'pending';
         else batchStatus = 'completed';
 
+        const first = group[0];
+        if (!first) continue; // group is always non-empty but required by exactOptionalPropertyTypes
         batches.push({
-          id: group[0].id,
-          chain: group[0].chain,
+          id: first.id,
+          chain: first.chain,
           addresses: group.length,
           total: totalAmt,
           fee: 0, // fee data not stored per-sweep; UI shows 0 gracefully

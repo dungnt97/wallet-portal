@@ -1,4 +1,4 @@
-import { MultisigOp } from '@wp/shared-types';
+import { MultisigOp, SigningSession } from '@wp/shared-types';
 import { and, count, eq, isNull } from 'drizzle-orm';
 // Multisig routes — GET /multisig-ops, POST /multisig-ops/:id/submit-signature
 // POST /multisig-ops/:id/approve  — record signer approval (no hw signing key required)
@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
 import { emitAudit } from '../services/audit.service.js';
+import { verifySigningSession } from '../services/signing-session-verifier.js';
 
 const multisigRoutes: FastifyPluginAsync = async (app) => {
   const r = app.withTypeProvider<ZodTypeProvider>();
@@ -112,6 +113,9 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
           signature: z.string().min(1),
           signerAddress: z.string().min(1),
           signedAt: z.string().datetime().optional(),
+          // Mandatory SigningSession — backend verifies cryptographic integrity.
+          // Missing or tampered session → HTTP 400.
+          session: SigningSession,
         }),
         response: {
           200: z.object({
@@ -123,6 +127,7 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
             }),
             progress: z.string(),
           }),
+          400: z.object({ code: z.string(), message: z.string() }),
           404: z.object({ code: z.string(), message: z.string() }),
           409: z.object({ code: z.string(), message: z.string() }),
         },
@@ -151,6 +156,23 @@ const multisigRoutes: FastifyPluginAsync = async (app) => {
         return reply
           .code(409)
           .send({ code: 'CONFLICT', message: `MultisigOperation ${opId} has expired` });
+      }
+
+      // Mandatory cryptographic verification — reject missing/tampered session immediately.
+      const verifyResult = verifySigningSession(
+        req.body.session,
+        req.body.signature,
+        req.body.signerAddress
+      );
+      if (!verifyResult.ok) {
+        app.log.warn(
+          { opId, signerAddress: req.body.signerAddress },
+          'signature verification failed'
+        );
+        return reply.code(400).send({
+          code: 'INVALID_SIGNATURE',
+          message: `Signature verification failed: ${verifyResult.reason}`,
+        });
       }
 
       // Resolve signing key for this staff + chain + address

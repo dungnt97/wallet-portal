@@ -1,9 +1,11 @@
 import type { Queue } from 'bullmq';
-// Sweeps routes — GET /sweeps, GET /sweeps/candidates, POST /sweeps/scan, POST /sweeps/trigger
+import { and, count, desc, eq, gte, sum } from 'drizzle-orm';
+// Sweeps routes — GET /sweeps, GET /sweeps/candidates, GET /sweeps/batches, POST /sweeps/scan, POST /sweeps/trigger
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
+import * as schema from '../db/schema/index.js';
 import { scanSweepCandidates } from '../services/sweep-candidate-scan.service.js';
 import { ConflictError, NotFoundError, createSweeps } from '../services/sweep-create.service.js';
 import type { SweepExecuteJobData } from '../services/sweep-create.service.js';
@@ -178,6 +180,110 @@ const sweepsRoutes: FastifyPluginAsync<{ sweepQueue: Queue<SweepExecuteJobData> 
         }
         throw err;
       }
+    }
+  );
+  // ── GET /sweeps/batches — aggregate sweeps into pseudo-batches ───────────
+  // No physical batch table exists; we group confirmed/submitted sweeps that
+  // were created within the same 60-second window + chain as a "batch".
+  // The UI uses this for the Recent batches history widget (SweepBatchHistory).
+  r.get(
+    '/sweeps/batches',
+    {
+      preHandler: requirePerm('sweeps.read'),
+      schema: {
+        tags: ['sweeps'],
+        querystring: z.object({
+          chain: z.enum(['bnb', 'sol']).optional(),
+          limit: z.coerce.number().int().positive().max(50).default(10),
+        }),
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string(),
+                chain: z.enum(['bnb', 'sol']),
+                addresses: z.number().int(),
+                total: z.number(),
+                fee: z.number(),
+                status: z.enum(['completed', 'partial', 'pending', 'failed']),
+                createdAt: z.string().datetime(),
+                executedAt: z.string().datetime().nullable(),
+              })
+            ),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const { chain, limit } = req.query;
+
+      // Fetch recent sweeps (look back 30 days, up to limit * 20 rows to form batches)
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000);
+      const conditions = [gte(schema.sweeps.createdAt, since)];
+      if (chain) conditions.push(eq(schema.sweeps.chain, chain));
+
+      const rows = await app.db.query.sweeps.findMany({
+        where: and(...conditions),
+        orderBy: [desc(schema.sweeps.createdAt)],
+        limit: limit * 20,
+      });
+
+      // Group rows into 60-second windows per chain+createdBy key.
+      // Each window becomes one "batch" entry.
+      const batches: Array<{
+        id: string;
+        chain: 'bnb' | 'sol';
+        addresses: number;
+        total: number;
+        fee: number;
+        status: 'completed' | 'partial' | 'pending' | 'failed';
+        createdAt: string;
+        executedAt: string | null;
+      }> = [];
+
+      const windows = new Map<string, { sweeps: typeof rows; key: string; windowStart: Date }>();
+
+      for (const sweep of rows) {
+        // Window key: chain + createdBy + 60s bucket
+        const bucket = Math.floor(sweep.createdAt.getTime() / 60_000);
+        const key = `${sweep.chain}:${sweep.createdBy ?? 'system'}:${bucket}`;
+        if (!windows.has(key)) {
+          windows.set(key, { sweeps: [], key, windowStart: sweep.createdAt });
+        }
+        windows.get(key)?.sweeps.push(sweep);
+      }
+
+      for (const { sweeps: group, windowStart } of windows.values()) {
+        const totalAmt = group.reduce((acc, s) => acc + Number.parseFloat(s.amount), 0);
+        const statuses = new Set(group.map((s) => s.status));
+        const executedAt =
+          group
+            .map((s) => s.confirmedAt)
+            .filter(Boolean)
+            .sort()
+            .at(-1) ?? null;
+
+        let batchStatus: 'completed' | 'partial' | 'pending' | 'failed';
+        if (statuses.has('failed') && statuses.size > 1) batchStatus = 'partial';
+        else if (statuses.has('failed')) batchStatus = 'failed';
+        else if (statuses.has('pending') || statuses.has('submitted')) batchStatus = 'pending';
+        else batchStatus = 'completed';
+
+        batches.push({
+          id: group[0].id,
+          chain: group[0].chain,
+          addresses: group.length,
+          total: totalAmt,
+          fee: 0, // fee data not stored per-sweep; UI shows 0 gracefully
+          status: batchStatus,
+          createdAt: windowStart.toISOString(),
+          executedAt: executedAt?.toISOString() ?? null,
+        });
+
+        if (batches.length >= limit) break;
+      }
+
+      return reply.code(200).send({ data: batches });
     }
   );
 };

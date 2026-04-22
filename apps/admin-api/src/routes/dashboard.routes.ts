@@ -83,7 +83,10 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
         usdtSol: usdtSol[0]?.total ?? '0',
         usdcSol: usdcSol[0]?.total ?? '0',
       };
-      const aggTotal = (a: string, b: string) => (BigInt(a || '0') + BigInt(b || '0')).toString();
+      // Drizzle sum() returns decimal strings (e.g. "10000.000000000000000000") — strip
+      // the fractional part before BigInt conversion to avoid SyntaxError on decimals.
+      const toBigIntSafe = (v: string) => BigInt(v ? v.split('.')[0] : '0');
+      const aggTotal = (a: string, b: string) => (toBigIntSafe(a) + toBigIntSafe(b)).toString();
 
       return reply.code(200).send({
         aumUsdt: aggTotal(aumBreakdown.usdtBnb, aumBreakdown.usdtSol),

@@ -5,6 +5,7 @@ import { Modal, useToast } from '@/components/overlays';
 import { WalletMark } from '@/features/signing/wallet-marks';
 import { I } from '@/icons';
 import { shortHash } from '@/lib/format';
+import { classifyConnectError } from '@/lib/wallet-errors';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -75,9 +76,14 @@ export function ConnectWalletModal({ open, onClose }: Props) {
       setPhase('connected-evm');
       setTimeout(onClose, 1200);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Connection failed';
-      setErrorMsg(msg);
-      setPhase('error');
+      if (classifyConnectError(err) === 'cancelled') {
+        push(t('wallet.connect.cancelled'), 'default');
+        setPhase('pick');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Connection failed';
+        setErrorMsg(msg);
+        setPhase('error');
+      }
     }
   }
 
@@ -95,9 +101,14 @@ export function ConnectWalletModal({ open, onClose }: Props) {
       setPhase('connected-sol');
       setTimeout(onClose, 1200);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Solana connection failed';
-      setErrorMsg(msg);
-      setPhase('error');
+      if (classifyConnectError(err) === 'cancelled') {
+        push(t('wallet.connect.cancelled'), 'default');
+        setPhase('pick');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Solana connection failed';
+        setErrorMsg(msg);
+        setPhase('error');
+      }
     }
   }
 

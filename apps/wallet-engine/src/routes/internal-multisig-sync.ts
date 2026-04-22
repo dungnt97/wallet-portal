@@ -11,21 +11,35 @@ import type { Connection } from '@solana/web3.js';
 import type { FallbackProvider } from 'ethers';
 import type { FastifyPluginAsync } from 'fastify';
 import type IORedis from 'ioredis';
-import { z } from 'zod';
 import { type SyncProbeConfig, getMultisigSyncStatus } from '../services/multisig-sync-probe.js';
 
 // ── Response schema (shared between GET + POST) ───────────────────────────────
+// Plain JSON schema so vanilla Fastify (no ZodTypeProvider) can compile it.
 
-const ChainSyncSchema = z.object({
-  status: z.enum(['synced', 'stale', 'error']),
-  lastSyncAt: z.string().datetime(),
-  nonce: z.number().int().optional(),
-});
+const chainSyncJsonSchema = {
+  type: 'object',
+  required: ['status', 'lastSyncAt'],
+  properties: {
+    status: { type: 'string', enum: ['synced', 'stale', 'error'] },
+    lastSyncAt: { type: 'string' },
+    nonce: { type: 'integer' },
+  },
+} as const;
 
-const SyncStatusResponseSchema = z.object({
-  bnb: ChainSyncSchema,
-  sol: ChainSyncSchema,
-});
+const syncStatusResponseJsonSchema = {
+  type: 'object',
+  required: ['bnb', 'sol'],
+  properties: {
+    bnb: chainSyncJsonSchema,
+    sol: chainSyncJsonSchema,
+  },
+} as const;
+
+const errorJsonSchema = {
+  type: 'object',
+  required: ['code', 'message'],
+  properties: { code: { type: 'string' }, message: { type: 'string' } },
+} as const;
 
 // ── Plugin options ─────────────────────────────────────────────────────────────
 
@@ -90,9 +104,9 @@ const internalMultisigSyncPlugin: FastifyPluginAsync<InternalMultisigSyncPluginO
     {
       schema: {
         response: {
-          200: SyncStatusResponseSchema,
-          401: z.object({ code: z.string(), message: z.string() }),
-          500: z.object({ code: z.string(), message: z.string() }),
+          200: syncStatusResponseJsonSchema,
+          401: errorJsonSchema,
+          500: errorJsonSchema,
         },
       },
     },
@@ -114,9 +128,9 @@ const internalMultisigSyncPlugin: FastifyPluginAsync<InternalMultisigSyncPluginO
     {
       schema: {
         response: {
-          200: SyncStatusResponseSchema,
-          401: z.object({ code: z.string(), message: z.string() }),
-          500: z.object({ code: z.string(), message: z.string() }),
+          200: syncStatusResponseJsonSchema,
+          401: errorJsonSchema,
+          500: errorJsonSchema,
         },
       },
     },

@@ -58,6 +58,11 @@ const EnvSchema = z.object({
   SAFE_ADDRESS: z.string().default(''),
   SQUADS_MULTISIG_ADDRESS: z.string().default(''),
 
+  // Self-hosted Safe Transaction Service (Phase 05)
+  // Empty string disables Safe Tx Service integration; boot logs a warning.
+  // Set to e.g. http://localhost:8888 after bringing up safe-tx-service.compose.yml
+  SAFE_TX_SERVICE_URL: z.string().default(''),
+
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('wallet-engine'),

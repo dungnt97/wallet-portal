@@ -44,8 +44,10 @@ yarn.lock
 .env*
 !.env.example
 !.env.compose.example
+!.env.safe-tx.example
 # infra compose secret env
 infra/.env.compose
+infra/docker/.env.safe-tx
 
 # vercel
 .vercel

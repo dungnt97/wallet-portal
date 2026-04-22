@@ -64,10 +64,14 @@ function syncAppEnvLocal(envPath: string, updates: Record<string, string>): bool
 
 const SQUADS_MULTISIG = 'AMultisigPDA1111111111111111111111111111111';
 const SQUADS_VAULT = 'AVaultPDA111111111111111111111111111111111';
+const SAFE_ADDRESS = '0xAbCd1234567890AbCd1234567890AbCd12345678';
+const SAFE_TX_SERVICE_URL = 'http://localhost:8888';
 
 const DEPLOYED_JSON = JSON.stringify({
   SQUADS_MULTISIG_PDA_DEVNET: SQUADS_MULTISIG,
   SQUADS_VAULT_PDA_DEVNET: SQUADS_VAULT,
+  SAFE_ADDRESS_BNB_TESTNET: SAFE_ADDRESS,
+  SAFE_TX_SERVICE_URL: SAFE_TX_SERVICE_URL,
   _updatedAt: '2026-04-22T00:00:00.000Z',
 });
 
@@ -238,5 +242,142 @@ describe('deployed.json fixture integration', () => {
       expect(content).not.toContain('VITE_');
       expect(content).toContain('EXISTING_KEY=keep_me');
     }
+  });
+});
+
+// ── Phase 05: Safe EVM keys ────────────────────────────────────────────────────
+
+describe('Safe EVM key mappings (Phase 05)', () => {
+  let tmpDir: string;
+  let envPath: string;
+
+  beforeEach(() => {
+    tmpDir = resolve(tmpdir(), `sync-envs-safe-${randomUUID()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    envPath = resolve(tmpDir, '.env.local');
+  });
+
+  it('writes SAFE_ADDRESS_BNB_TESTNET to a fresh .env.local', () => {
+    const changed = syncAppEnvLocal(envPath, {
+      SAFE_ADDRESS_BNB_TESTNET: SAFE_ADDRESS,
+    });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`SAFE_ADDRESS_BNB_TESTNET=${SAFE_ADDRESS}`);
+  });
+
+  it('writes VITE_SAFE_ADDRESS_BNB_TESTNET for UI app (VITE prefix)', () => {
+    const changed = syncAppEnvLocal(envPath, {
+      VITE_SAFE_ADDRESS_BNB_TESTNET: SAFE_ADDRESS,
+    });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`VITE_SAFE_ADDRESS_BNB_TESTNET=${SAFE_ADDRESS}`);
+    expect(content).not.toMatch(/^SAFE_ADDRESS_BNB_TESTNET=/m);
+  });
+
+  it('writes SAFE_TX_SERVICE_URL to backend env', () => {
+    const changed = syncAppEnvLocal(envPath, {
+      SAFE_TX_SERVICE_URL: SAFE_TX_SERVICE_URL,
+    });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`SAFE_TX_SERVICE_URL=${SAFE_TX_SERVICE_URL}`);
+  });
+
+  it('writes VITE_SAFE_TX_SERVICE_URL for UI app', () => {
+    const changed = syncAppEnvLocal(envPath, {
+      VITE_SAFE_TX_SERVICE_URL: SAFE_TX_SERVICE_URL,
+    });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`VITE_SAFE_TX_SERVICE_URL=${SAFE_TX_SERVICE_URL}`);
+  });
+
+  it('propagates Safe keys to all three apps from deployed.json fixture', () => {
+    const deployed = JSON.parse(DEPLOYED_JSON) as Record<string, string>;
+
+    const safeKeyMappings = [
+      {
+        deployedKey: 'SAFE_ADDRESS_BNB_TESTNET',
+        targets: {
+          ui: 'VITE_SAFE_ADDRESS_BNB_TESTNET',
+          'admin-api': 'SAFE_ADDRESS_BNB_TESTNET',
+          'wallet-engine': 'SAFE_ADDRESS_BNB_TESTNET',
+        } as Record<string, string>,
+      },
+      {
+        deployedKey: 'SAFE_TX_SERVICE_URL',
+        targets: {
+          ui: 'VITE_SAFE_TX_SERVICE_URL',
+          'admin-api': 'SAFE_TX_SERVICE_URL',
+          'wallet-engine': 'SAFE_TX_SERVICE_URL',
+        } as Record<string, string>,
+      },
+    ];
+    const apps = ['ui', 'admin-api', 'wallet-engine'];
+
+    for (const app of apps) {
+      const appDir = resolve(tmpDir, 'apps', app);
+      mkdirSync(appDir, { recursive: true });
+      writeFileSync(resolve(appDir, '.env.local'), `PREEXISTING=keep\n`);
+
+      const updates: Record<string, string> = {};
+      for (const mapping of safeKeyMappings) {
+        const value = deployed[mapping.deployedKey];
+        if (!value) continue;
+        const envKey = mapping.targets[app];
+        if (envKey) updates[envKey] = value;
+      }
+      syncAppEnvLocal(resolve(appDir, '.env.local'), updates);
+    }
+
+    // UI gets VITE_ prefixed keys
+    const uiContent = readFileSync(resolve(tmpDir, 'apps/ui/.env.local'), 'utf8');
+    expect(uiContent).toContain(`VITE_SAFE_ADDRESS_BNB_TESTNET=${SAFE_ADDRESS}`);
+    expect(uiContent).toContain(`VITE_SAFE_TX_SERVICE_URL=${SAFE_TX_SERVICE_URL}`);
+    expect(uiContent).not.toMatch(/^SAFE_ADDRESS_BNB_TESTNET=/m);
+    expect(uiContent).not.toMatch(/^SAFE_TX_SERVICE_URL=/m);
+    expect(uiContent).toContain('PREEXISTING=keep');
+
+    // Backends get bare names
+    for (const app of ['admin-api', 'wallet-engine']) {
+      const content = readFileSync(resolve(tmpDir, `apps/${app}/.env.local`), 'utf8');
+      expect(content).toContain(`SAFE_ADDRESS_BNB_TESTNET=${SAFE_ADDRESS}`);
+      expect(content).toContain(`SAFE_TX_SERVICE_URL=${SAFE_TX_SERVICE_URL}`);
+      expect(content).not.toContain('VITE_');
+      expect(content).toContain('PREEXISTING=keep');
+    }
+  });
+
+  it('overwrites stale Safe address on re-run', () => {
+    writeFileSync(envPath, `SAFE_ADDRESS_BNB_TESTNET=0xOldAddress\nOTHER=keep\n`);
+    const changed = syncAppEnvLocal(envPath, { SAFE_ADDRESS_BNB_TESTNET: SAFE_ADDRESS });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`SAFE_ADDRESS_BNB_TESTNET=${SAFE_ADDRESS}`);
+    expect(content).not.toContain('0xOldAddress');
+    expect(content).toContain('OTHER=keep');
+  });
+
+  it('overwrites stale Safe TX service URL on re-run', () => {
+    writeFileSync(envPath, `SAFE_TX_SERVICE_URL=http://old-host:9999\nOTHER=keep\n`);
+    const changed = syncAppEnvLocal(envPath, { SAFE_TX_SERVICE_URL: SAFE_TX_SERVICE_URL });
+    expect(changed).toBe(true);
+    const content = readFileSync(envPath, 'utf8');
+    expect(content).toContain(`SAFE_TX_SERVICE_URL=${SAFE_TX_SERVICE_URL}`);
+    expect(content).not.toContain('old-host');
+    expect(content).toContain('OTHER=keep');
+  });
+
+  it('is idempotent for Safe keys — second run returns changed=false', () => {
+    const updates = {
+      SAFE_ADDRESS_BNB_TESTNET: SAFE_ADDRESS,
+      SAFE_TX_SERVICE_URL: SAFE_TX_SERVICE_URL,
+    };
+    const first = syncAppEnvLocal(envPath, updates);
+    const second = syncAppEnvLocal(envPath, updates);
+    expect(first).toBe(true);
+    expect(second).toBe(false);
   });
 });

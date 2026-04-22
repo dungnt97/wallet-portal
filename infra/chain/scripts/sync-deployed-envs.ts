@@ -56,7 +56,24 @@ const KEY_MAPPINGS: KeyMapping[] = [
       'wallet-engine': 'SQUADS_VAULT_PDA_DEVNET',
     },
   },
-  // Phase 05 will append: { deployedKey: 'SAFE_MULTISIG_ADDRESS_CHAPEL', targets: { ... } }
+  // Phase 05: Safe EVM multisig on BNB Chapel testnet
+  {
+    deployedKey: 'SAFE_ADDRESS_BNB_TESTNET',
+    targets: {
+      ui: 'VITE_SAFE_ADDRESS_BNB_TESTNET',
+      'admin-api': 'SAFE_ADDRESS_BNB_TESTNET',
+      'wallet-engine': 'SAFE_ADDRESS_BNB_TESTNET',
+    },
+  },
+  // Phase 05: Self-hosted Safe Transaction Service URL
+  {
+    deployedKey: 'SAFE_TX_SERVICE_URL',
+    targets: {
+      ui: 'VITE_SAFE_TX_SERVICE_URL',
+      'admin-api': 'SAFE_TX_SERVICE_URL',
+      'wallet-engine': 'SAFE_TX_SERVICE_URL',
+    },
+  },
 ];
 
 /** All app directory names referenced by KEY_MAPPINGS */

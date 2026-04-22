@@ -39,7 +39,7 @@
     ".claude/metadata.json"
   ],
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": "biome check --write",
+    "*.{ts,tsx,js,jsx}": "biome check --write --no-errors-on-unmatched",
     "*.go": "gofmt -w"
   },
   "pnpm": {

@@ -87,14 +87,44 @@ Features are developed in numbered phases. Before implementing:
 ```bash
 pnpm -r test              # all workspaces
 pnpm -r typecheck         # TypeScript checks
-pnpm -r lint              # biome lint
+
+# Biome lint+format (run from repo root — overrides use root-relative paths)
+pnpm exec biome check .
+pnpm exec biome check --fix .   # auto-fix safe issues
 
 # Go tests (policy-engine)
 cd apps/policy-engine && go test ./... -race
 
 # Vertical slice E2E (requires docker-compose stack running)
 pnpm --filter @wp/wallet-engine test:vertical-slice
+
+# Smoke E2E (requires all services running on localhost)
+pnpm --filter @wp/ui exec playwright test \
+  tests/e2e/functional/smoke-*.spec.ts \
+  --project=chromium-desktop
 ```
+
+## CI Pipelines
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `ci.yml` | push/PR → main | Biome check, typecheck, unit tests, smoke E2E |
+| `security-scan.yml` | push/PR + weekly | pnpm audit, Trivy CVE scan, Gitleaks secrets |
+| `docker-build.yml` | PR touching Dockerfile/deps | Smoke-build all service images |
+| `bundle-size.yml` | PR touching UI | JS+CSS bundle delta vs main, PR comment |
+| `strict-typescript.yml` | Weekly + manual | Track `tsc --strict` error count (informational) |
+| `visual-regression.yml` | Nightly | Playwright visual diffs |
+| `dep-audit.yml` | Weekly | Dependency vulnerability audit |
+
+### CI must be green before merge
+
+- **lint-typecheck**: Biome check from root + `tsc --noEmit` per package + Go vet/build
+- **unit-tests**: All vitest + Go test suites (requires Postgres + Redis services)
+- **smoke-e2e**: Playwright smoke suite against live services (58 tests, Chromium)
+
+Biome warnings in output are OK (baseline rules relaxed for legacy code). New errors are not.
+
+**Important**: Always run `pnpm exec biome check .` from the repo root, not `pnpm -r exec biome check .` — root-level `biome.json` overrides only match correctly when run from root.
 
 ## Where Docs Live
 

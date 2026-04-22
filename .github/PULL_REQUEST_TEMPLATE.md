@@ -11,9 +11,17 @@
 
 - [ ] Unit tests pass: `pnpm -r test`
 - [ ] Typecheck passes: `pnpm -r typecheck`
-- [ ] Lint passes: `pnpm -r lint`
+- [ ] Biome check passes: `pnpm exec biome check .`
 - [ ] Manually verified locally (describe steps)
 - [ ] E2E / integration test (if applicable)
+
+## CI Checklist
+
+- [ ] `lint-typecheck` job green
+- [ ] `unit-tests` job green
+- [ ] `smoke-e2e` job green (if touching backend/UI)
+- [ ] No new biome errors (warnings OK for baseline rules)
+- [ ] Bundle size delta checked (if touching UI)
 
 ## Risks
 

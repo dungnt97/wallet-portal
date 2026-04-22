@@ -1,0 +1,159 @@
+name: Bundle Size
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/ui/src/**'
+      - 'apps/ui/package.json'
+      - 'apps/ui/vite.config.*'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+# Build the UI and report bundle size delta vs main baseline.
+# Posts a PR comment if the bundle grows > 10% vs main.
+# Uses env: vars for all GitHub context values — no injection risk.
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  bundle-size:
+    name: UI bundle size
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build PR branch
+      - name: Build UI (PR branch)
+        run: pnpm --filter @wp/ui build
+        env:
+          NODE_ENV: production
+          VITE_AUTH_DEV_MODE: 'false'
+
+      - name: Measure PR bundle size
+        id: pr-size
+        run: |
+          assets_dir="apps/ui/dist/assets"
+          if [ -d "${assets_dir}" ]; then
+            total=$(find "${assets_dir}" \( -name '*.js' -o -name '*.css' \) \
+              -exec wc -c {} + 2>/dev/null | tail -1 | awk '{print $1}')
+          else
+            total=0
+          fi
+          echo "total_bytes=${total:-0}" >> "$GITHUB_OUTPUT"
+
+      # Checkout main for baseline
+      - name: Checkout main for baseline
+        run: |
+          git checkout origin/main -- \
+            apps/ui/src/ apps/ui/package.json apps/ui/index.html \
+            packages/ pnpm-lock.yaml 2>/dev/null || true
+
+      - name: Install deps for baseline
+        run: pnpm install --frozen-lockfile
+
+      - name: Build UI (main baseline)
+        run: pnpm --filter @wp/ui build
+        env:
+          NODE_ENV: production
+          VITE_AUTH_DEV_MODE: 'false'
+        continue-on-error: true
+
+      - name: Measure main baseline size
+        id: main-size
+        run: |
+          assets_dir="apps/ui/dist/assets"
+          if [ -d "${assets_dir}" ]; then
+            total=$(find "${assets_dir}" \( -name '*.js' -o -name '*.css' \) \
+              -exec wc -c {} + 2>/dev/null | tail -1 | awk '{print $1}')
+          else
+            total=0
+          fi
+          echo "total_bytes=${total:-0}" >> "$GITHUB_OUTPUT"
+
+      # Post comment — all GitHub context passed via env: to avoid injection
+      - name: Post bundle size comment
+        uses: actions/github-script@v7
+        env:
+          PR_BYTES: ${{ steps.pr-size.outputs.total_bytes }}
+          MAIN_BYTES: ${{ steps.main-size.outputs.total_bytes }}
+        with:
+          script: |
+            const prBytes = parseInt(process.env.PR_BYTES || '0');
+            const mainBytes = parseInt(process.env.MAIN_BYTES || '0');
+            const prKb = (prBytes / 1024).toFixed(1);
+            const mainKb = (mainBytes / 1024).toFixed(1);
+
+            let deltaLine = '_No baseline available_';
+            let warning = '';
+
+            if (mainBytes > 0) {
+              const delta = prBytes - mainBytes;
+              const pct = ((delta / mainBytes) * 100).toFixed(1);
+              const sign = delta >= 0 ? '+' : '';
+              deltaLine = `${sign}${(delta / 1024).toFixed(1)} KB (${sign}${pct}%)`;
+              if (delta > 0 && parseFloat(pct) > 10) {
+                warning = '\n\n> **Bundle grew >10%** - please review the change.';
+              }
+            }
+
+            const body = [
+              '## Bundle Size Report',
+              '',
+              '| | Size |',
+              '|---|---|',
+              `| **PR** | ${prKb} KB |`,
+              `| **main** | ${mainKb} KB |`,
+              `| **Delta** | ${deltaLine} |`,
+              warning,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Bundle Size Report')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

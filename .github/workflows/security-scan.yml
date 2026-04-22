@@ -1,0 +1,114 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - 'plans/**'
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday at 03:00 UTC
+  workflow_dispatch:
+
+# Runs three independent security checks:
+# 1. pnpm audit — known CVEs in npm deps (high+critical)
+# 2. trivy fs  — filesystem scan for secrets + CVEs
+# 3. gitleaks  — detect committed secrets in git history
+#
+# pnpm audit is non-blocking (transitive false positives are common).
+# trivy + gitleaks block the build on findings.
+
+jobs:
+  # ── Job 1: pnpm audit ────────────────────────────────────────────────────────
+  npm-audit:
+    name: pnpm audit (high+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit
+        # Non-blocking — report vulns but don't fail (transitive false positives)
+        continue-on-error: true
+        run: pnpm audit --audit-level high 2>&1 | tee /tmp/audit.log
+
+      - name: Write audit summary
+        run: |
+          {
+            echo "## pnpm Audit Results"
+            echo ""
+            echo '```'
+            tail -30 /tmp/audit.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 2: Trivy filesystem scan ─────────────────────────────────────────────
+  trivy-scan:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy (SARIF for Security tab)
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          scanners: secret,vuln
+          exit-code: '0'
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Run Trivy (table output — blocks on findings)
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: HIGH,CRITICAL
+          scanners: secret,vuln
+          exit-code: '1'
+
+  # ── Job 3: Gitleaks — committed secrets detection ────────────────────────────
+  gitleaks:
+    name: Gitleaks secrets scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history required for complete scan
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

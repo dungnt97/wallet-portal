@@ -1,0 +1,75 @@
+name: Strict TypeScript
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  workflow_dispatch:
+
+# Track TS strictness progress — informational, never blocks merge.
+# Run `tsc --strict --noEmit` across all apps.
+# Goal: move towards zero strict errors over time. Failures are reported but
+# do not fail the workflow (continue-on-error: true on each step).
+
+jobs:
+  strict-ts:
+    name: Strict TS check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: admin-api strict TS
+        working-directory: apps/admin-api
+        continue-on-error: true
+        run: |
+          pnpm exec tsc --strict --noEmit 2>&1 | tee /tmp/admin-api-strict.log || true
+          count=$(grep -c 'error TS' /tmp/admin-api-strict.log 2>/dev/null || echo 0)
+          echo "admin-api strict errors: ${count}"
+
+      - name: wallet-engine strict TS
+        working-directory: apps/wallet-engine
+        continue-on-error: true
+        run: |
+          pnpm exec tsc --strict --noEmit 2>&1 | tee /tmp/wallet-engine-strict.log || true
+          count=$(grep -c 'error TS' /tmp/wallet-engine-strict.log 2>/dev/null || echo 0)
+          echo "wallet-engine strict errors: ${count}"
+
+      - name: ui strict TS
+        working-directory: apps/ui
+        continue-on-error: true
+        run: |
+          pnpm exec tsc --strict --noEmit 2>&1 | tee /tmp/ui-strict.log || true
+          count=$(grep -c 'error TS' /tmp/ui-strict.log 2>/dev/null || echo 0)
+          echo "ui strict errors: ${count}"
+
+      - name: Write step summary
+        run: |
+          {
+            echo "## Strict TS Error Summary"
+            echo ""
+            for app in admin-api wallet-engine ui; do
+              log="/tmp/${app}-strict.log"
+              count=$(grep -c 'error TS' "${log}" 2>/dev/null || echo 0)
+              echo "- **${app}**: ${count} strict errors"
+            done
+            echo ""
+            echo "_Goal: reduce to zero over time. Never blocks CI._"
+          } >> "$GITHUB_STEP_SUMMARY"

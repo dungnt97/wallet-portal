@@ -1,0 +1,74 @@
+version: 2
+
+updates:
+  # ── npm (pnpm monorepo) ───────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 10
+    groups:
+      # Batch all non-breaking minor/patch updates per ecosystem
+      typescript-eslint:
+        patterns:
+          - '@typescript-eslint/*'
+      vitest:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+      playwright:
+        patterns:
+          - '@playwright/*'
+          - 'playwright'
+      opentelemetry:
+        patterns:
+          - '@opentelemetry/*'
+      drizzle:
+        patterns:
+          - 'drizzle-*'
+      fastify:
+        patterns:
+          - 'fastify'
+          - '@fastify/*'
+      radix-ui:
+        patterns:
+          - '@radix-ui/*'
+    ignore:
+      # Major version bumps require manual review
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+    labels:
+      - dependencies
+      - automated
+
+  # ── Go (policy-engine) ────────────────────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: /apps/policy-engine
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+      - go
+
+  # ── GitHub Actions ────────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '07:00'
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - automated
+      - github-actions

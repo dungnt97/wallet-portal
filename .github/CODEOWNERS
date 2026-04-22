@@ -1,0 +1,35 @@
+# CODEOWNERS — pattern-based review ownership
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Format: <pattern> <@github-user or @org/team>
+# Last matching rule wins.
+
+# ── Default: repo owner reviews everything ───────────────────────────────────
+*                               @dungnt97
+
+# ── CI / GitHub Actions ───────────────────────────────────────────────────────
+.github/workflows/              @dungnt97
+.github/CODEOWNERS              @dungnt97
+
+# ── Infrastructure ────────────────────────────────────────────────────────────
+infra/                          @dungnt97
+**/Dockerfile                   @dungnt97
+**/Dockerfile.*                 @dungnt97
+
+# ── Backend services ─────────────────────────────────────────────────────────
+apps/admin-api/                 @dungnt97
+apps/wallet-engine/             @dungnt97
+apps/policy-engine/             @dungnt97
+
+# ── Frontend UI ───────────────────────────────────────────────────────────────
+apps/ui/                        @dungnt97
+
+# ── Shared packages ───────────────────────────────────────────────────────────
+packages/                       @dungnt97
+
+# ── Database migrations — always require review ───────────────────────────────
+apps/admin-api/drizzle/migrations/  @dungnt97
+
+# ── Secrets / sensitive config ────────────────────────────────────────────────
+*.env*                          @dungnt97
+.env*                           @dungnt97

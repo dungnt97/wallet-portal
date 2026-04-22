@@ -67,7 +67,11 @@
           },
           "complexity": {
             "noBannedTypes": "warn",
-            "noForEach": "warn"
+            "noForEach": "warn",
+            "useLiteralKeys": "warn"
+          },
+          "performance": {
+            "noDelete": "warn"
           }
         }
       }

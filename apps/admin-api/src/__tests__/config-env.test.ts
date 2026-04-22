@@ -47,9 +47,10 @@ describe('loadConfig', () => {
   });
 
   it('applies defaults for optional vars', () => {
-    process.env.PORT = undefined;
-    process.env.REDIS_URL = undefined;
-    process.env.LOG_LEVEL = undefined;
+    // Must use delete (not =undefined) — process.env assignment always coerces to string 'undefined'
+    delete process.env['PORT'];
+    delete process.env['REDIS_URL'];
+    delete process.env['LOG_LEVEL'];
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3001);
     expect(cfg.REDIS_URL).toBe('redis://localhost:6379');
@@ -57,7 +58,7 @@ describe('loadConfig', () => {
   });
 
   it('throws on missing DATABASE_URL', () => {
-    process.env.DATABASE_URL = undefined;
+    delete process.env['DATABASE_URL'];
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 

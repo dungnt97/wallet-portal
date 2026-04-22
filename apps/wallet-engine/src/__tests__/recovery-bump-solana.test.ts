@@ -43,7 +43,7 @@ describe('bumpSolanaTx', () => {
   });
 
   afterEach(() => {
-    process.env.AUTH_DEV_MODE = undefined;
+    delete process.env['AUTH_DEV_MODE'];
   });
 
   it('dev-mode: returns synthetic signature without calling connection', async () => {
@@ -97,12 +97,12 @@ describe('bumpSolanaTx', () => {
     it('service rejects invalid base64 tx before hitting RPC', async () => {
       // If we exit dev mode, tx deserialization is attempted before blockhash fetch.
       // An invalid tx body causes a parse error — which is correct prod behaviour.
-      process.env.AUTH_DEV_MODE = undefined;
+      delete process.env['AUTH_DEV_MODE'];
       process.env.HD_MASTER_SEED_SOLANA = 'a'.repeat(64);
       const conn = makeConnection();
       // Service will throw on tx parse before reaching blockhash fetch
       await expect(bumpSolanaTx(BASE_PARAMS, conn)).rejects.toThrow();
-      process.env.HD_MASTER_SEED_SOLANA = undefined;
+      delete process.env['HD_MASTER_SEED_SOLANA'];
     });
 
     it('blockhash-unavailable error is SOLANA_BLOCKHASH_UNAVAILABLE (service code verification)', () => {

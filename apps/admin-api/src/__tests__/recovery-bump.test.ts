@@ -131,7 +131,7 @@ describe('bumpTx', () => {
       body: string;
       actionId: string;
     }) => Promise<void>;
-    process.env.RECOVERY_ENABLED = undefined;
+    delete process.env['RECOVERY_ENABLED'];
     // Reset global fetch mock to return success by default
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

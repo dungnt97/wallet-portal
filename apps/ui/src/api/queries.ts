@@ -327,6 +327,12 @@ export function useCancelWithdrawal(withdrawalId: string) {
 export interface DashboardMetrics {
   aumUsdt: string;
   aumUsdc: string;
+  aumBreakdown: {
+    usdtBnb: string;
+    usdcBnb: string;
+    usdtSol: string;
+    usdcSol: string;
+  };
   pendingDeposits: number;
   pendingDepositsValue: string;
   pendingWithdrawals: number;

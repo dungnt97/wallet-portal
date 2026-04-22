@@ -174,30 +174,52 @@ export function DashboardChart() {
 export function HoldingsList() {
   const { data: metrics } = useDashboardMetrics();
 
-  const aumUsdt = Number(metrics?.aumUsdt ?? 0);
-  const aumUsdc = Number(metrics?.aumUsdc ?? 0);
-  const total = aumUsdt + aumUsdc;
-
-  const usdtPct = total > 0 ? Math.round((aumUsdt / total) * 100) : 0;
-  const usdcPct = total > 0 ? Math.round((aumUsdc / total) * 100) : 0;
+  const breakdown = metrics?.aumBreakdown ?? {
+    usdtBnb: '0',
+    usdcBnb: '0',
+    usdtSol: '0',
+    usdcSol: '0',
+  };
+  const usdtBnb = Number(breakdown.usdtBnb);
+  const usdcBnb = Number(breakdown.usdcBnb);
+  const usdtSol = Number(breakdown.usdtSol);
+  const usdcSol = Number(breakdown.usdcSol);
+  const total = usdtBnb + usdcBnb + usdtSol + usdcSol;
+  const pct = (v: number) => (total > 0 ? Math.round((v / total) * 100) : 0);
 
   const rows = [
     {
       token: 'USDT' as const,
       chain: 'bnb' as const,
-      bal: aumUsdt,
-      pct: usdtPct,
+      bal: usdtBnb,
+      pct: pct(usdtBnb),
       delta: '—',
-      // Empty sparkline — no synthetic data; will stay blank until history endpoint
-      // is wired per-token (future: useDashboardHistory('aum', '7d') filtered by currency)
+      series: [] as number[],
+      color: 'oklch(70% 0.12 165)',
+    },
+    {
+      token: 'USDC' as const,
+      chain: 'bnb' as const,
+      bal: usdcBnb,
+      pct: pct(usdcBnb),
+      delta: '—',
+      series: [] as number[],
+      color: 'oklch(65% 0.14 245)',
+    },
+    {
+      token: 'USDT' as const,
+      chain: 'sol' as const,
+      bal: usdtSol,
+      pct: pct(usdtSol),
+      delta: '—',
       series: [] as number[],
       color: 'oklch(70% 0.12 165)',
     },
     {
       token: 'USDC' as const,
       chain: 'sol' as const,
-      bal: aumUsdc,
-      pct: usdcPct,
+      bal: usdcSol,
+      pct: pct(usdcSol),
       delta: '—',
       series: [] as number[],
       color: 'oklch(65% 0.14 245)',

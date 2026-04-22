@@ -1,4 +1,4 @@
-import { count, eq, inArray, sum } from 'drizzle-orm';
+import { and, count, eq, inArray, sum } from 'drizzle-orm';
 // Dashboard routes — GET /dashboard/metrics + GET /dashboard/nav-counts + GET /dashboard/history
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -10,6 +10,12 @@ import { getDashboardHistory } from '../services/dashboard-history.service.js';
 const MetricsSchema = z.object({
   aumUsdt: z.string(),
   aumUsdc: z.string(),
+  aumBreakdown: z.object({
+    usdtBnb: z.string(),
+    usdcBnb: z.string(),
+    usdtSol: z.string(),
+    usdcSol: z.string(),
+  }),
   pendingDeposits: z.number().int(),
   pendingDepositsValue: z.string(),
   pendingWithdrawals: z.number().int(),
@@ -52,20 +58,37 @@ const dashboardRoutes: FastifyPluginAsync = async (app) => {
         .from(schema.multisigOperations)
         .where(eq(schema.multisigOperations.status, 'pending'));
 
-      // AUM = sum of all credited user balances (ledger credit side, simplified: sum of credited deposits)
-      const [aumUsdt] = await app.db
-        .select({ total: sum(schema.deposits.amount) })
-        .from(schema.deposits)
-        .where(eq(schema.deposits.token, 'USDT'));
-
-      const [aumUsdc] = await app.db
-        .select({ total: sum(schema.deposits.amount) })
-        .from(schema.deposits)
-        .where(eq(schema.deposits.token, 'USDC'));
+      // AUM breakdown per (token, chain) — 4 cells
+      const [usdtBnb, usdcBnb, usdtSol, usdcSol] = await Promise.all([
+        app.db
+          .select({ total: sum(schema.deposits.amount) })
+          .from(schema.deposits)
+          .where(and(eq(schema.deposits.token, 'USDT'), eq(schema.deposits.chain, 'bnb'))),
+        app.db
+          .select({ total: sum(schema.deposits.amount) })
+          .from(schema.deposits)
+          .where(and(eq(schema.deposits.token, 'USDC'), eq(schema.deposits.chain, 'bnb'))),
+        app.db
+          .select({ total: sum(schema.deposits.amount) })
+          .from(schema.deposits)
+          .where(and(eq(schema.deposits.token, 'USDT'), eq(schema.deposits.chain, 'sol'))),
+        app.db
+          .select({ total: sum(schema.deposits.amount) })
+          .from(schema.deposits)
+          .where(and(eq(schema.deposits.token, 'USDC'), eq(schema.deposits.chain, 'sol'))),
+      ]);
+      const aumBreakdown = {
+        usdtBnb: usdtBnb[0]?.total ?? '0',
+        usdcBnb: usdcBnb[0]?.total ?? '0',
+        usdtSol: usdtSol[0]?.total ?? '0',
+        usdcSol: usdcSol[0]?.total ?? '0',
+      };
+      const aggTotal = (a: string, b: string) => (BigInt(a || '0') + BigInt(b || '0')).toString();
 
       return reply.code(200).send({
-        aumUsdt: aumUsdt?.total ?? '0',
-        aumUsdc: aumUsdc?.total ?? '0',
+        aumUsdt: aggTotal(aumBreakdown.usdtBnb, aumBreakdown.usdtSol),
+        aumUsdc: aggTotal(aumBreakdown.usdcBnb, aumBreakdown.usdcSol),
+        aumBreakdown,
         pendingDeposits: Number(pendingDepositStats?.cnt ?? 0),
         pendingDepositsValue: pendingDepositStats?.total ?? '0',
         pendingWithdrawals: Number(pendingWithdrawalStats?.cnt ?? 0),

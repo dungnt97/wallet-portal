@@ -99,6 +99,8 @@ export function DepositsPage() {
     return [];
   }, [data]);
 
+  // Server already filters by status/chain/token/amount/date — client-side pass
+  // only removes any residual mismatches (should be a no-op in practice).
   const filtered = useMemo(
     () =>
       deposits.filter((d) => {
@@ -115,8 +117,11 @@ export function DepositsPage() {
     setPage(1);
   }, [tab, chainFilter, tokenFilter, amountPreset, datePreset]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Use server-side total to compute pages so pagination reflects all records,
+  // not just the current fetched slice (API returns PAGE_SIZE rows at a time).
+  const serverTotal = data?.total ?? filtered.length;
+  const totalPages = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE));
+  const pageRows = filtered;
 
   const doRefresh = () => {
     setRefreshing(true);
@@ -233,7 +238,7 @@ export function DepositsPage() {
             onClear={() => setDatePreset(null)}
           />
           <span className="text-xs text-muted text-mono">
-            {filtered.length}/{deposits.length}
+            {filtered.length}/{serverTotal}
           </span>
         </div>
 
@@ -241,8 +246,8 @@ export function DepositsPage() {
 
         <div className="pagination">
           <span>
-            {t('deposits.showing')} {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
-            {Math.min(page * PAGE_SIZE, filtered.length)} {t('deposits.of')} {filtered.length}
+            {t('deposits.showing')} {serverTotal === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-
+            {Math.min(page * PAGE_SIZE, serverTotal)} {t('deposits.of')} {serverTotal}
           </span>
           <div className="spacer" />
           <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>

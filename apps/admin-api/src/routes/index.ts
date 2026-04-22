@@ -7,6 +7,7 @@ import chainRoutes from './chain.routes.js';
 import coldRoutes from './cold.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import depositsRoutes from './deposits.routes.js';
+import devSeedRoutes from './dev-seed.routes.js';
 import healthRoutes from './health.routes.js';
 import internalRoutes from './internal.routes.js';
 import multisigSyncRoutes from './multisig-sync.routes.js';
@@ -82,6 +83,12 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(internalRoutes, {
     bearerToken: opts.cfg.SVC_BEARER_TOKEN,
   });
+
+  // Dev-only seed endpoints — direct DB inserts bypassing business logic.
+  // Guarded by NODE_ENV check inside the plugin itself; only register in non-prod.
+  if (process.env.NODE_ENV !== 'production') {
+    await app.register(devSeedRoutes);
+  }
 };
 
 export default routes;

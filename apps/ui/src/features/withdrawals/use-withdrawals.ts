@@ -18,7 +18,8 @@ export interface ApiWithdrawal {
   chain: 'bnb' | 'sol';
   token: 'USDT' | 'USDC';
   amount: string;
-  toAddress: string;
+  /** API field name — matched to withdrawals table destination_addr column */
+  destinationAddr: string;
   status:
     | 'pending'
     | 'approved'
@@ -81,7 +82,7 @@ export function apiToWithdrawalRow(w: ApiWithdrawal): WithdrawalRow {
     chain: w.chain,
     token: w.token,
     amount: Number.parseFloat(w.amount) || 0,
-    destination: w.toAddress,
+    destination: w.destinationAddr,
     stage: apiStatusToStage(w.status),
     risk: 'low',
     createdAt: w.createdAt,

@@ -7,12 +7,13 @@ export function fmtUSD(n: number | string): string {
 
 export function fmtCompact(n: number | string): string {
   const x = Number(n);
-  if (x >= 1e6) return (x / 1e6).toFixed(2) + 'M';
-  if (x >= 1e3) return (x / 1e3).toFixed(1) + 'K';
+  if (x >= 1e6) return `${(x / 1e6).toFixed(2)}M`;
+  if (x >= 1e3) return `${(x / 1e3).toFixed(1)}K`;
   return fmtUSD(x);
 }
 
-export function shortHash(h: string, a = 6, b = 4): string {
+export function shortHash(h: string | undefined | null, a = 6, b = 4): string {
+  if (!h) return '—';
   return h.length > a + b + 3 ? `${h.slice(0, a)}…${h.slice(-b)}` : h;
 }
 

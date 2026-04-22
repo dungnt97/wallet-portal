@@ -1,7 +1,9 @@
 // Smoke: pagination controls on /app/deposits (PAGE_SIZE=15, .pagination row always renders).
-// If only 1 page of data exists, seeds 60 rows via /dev/seed/deposit then reloads.
+// If only 1 page of data exists, seeds 30 rows via /dev/seed/deposit then reloads.
 // Asserts: next → page 2 → prev → page 1. Accepts 0 rows (empty page is valid).
 import { expect, gotoApp, seedRealAuth, test } from './dev-login-fixture';
+
+const API = 'http://localhost:3001';
 
 test('deposits pagination: next/prev page', async ({ page }) => {
   await seedRealAuth(page);
@@ -14,17 +16,23 @@ test('deposits pagination: next/prev page', async ({ page }) => {
   const pagination = page.locator('.pagination').first();
   await expect(pagination).toBeVisible({ timeout: 8_000 });
 
-  // Detect total pages from pagination text ("Page 1 of N")
-  const paginationText = (await pagination.textContent()) ?? '';
-  const totalPagesMatch = /of\s+(\d+)/i.exec(paginationText);
-  let totalPages = totalPagesMatch ? Number.parseInt(totalPagesMatch[1] ?? '1', 10) : 1;
+  // Detect total pages from "Page N of M" text (second "of" in the pagination bar).
+  // NOTE: The bar also renders "Showing X-Y of Z" — match the Page/of pattern explicitly
+  // to avoid reading the record count Z instead of the page count M.
+  function extractTotalPages(text: string): number {
+    const match = /page\s+\d+\s+of\s+(\d+)/i.exec(text);
+    return match ? Number.parseInt(match[1] ?? '1', 10) : 1;
+  }
 
-  // Seed 60 deposits via dev endpoint if only 1 page available
+  const paginationText = (await pagination.textContent()) ?? '';
+  let totalPages = extractTotalPages(paginationText);
+
+  // Seed 30 deposits via dev endpoint if only 1 page available
   if (totalPages < 2) {
-    const seedRequests = Array.from({ length: 60 }, (_, i) =>
+    const seedRequests = Array.from({ length: 30 }, (_, i) =>
       page
         .context()
-        .request.post('http://localhost:3001/dev/seed/deposit', {
+        .request.post(`${API}/dev/seed/deposit`, {
           data: { chain: 'bnb', token: 'USDT', amount: `${10 + i}.00`, status: 'pending' },
           failOnStatusCode: false,
         })
@@ -38,8 +46,7 @@ test('deposits pagination: next/prev page', async ({ page }) => {
     await page.waitForTimeout(1_000);
 
     const refreshedText = (await page.locator('.pagination').first().textContent()) ?? '';
-    const refreshedMatch = /of\s+(\d+)/i.exec(refreshedText);
-    totalPages = refreshedMatch ? Number.parseInt(refreshedMatch[1] ?? '1', 10) : 1;
+    totalPages = extractTotalPages(refreshedText);
   }
 
   const nextBtn = pagination.locator('button').filter({ hasText: /next/i }).first();

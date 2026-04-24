@@ -73,7 +73,7 @@ async function verifyBnb(): Promise<void> {
   console.log('  Step 1: Creating Safe transaction (treasurer-0)...');
   const kit0 = await Safe.init({ provider: rpc, signer: t0.privateKey, safeAddress });
   const safeTx = await kit0.createTransaction({
-    transactions: [{ to: t2.address, value: '1000000000000000', data: '0x' }],
+    transactions: [{ to: t2.address, value: '100000000000000', data: '0x' }],
   });
 
   console.log('  Step 2: Signing with treasurer-0...');
@@ -135,7 +135,7 @@ async function verifySolana(): Promise<void> {
   const txMessage = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: blockhash,
-    instructions: [SystemProgram.transfer({ fromPubkey: vaultPda, toPubkey: t2pubkey, lamports: 1_000_000 })],
+    instructions: [SystemProgram.transfer({ fromPubkey: vaultPda, toPubkey: t2pubkey, lamports: 100_000 })],
   });
   const sig1 = await multisig.rpc.vaultTransactionCreate({
     connection, feePayer: t0kp, multisigPda, transactionIndex: newTxIndex,

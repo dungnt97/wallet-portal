@@ -292,3 +292,47 @@ jobs:
             apps/ui/test-results/
             apps/ui/playwright-report/
           retention-days: 7
+
+# ─── Job 4: Testnet E2E (real chains) ─────────────────────────────────────────
+  testnet-e2e:
+    name: Testnet E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint-typecheck
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write testnet secrets
+        working-directory: infra/chain
+        env:
+          TESTNET_KEYS: ${{ secrets.TESTNET_KEYS_JSON }}
+          DEPLOYED: ${{ secrets.TESTNET_DEPLOYED_JSON }}
+        run: |
+          echo "$TESTNET_KEYS" > .testnet-keys.json
+          echo "$DEPLOYED" > .deployed.json
+
+      - name: E2E — Solana Devnet
+        working-directory: infra/chain
+        run: pnpm e2e:sol
+
+      - name: E2E — BNB Chapel
+        working-directory: infra/chain
+        run: pnpm e2e:bnb

@@ -99,6 +99,16 @@ const deployer = loadKeypair(DEPLOYER_KEYPAIR_PATH);
 
 await ensureFunded(connection, deployer);
 
+// Fetch the Squads program config to get the required treasury address
+const [programConfigPda] = multisig.getProgramConfigPda({});
+console.log(`  Program Config PDA: ${programConfigPda.toBase58()}`);
+
+const programConfig = await multisig.accounts.ProgramConfig.fromAccountAddress(
+  connection,
+  programConfigPda
+);
+console.log(`  Program Treasury:   ${programConfig.treasury.toBase58()}`);
+
 // Unique createKey — use deployer pubkey + timestamp for determinism across redeploys
 const createKey = Keypair.generate();
 
@@ -112,7 +122,7 @@ const members: multisig.types.Member[] = memberPubkeys.map((pk) => ({
 
 console.log('  Creating multisig PDA...');
 
-const signature = await multisig.rpc.multisigCreate({
+const signature = await multisig.rpc.multisigCreateV2({
   connection,
   creator: deployer,
   multisigPda,
@@ -121,6 +131,8 @@ const signature = await multisig.rpc.multisigCreate({
   members,
   timeLock: 0,
   createKey,
+  treasury: programConfig.treasury,
+  rentCollector: null,
   sendOptions: { skipPreflight: false },
 });
 

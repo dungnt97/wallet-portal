@@ -5,30 +5,33 @@ import type { UserRecord } from '@/api/users';
 import { KYC_LABELS } from '@/api/users';
 import { Address, Risk } from '@/components/custody';
 import { ROLES } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
 import { LiveTimeAgo } from '../_shared/realtime';
-
-// Static role permission descriptions — display-only copy, not derived from API.
-const ROLE_DESC: Record<string, string> = {
-  admin: 'Full access. Manages staff, roles, and system config.',
-  treasurer: 'Co-signs multisig operations. 2 of 3 required to approve withdrawals.',
-  operator: 'Creates withdrawals, sweeps and manages users. Cannot approve.',
-  viewer: 'Read-only access to dashboards and records.',
-};
 
 interface StaffTableProps {
   rows: StaffMemberRow[];
 }
 
 export function StaffTable({ rows }: StaffTableProps) {
+  const { t } = useTranslation();
+
+  // Role description map — keys match API role values, values pulled from i18n.
+  const roleDesc: Record<string, string> = {
+    admin: t('users.roleDescAdmin'),
+    treasurer: t('users.roleDescTreasurer'),
+    operator: t('users.roleDescOperator'),
+    viewer: t('users.roleDescViewer'),
+  };
+
   return (
     <table className="table table-tight">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Permissions</th>
+          <th>{t('users.thName')}</th>
+          <th>{t('users.thEmail')}</th>
+          <th>{t('users.thRole')}</th>
+          <th>{t('users.thStatus')}</th>
+          <th>{t('users.thPermissions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -36,7 +39,7 @@ export function StaffTable({ rows }: StaffTableProps) {
           <tr>
             <td colSpan={5}>
               <div className="table-empty">
-                <div className="table-empty-title">No staff members</div>
+                <div className="table-empty-title">{t('users.noStaff')}</div>
               </div>
             </td>
           </tr>
@@ -57,7 +60,7 @@ export function StaffTable({ rows }: StaffTableProps) {
               {s.status === 'active' ? (
                 <span className="badge ok">
                   <span className="dot" />
-                  Active
+                  {t('users.statusActive')}
                 </span>
               ) : (
                 <span className="badge">
@@ -66,7 +69,7 @@ export function StaffTable({ rows }: StaffTableProps) {
                 </span>
               )}
             </td>
-            <td className="text-xs text-muted">{ROLE_DESC[s.role] ?? ''}</td>
+            <td className="text-xs text-muted">{roleDesc[s.role] ?? ''}</td>
           </tr>
         ))}
       </tbody>
@@ -82,10 +85,12 @@ interface EndUsersTableProps {
 }
 
 export function EndUsersTable({ rows, loading, showRiskFlags, onSelect }: EndUsersTableProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div className="table-empty" style={{ padding: 40, textAlign: 'center' }}>
-        <span className="text-muted text-sm">Loading users…</span>
+        <span className="text-muted text-sm">{t('users.loadingUsers')}</span>
       </div>
     );
   }
@@ -93,7 +98,7 @@ export function EndUsersTable({ rows, loading, showRiskFlags, onSelect }: EndUse
   if (rows.length === 0) {
     return (
       <div className="table-empty" style={{ padding: 40, textAlign: 'center' }}>
-        <span className="text-muted text-sm">No users yet. Click Add user.</span>
+        <span className="text-muted text-sm">{t('users.noUsersYet')}</span>
       </div>
     );
   }
@@ -102,11 +107,11 @@ export function EndUsersTable({ rows, loading, showRiskFlags, onSelect }: EndUse
     <table className="table table-tight">
       <thead>
         <tr>
-          <th>Email</th>
-          <th>KYC</th>
-          <th>Status</th>
-          {showRiskFlags && <th>Risk</th>}
-          <th>Joined</th>
+          <th>{t('users.thEmail')}</th>
+          <th>{t('users.thKyc')}</th>
+          <th>{t('users.thStatus')}</th>
+          {showRiskFlags && <th>{t('users.thRisk')}</th>}
+          <th>{t('users.thJoined')}</th>
         </tr>
       </thead>
       <tbody>

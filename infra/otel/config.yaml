@@ -51,21 +51,21 @@ exporters:
       insecure: true
 
   # ── Grafana Cloud OTLP (production / staging) ───────────────────────────
-  # Activated when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-  # OTEL_EXPORTER_OTLP_HEADERS format: "Authorization=Basic <token>"
-  otlphttp/grafana:
-    endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
-    headers:
-      Authorization: ${env:OTEL_EXPORTER_OTLP_HEADERS}
-    retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
-      max_elapsed_time: 120s
-    sending_queue:
-      enabled: true
-      num_consumers: 4
-      queue_size: 100
+  # Disabled in local dev — uncomment + reference in pipelines via a prod
+  # override config when OTEL_EXPORTER_OTLP_ENDPOINT / _HEADERS are provided.
+  # otlphttp/grafana:
+  #   endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+  #   headers:
+  #     Authorization: ${env:OTEL_EXPORTER_OTLP_HEADERS}
+  #   retry_on_failure:
+  #     enabled: true
+  #     initial_interval: 5s
+  #     max_interval: 30s
+  #     max_elapsed_time: 120s
+  #   sending_queue:
+  #     enabled: true
+  #     num_consumers: 4
+  #     queue_size: 100
 
   # ── Prometheus scrape endpoint (local + ECS) ─────────────────────────────
   prometheus:
@@ -82,20 +82,20 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      # Dev: debug only; prod: otlphttp/grafana only (controlled by build profile)
-      exporters: [debug, otlphttp/grafana]
+      # Dev: debug only; prod adds otlphttp/grafana via override config
+      exporters: [debug]
 
     # ── Metrics ──────────────────────────────────────────────────────────────
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [prometheus, otlphttp/grafana]
+      exporters: [prometheus]
 
     # ── Logs ─────────────────────────────────────────────────────────────────
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [debug, otlphttp/grafana]
+      exporters: [debug]
 
   telemetry:
     logs:

@@ -3,13 +3,22 @@
 // Falls back to "Gas unavailable" if wallet-engine hasn't populated Redis yet.
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
+import { useTranslation } from 'react-i18next';
 import { useGasHistory } from './use-gas-history';
 
 interface Props {
   chain: 'bnb' | 'sol';
 }
 
+const TIER_KEY: Record<string, string> = {
+  Slow: 'sweep.tierSlow',
+  Standard: 'sweep.tierStandard',
+  Fast: 'sweep.tierFast',
+  Priority: 'sweep.tierPriority',
+};
+
 export function GasMonitor({ chain }: Props) {
+  const { t } = useTranslation();
   const { data } = useGasHistory(chain);
   const unit = chain === 'bnb' ? 'gwei' : 'SOL/sig';
 
@@ -37,7 +46,7 @@ export function GasMonitor({ chain }: Props) {
   const pctOfMax = max !== min ? ((current - min!) / (max! - min!)) * 100 : 50;
   const state: 'low' | 'normal' | 'high' =
     pctOfMax < 30 ? 'low' : pctOfMax < 65 ? 'normal' : 'high';
-  const stateLabel = state === 'low' ? 'favourable' : state === 'normal' ? 'normal' : 'elevated';
+  const stateKey = state === 'low' ? 'sweep.gasFavourable' : state === 'normal' ? 'sweep.gasNormal' : 'sweep.gasElevated';
   const recommendedTier = state === 'high' ? 'Fast' : 'Standard';
   const fmt = (v: number) => (chain === 'bnb' ? v.toFixed(1) : v.toFixed(6));
 
@@ -99,7 +108,7 @@ export function GasMonitor({ chain }: Props) {
                 opacity="0.5"
               />
             </svg>
-            <div className="gas-spark-label">24h</div>
+            <div className="gas-spark-label">{t('sweep.gasSparkLabel')}</div>
           </div>
         );
       })()
@@ -115,7 +124,7 @@ export function GasMonitor({ chain }: Props) {
           <span
             className={`badge-tight ${state === 'low' ? 'ok' : state === 'normal' ? 'info' : 'warn'}`}
           >
-            <span className="dot" /> {stateLabel}
+            <span className="dot" /> {t(stateKey)}
           </span>
         </div>
         <div className="gas-monitor-row">
@@ -126,17 +135,17 @@ export function GasMonitor({ chain }: Props) {
             <div className="gas-monitor-meta">
               {avg !== null && (
                 <span>
-                  avg <span className="text-mono fw-500">{fmt(avg)}</span>
+                  {t('sweep.gasAvg')} <span className="text-mono fw-500">{fmt(avg)}</span>
                 </span>
               )}
               {min !== null && (
                 <span>
-                  min <span className="text-mono">{fmt(min)}</span>
+                  {t('sweep.gasMin')} <span className="text-mono">{fmt(min)}</span>
                 </span>
               )}
               {max !== null && (
                 <span>
-                  max <span className="text-mono">{fmt(max)}</span>
+                  {t('sweep.gasMax')} <span className="text-mono">{fmt(max)}</span>
                 </span>
               )}
             </div>
@@ -152,8 +161,8 @@ export function GasMonitor({ chain }: Props) {
             className={`gas-tier ${tier.name === recommendedTier ? 'recommended' : ''}`}
           >
             <div className="gas-tier-head">
-              <span className="gas-tier-name">{tier.name}</span>
-              {tier.name === recommendedTier && <span className="gas-tier-badge">recommended</span>}
+              <span className="gas-tier-name">{t(TIER_KEY[tier.name] ?? tier.name)}</span>
+              {tier.name === recommendedTier && <span className="gas-tier-badge">{t('sweep.tierRecommended')}</span>}
             </div>
             <div className="gas-tier-price">
               {fmt(tier.gwei)} <span className="gas-tier-unit">{unit}</span>

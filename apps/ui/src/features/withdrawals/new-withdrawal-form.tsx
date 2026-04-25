@@ -42,7 +42,9 @@ export function NewWithdrawalForm({ open, onClose, onSubmit }: Props) {
     const entry = coldBalances.find(
       (b) => b.chain === chain && b.token === token && b.tier === 'hot'
     );
-    return entry ? Number.parseFloat(entry.balance) : 0;
+    if (!entry) return 0;
+    const divisor = chain === 'bnb' ? 1e18 : 1e6;
+    return Number.parseFloat(entry.balance) / divisor;
   }, [coldBalances, chain, token]);
 
   useEffect(() => {

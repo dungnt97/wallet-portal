@@ -1,6 +1,7 @@
 // Approval queue — renders multisig signer rows with progress bar.
 // Uses real WithdrawalMultisig shape; no fixture imports.
 import { I } from '@/icons';
+import { useTranslation } from 'react-i18next';
 import { shortAddr } from '../_shared/helpers';
 import { LiveTimeAgo } from '../_shared/realtime';
 import type { WithdrawalMultisig } from './withdrawal-types';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
+  const { t } = useTranslation();
   const barWidth = Math.min(100, (multisig.collected / Math.max(multisig.required, 1)) * 100);
   const barBg =
     stage === 'failed' || stage === 'cancelled'
@@ -26,10 +28,10 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
       <div className="approval-box-title">
         <span>
           <I.Shield size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
-          Multisig approvals
+          {t('withdrawals.multisigApprovals')}
         </span>
         <span className="approval-count">
-          {multisig.collected} of {multisig.required}
+          {t('withdrawals.ofRequired', { n: multisig.collected, m: multisig.required })}
         </span>
       </div>
 
@@ -38,7 +40,7 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
           <div className="approval-bar-fill" style={{ width: `${barWidth}%`, background: barBg }} />
         </div>
         <span className="text-xs text-muted">
-          {Math.max(0, multisig.required - multisig.collected)} remaining
+          {t('withdrawals.remaining', { n: Math.max(0, multisig.required - multisig.collected) })}
         </span>
       </div>
 
@@ -47,10 +49,10 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
           <I.UserX size={13} />
           <div>
             <div className="fw-500" style={{ fontSize: 12 }}>
-              Rejected by {multisig.rejectedBy}
+              {t('withdrawals.rejectedBy', { name: multisig.rejectedBy })}
             </div>
             <div className="text-xs" style={{ marginTop: 2, opacity: 0.85 }}>
-              No further signatures accepted on this request.
+              {t('withdrawals.rejectedDetail')}
             </div>
           </div>
         </div>
@@ -68,11 +70,11 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
                     <span className="signer-name text-mono text-xs">
                       {shortAddr(a.staffId, 6, 4)}
                     </span>
-                    {isMe && <span className="signer-you">you</span>}
+                    {isMe && <span className="signer-you">{t('withdrawals.you')}</span>}
                   </div>
                   <div className="signer-row-sub">
                     <span className="signer-dot signer-dot-ok" />
-                    signed <LiveTimeAgo at={a.at} />
+                    {t('withdrawals.signed')} <LiveTimeAgo at={a.at} />
                     {a.txSig && (
                       <>
                         {' '}
@@ -85,7 +87,7 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
                   </div>
                 </div>
                 <span className="approved-stamp">
-                  <I.Check size={10} /> signed
+                  <I.Check size={10} /> {t('withdrawals.signed')}
                 </span>
               </div>
             );
@@ -100,11 +102,11 @@ export function ApprovalQueue({ multisig, stage, currentStaffId }: Props) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="signer-row-sub">
                   <span className="signer-dot signer-dot-pending" />
-                  awaiting signature
+                  {t('withdrawals.awaitingSignature')}
                 </div>
               </div>
               <span className="pending-stamp">
-                <I.Clock size={10} /> pending
+                <I.Clock size={10} /> {t('withdrawals.pending')}
               </span>
             </div>
           ))}

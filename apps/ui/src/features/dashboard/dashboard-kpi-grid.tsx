@@ -6,6 +6,7 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 // Split from dashboard-page.tsx to stay under 200 LOC.
 // Real data via /dashboard/metrics and /dashboard/history. No synthetic fallback.
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sparkline } from '../_shared/charts';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function DashboardKpiGrid({ onNavigate }: Props) {
+  const { t } = useTranslation();
   const { data: metrics } = useDashboardMetrics();
 
   const totalUsdt = Number(metrics?.aumUsdt ?? 0);
@@ -51,10 +53,10 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
       {/* Main AUM card */}
       <div className="kpi kpi-primary">
         <div className="kpi-row">
-          <div className="kpi-label">Assets under management</div>
+          <div className="kpi-label">{t('dashboard.kpiAumLabel')}</div>
           <span className="badge-tight ok">
             <span className="dot" />
-            Reconciled
+            {t('dashboard.reconciled')}
           </span>
         </div>
         <div className="kpi-value">
@@ -66,7 +68,7 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
           <span className="kpi-delta up">
             <I.ArrowUp size={10} /> —
           </span>
-          <span className="text-muted">vs 7d</span>
+          <span className="text-muted">{t('dashboard.kpiVs7d')}</span>
           <div className="spacer" />
           <Sparkline data={aumSeries} width={120} height={28} stroke="var(--accent)" />
         </div>
@@ -103,12 +105,12 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
         <div className="kpi-row">
           <div className="kpi-label">
             <I.ArrowDown size={11} />
-            Pending deposits
+            {t('dashboard.kpiPendingDeposits')}
           </div>
           <span className="text-xs text-muted text-mono">{pendingDeposits}</span>
         </div>
         <div className="kpi-value-sm">${fmtCompact(pendingDepositsValue)}</div>
-        <div className="kpi-foot text-xs text-muted">Awaiting confirmations</div>
+        <div className="kpi-foot text-xs text-muted">{t('dashboard.kpiAwaitingConfs')}</div>
         <Sparkline data={depSeries} width={220} height={32} stroke="var(--ok)" />
       </div>
 
@@ -117,12 +119,12 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
         <div className="kpi-row">
           <div className="kpi-label">
             <I.ArrowUp size={11} />
-            Pending withdrawals
+            {t('dashboard.kpiPendingWithdrawals')}
           </div>
           <span className="text-xs text-muted text-mono">{metrics?.pendingWithdrawals ?? 0}</span>
         </div>
-        <div className="kpi-value-sm">{metrics?.pendingWithdrawals ?? 0} txns</div>
-        <div className="kpi-foot text-xs text-muted">awaiting processing</div>
+        <div className="kpi-value-sm">{t('dashboard.kpiTxns', { n: metrics?.pendingWithdrawals ?? 0 })}</div>
+        <div className="kpi-foot text-xs text-muted">{t('dashboard.kpiAwaitingProcessing')}</div>
       </div>
 
       {/* Multisig pending */}
@@ -130,12 +132,12 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
         <div className="kpi-row">
           <div className="kpi-label">
             <I.Shield size={11} />
-            Multisig pending
+            {t('dashboard.kpiMultisigPending')}
           </div>
           <span className="text-xs text-muted text-mono">{pendingMultisig}</span>
         </div>
-        <div className="kpi-value-sm">{pendingMultisig} ops</div>
-        <div className="kpi-foot text-xs text-muted">awaiting signatures</div>
+        <div className="kpi-value-sm">{t('dashboard.kpiOps', { n: pendingMultisig })}</div>
+        <div className="kpi-foot text-xs text-muted">{t('dashboard.kpiAwaitingSigs')}</div>
       </div>
     </div>
   );

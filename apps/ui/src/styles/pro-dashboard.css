@@ -77,6 +77,12 @@
 .live-dot-err {
   background: var(--err);
 }
+.live-dot-muted {
+  background: var(--text-faint, #999);
+}
+.live-dot-muted::after {
+  animation: none;
+}
 @keyframes live-pulse {
   0% {
     transform: scale(1);

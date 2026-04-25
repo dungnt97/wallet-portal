@@ -2,6 +2,7 @@ import { Address, type Column, DataTable, Filter } from '@/components/custody';
 // Sweep address table + cart — selectable rows, per-chain filter.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import type { FixSweepAddr } from './sweep-types';
 
 interface Props {
@@ -21,9 +22,11 @@ export function SweepAddressTable({
   onToggleAll,
   selectAboveThreshold,
 }: Props) {
+  const { t } = useTranslation();
+
   const columns: Column<FixSweepAddr>[] = [
     {
-      label: 'User',
+      label: t('sweep.cUser'),
       render: (r) => (
         <div className="hstack">
           <div className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>
@@ -36,7 +39,7 @@ export function SweepAddressTable({
         </div>
       ),
     },
-    { label: 'Address', render: (r) => <Address value={r.address} chain={r.chain} /> },
+    { label: t('sweep.cAddress'), render: (r) => <Address value={r.address} chain={r.chain} /> },
     {
       label: 'USDT',
       num: true,
@@ -48,14 +51,14 @@ export function SweepAddressTable({
       render: (r) => <span className="text-mono">{fmtUSD(r.balanceUSDC)}</span>,
     },
     {
-      label: 'Total',
+      label: t('sweep.cTotal'),
       num: true,
       render: (r) => (
         <span className="text-mono fw-600">${fmtUSD(r.balanceUSDT + r.balanceUSDC)}</span>
       ),
     },
     {
-      label: chain === 'bnb' ? 'Gas · BNB' : 'Gas · SOL',
+      label: chain === 'bnb' ? t('sweep.cGasBnb') : t('sweep.cGasSol'),
       num: true,
       render: (r) => {
         const low = r.gasBalance < (r.chain === 'bnb' ? 0.005 : 0.01);
@@ -70,7 +73,7 @@ export function SweepAddressTable({
       },
     },
     {
-      label: 'Last deposit',
+      label: t('sweep.cLastDeposit'),
       render: (r) => {
         if (!r.lastDepositAt) return <span className="text-xs text-muted">—</span>;
         const mins = Math.max(1, Math.floor((Date.now() - +new Date(r.lastDepositAt)) / 60_000));
@@ -82,12 +85,12 @@ export function SweepAddressTable({
   return (
     <div className="table-wrap">
       <div className="table-toolbar">
-        <span className="text-sm fw-500">{rows.length} addresses with balance</span>
-        <Filter label="Min balance" value="500" />
-        <Filter label="Last deposit" />
+        <span className="text-sm fw-500">{t('sweep.addressesWithBalance', { n: rows.length })}</span>
+        <Filter label={t('sweep.fMinBalance')} value="500" />
+        <Filter label={t('sweep.fLastDeposit')} />
         <div className="spacer" />
         <button className="btn btn-ghost btn-sm" onClick={selectAboveThreshold}>
-          Select above threshold
+          {t('sweep.selectAboveThreshold')}
         </button>
       </div>
 
@@ -123,16 +126,17 @@ export function SweepCart({
   chain,
   onExecute,
 }: CartProps) {
+  const { t } = useTranslation();
   return (
     <div className="sweep-cart">
       <div className="sweep-cart-header">
-        <h3 className="card-title">Sweep batch</h3>
-        <span className="badge accent">{selected.length} selected</span>
+        <h3 className="card-title">{t('sweep.cartTitle')}</h3>
+        <span className="badge accent">{t('sweep.cartSelected', { n: selected.length })}</span>
       </div>
       {selected.length === 0 ? (
         <div className="sweep-cart-empty">
           <I.Sweep size={24} style={{ opacity: 0.3, margin: '0 auto 8px', display: 'block' }} />
-          Select addresses above to build a sweep batch.
+          {t('sweep.cartEmpty')}
         </div>
       ) : (
         <div className="sweep-cart-body">
@@ -153,28 +157,28 @@ export function SweepCart({
           ))}
           {selected.length > 6 && (
             <div className="text-xs text-muted" style={{ padding: '6px 0' }}>
-              +{selected.length - 6} more
+              {t('sweep.cartMore', { n: selected.length - 6 })}
             </div>
           )}
         </div>
       )}
       <div className="sweep-cart-summary">
         <div className="sweep-cart-row">
-          <span>USDT subtotal</span>
+          <span>{t('sweep.cartUsdtSub')}</span>
           <span className="text-mono">${fmtUSD(totalUSDT)}</span>
         </div>
         <div className="sweep-cart-row">
-          <span>USDC subtotal</span>
+          <span>{t('sweep.cartUsdcSub')}</span>
           <span className="text-mono">${fmtUSD(totalUSDC)}</span>
         </div>
         <div className="sweep-cart-row">
-          <span>Fee</span>
+          <span>{t('sweep.cartFee')}</span>
           <span className="text-mono">
             {estFee.toFixed(chain === 'bnb' ? 4 : 6)} {chain === 'bnb' ? 'BNB' : 'SOL'}
           </span>
         </div>
         <div className="sweep-cart-row total">
-          <span>Total</span>
+          <span>{t('sweep.cartTotal')}</span>
           <span className="text-mono">${fmtUSD(total)}</span>
         </div>
       </div>
@@ -185,7 +189,7 @@ export function SweepCart({
           disabled={selected.length === 0}
           onClick={onExecute}
         >
-          <I.Sweep size={13} /> Review & execute
+          <I.Sweep size={13} /> {t('sweep.reviewExecute')}
         </button>
       </div>
     </div>

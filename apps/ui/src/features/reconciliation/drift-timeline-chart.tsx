@@ -3,6 +3,7 @@
 // X-axis = snapshot date, Y-axis = |driftTotalMinor| in display USD units.
 import type { ReconciliationSnapshot } from '@/api/reconciliation';
 import { fmtCompact } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   snapshots: ReconciliationSnapshot[];
@@ -28,7 +29,7 @@ function fmtAxisDate(iso: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DriftTimelineChart({ snapshots, width = 600, height = 120 }: Props) {
-  // Only completed snapshots with drift data, sorted by date ascending
+  const { t } = useTranslation();
   const points = snapshots
     .filter((s) => s.status === 'completed' && s.driftTotalMinor !== null)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -41,7 +42,7 @@ export function DriftTimelineChart({ snapshots, width = 600, height = 120 }: Pro
     return (
       <div className="card pro-card" style={{ padding: 20, textAlign: 'center' }}>
         <p className="text-muted text-xs">
-          Not enough completed snapshots for timeline (need ≥ 2).
+          {t('recon.notEnoughSnapshots')}
         </p>
       </div>
     );
@@ -75,9 +76,9 @@ export function DriftTimelineChart({ snapshots, width = 600, height = 120 }: Pro
   return (
     <div className="card pro-card">
       <div className="pro-card-header">
-        <h3 className="card-title">Drift timeline (completed runs)</h3>
+        <h3 className="card-title">{t('recon.driftTimeline')}</h3>
         <div className="spacer" />
-        <span className="text-xs text-muted">|net drift| in USD</span>
+        <span className="text-xs text-muted">{t('recon.driftUnit')}</span>
       </div>
       <svg
         viewBox={`0 0 ${width} ${height + 20}`}

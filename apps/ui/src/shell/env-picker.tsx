@@ -5,6 +5,7 @@ import { ENV_PROFILES, MULTI_ENV_ENABLED, useEnvStore } from '@/stores/env-store
 // causes the API client to use the new base URL immediately (no page reload).
 // When VITE_ENV_PROFILES is unset, the picker is hidden (single-env mode).
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type EnvTone = 'err' | 'warn' | 'info' | 'muted';
 
@@ -15,6 +16,7 @@ function profileTone(index: number): EnvTone {
 }
 
 export function EnvPicker() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const activeProfileName = useEnvStore((s) => s.activeProfileName);
@@ -50,7 +52,7 @@ export function EnvPicker() {
 
       {open && (
         <div className="env-menu">
-          <div className="env-menu-head">Environment</div>
+          <div className="env-menu-head">{t('shell.environment')}</div>
           {ENV_PROFILES.map((profile, idx) => {
             const tone = profileTone(idx);
             const isActive = profile.name === current.name;
@@ -76,7 +78,7 @@ export function EnvPicker() {
           <div className="env-menu-sep" />
           <div className="env-menu-warn">
             <I.AlertTri size={11} />
-            Switching environments signs you out of the current session.
+            {t('shell.envSwitchWarning')}
           </div>
         </div>
       )}

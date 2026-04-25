@@ -3,6 +3,7 @@ import type { StaffMemberRow } from '@/api/queries';
 // TREASURERS fixture removed — staff list passed via props from real /staff API.
 import { ChainPill } from '@/components/custody';
 import { fmtCompact, shortHash } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { LiveDot } from '../_shared/realtime';
 
 // ── Presence helpers ──────────────────────────────────────────────────────────
@@ -19,10 +20,10 @@ function getPresence(lastLoginAt: string | null): PresenceStatus {
   return 'offline';
 }
 
-function presenceToDotVariant(p: PresenceStatus): 'ok' | 'warn' | 'err' | undefined {
+function presenceToDotVariant(p: PresenceStatus): 'ok' | 'warn' | 'muted' {
   if (p === 'online') return 'ok';
   if (p === 'away') return 'warn';
-  return undefined; // muted / default grey
+  return 'muted';
 }
 
 interface VaultCardProps {
@@ -45,6 +46,7 @@ export function VaultCard({
   pending,
   signers,
 }: VaultCardProps) {
+  const { t } = useTranslation();
   return (
     <div className="card" style={{ padding: 0 }}>
       <div
@@ -71,7 +73,7 @@ export function VaultCard({
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="text-xs text-muted">Balance</div>
+          <div className="text-xs text-muted">{t('multisig.balance')}</div>
           <div className="text-mono fw-600" style={{ fontSize: 18, marginTop: 2 }}>
             ${fmtCompact(balance)}
           </div>
@@ -87,7 +89,7 @@ export function VaultCard({
         }}
       >
         <div className="hstack" style={{ gap: 6 }}>
-          <span className="text-xs text-muted">Signers</span>
+          <span className="text-xs text-muted">{t('multisig.signers')}</span>
           <div className="hstack" style={{ gap: 0 }}>
             {signers.map((s, i) => (
               <div
@@ -109,7 +111,7 @@ export function VaultCard({
         </div>
         <span className={`badge ${pending > 0 ? 'warn' : 'ok'}`}>
           <span className="dot" />
-          {pending} pending op{pending === 1 ? '' : 's'}
+          {t('multisig.pendingOp', { count: pending })}
         </span>
       </div>
     </div>
@@ -124,17 +126,18 @@ interface TreasurerTeamCardProps {
 }
 
 export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeamCardProps) {
+  const { t } = useTranslation();
   return (
     <div className="card pro-card" style={{ marginTop: 14 }}>
       <div className="pro-card-header">
-        <h3 className="card-title">Treasurer team</h3>
+        <h3 className="card-title">{t('multisig.treasurerTeam')}</h3>
         <span className="text-xs text-muted">
-          {required} of {total} co-signatures required per transfer
+          {t('multisig.cosigRequired', { required, total })}
         </span>
         <div className="spacer" />
         <span className="badge-tight ok">
           <span className="dot" />
-          policy active
+          {t('multisig.policyActive')}
         </span>
       </div>
       <div
@@ -145,9 +148,9 @@ export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeam
           background: 'var(--line)',
         }}
       >
-        {treasurers.map((t) => (
+        {treasurers.map((tr) => (
           <div
-            key={t.id}
+            key={tr.id}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -156,23 +159,23 @@ export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeam
               background: 'var(--bg-elev)',
             }}
           >
-            <div className="avatar">{t.initials}</div>
+            <div className="avatar">{tr.initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="fw-500 text-sm truncate">{t.name}</div>
-              <div className="text-xs text-muted truncate text-mono">{t.email}</div>
+              <div className="fw-500 text-sm truncate">{tr.name}</div>
+              <div className="text-xs text-muted truncate text-mono">{tr.email}</div>
               <div className="text-xs text-faint" style={{ marginTop: 2 }}>
                 {(() => {
-                  const presence = getPresence(t.lastLoginAt ?? null);
+                  const presence = getPresence(tr.lastLoginAt ?? null);
                   return (
                     <>
                       <LiveDot variant={presenceToDotVariant(presence)} />
-                      {presence}
+                      {t(`multisig.presence.${presence}`)}
                     </>
                   );
                 })()}
               </div>
             </div>
-            <span className="role-pill role-treasurer">Treasurer</span>
+            <span className="role-pill role-treasurer">{t('multisig.treasurers')}</span>
           </div>
         ))}
         {treasurers.length === 0 && (
@@ -180,7 +183,7 @@ export function TreasurerTeamCard({ treasurers, required, total }: TreasurerTeam
             style={{ padding: 12, background: 'var(--bg-elev)', gridColumn: '1 / -1' }}
             className="text-sm text-muted"
           >
-            Loading treasurer list…
+            {t('common.loading')}
           </div>
         )}
       </div>

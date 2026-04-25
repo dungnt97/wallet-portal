@@ -1,0 +1,12 @@
+{
+  "name": "@wp/policy-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Go service wrapper — exposes `dev`/`build`/`test` to Turbo so policy-engine starts alongside Node services in `pnpm turbo run dev`. Real source is Go (cmd/server, internal/).",
+  "scripts": {
+    "dev": "bash -c 'set -a; [ -f .env ] && . ./.env; set +a; go run ./cmd/server/'",
+    "build": "go build -o bin/policy-engine ./cmd/server/",
+    "test": "go test -race ./...",
+    "typecheck": "go vet ./..."
+  }
+}

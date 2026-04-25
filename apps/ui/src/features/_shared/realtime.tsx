@@ -82,7 +82,7 @@ export function useRealtime(): RealtimeState {
 
 // ── Live dot ─────────────────────────────────────────────────────────────────
 
-export function LiveDot({ variant = 'ok' }: { variant?: 'ok' | 'warn' | 'err' }) {
+export function LiveDot({ variant = 'ok' }: { variant?: 'ok' | 'warn' | 'err' | 'muted' }) {
   return <span className={`live-dot live-dot-${variant}`} />;
 }
 

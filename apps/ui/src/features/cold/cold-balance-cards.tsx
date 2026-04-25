@@ -37,8 +37,9 @@ function groupEntries(entries: ColdBalanceEntry[]): CardGroup[] {
   return order.map((k) => map.get(k)).filter((g): g is CardGroup => g !== undefined);
 }
 
-function totalUsd(entries: ColdBalanceEntry[]): number {
-  return entries.reduce((s, e) => s + Number(e.balance), 0);
+function totalUsd(entries: ColdBalanceEntry[], chain: 'bnb' | 'sol'): number {
+  const divisor = chain === 'bnb' ? 1e18 : 1e6;
+  return entries.reduce((s, e) => s + Number(e.balance) / divisor, 0);
 }
 
 interface CardProps {
@@ -50,7 +51,7 @@ interface CardProps {
 function BalanceCard({ group, canRebalance, onRebalance }: CardProps) {
   const { t } = useTranslation();
   const isHot = group.tier === 'hot';
-  const total = totalUsd(group.entries);
+  const total = totalUsd(group.entries, group.chain);
 
   return (
     <div className="card pro-card" style={{ flex: '1 1 220px', minWidth: 200 }}>
@@ -93,7 +94,7 @@ function BalanceCard({ group, canRebalance, onRebalance }: CardProps) {
             style={{ justifyContent: 'space-between', padding: '3px 0' }}
           >
             <span className="text-xs text-muted">{e.token}</span>
-            <span className="text-xs text-mono fw-500">${fmtUSD(Number(e.balance))}</span>
+            <span className="text-xs text-mono fw-500">${fmtUSD(Number(e.balance) / (group.chain === 'bnb' ? 1e18 : 1e6))}</span>
           </div>
         ))}
       </div>

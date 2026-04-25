@@ -3,6 +3,7 @@ import { KpiStrip, StatusBadge } from '@/components/custody';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtCompact } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { LiveTimeAgo } from '../_shared/realtime';
 
 interface Batch {
@@ -30,6 +31,7 @@ export function SweepKpiStrip({
   estFee,
   latest,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <KpiStrip
       items={[
@@ -38,18 +40,18 @@ export function SweepKpiStrip({
           label: (
             <>
               <I.Sweep size={10} />
-              Ready to sweep
+              {t('sweep.readyToSweep')}
             </>
           ),
           value: `$${fmtCompact(readyTotal)}`,
           foot: (
             <>
               <span className="text-xs text-muted text-mono">
-                {readyCount} {CHAINS[chain].short} addrs
+                {t('sweep.kpiAddrsShort', { n: readyCount, chain: CHAINS[chain].short })}
               </span>
               <span className="badge-tight warn">
                 <span className="dot" />
-                pending
+                {t('sweep.pending')}
               </span>
             </>
           ),
@@ -59,14 +61,16 @@ export function SweepKpiStrip({
           label: (
             <>
               <I.Check size={10} />
-              Selected
+              {t('sweep.selected')}
             </>
           ),
           value: `$${fmtCompact(selectedTotal)}`,
           foot: (
             <>
-              <span className="text-xs text-muted text-mono">{selectedCount} addrs</span>
-              <span className="text-xs delta-up">batch</span>
+              <span className="text-xs text-muted text-mono">
+                {t('sweep.kpiAddrs', { n: selectedCount })}
+              </span>
+              <span className="text-xs delta-up">{t('sweep.kpiBatch')}</span>
             </>
           ),
         },
@@ -75,7 +79,7 @@ export function SweepKpiStrip({
           label: (
             <>
               <I.Lightning size={10} />
-              Est. network fee
+              {t('sweep.estNetworkFee')}
             </>
           ),
           value: estFee.toFixed(chain === 'bnb' ? 4 : 6),
@@ -84,7 +88,7 @@ export function SweepKpiStrip({
               <span className="text-xs text-muted text-mono">
                 {chain === 'bnb' ? 'BNB' : 'SOL'}
               </span>
-              <span className="text-xs text-muted">per batch</span>
+              <span className="text-xs text-muted">{t('sweep.perBatch')}</span>
             </>
           ),
         },
@@ -93,7 +97,7 @@ export function SweepKpiStrip({
           label: (
             <>
               <I.Activity size={10} />
-              Last sweep
+              {t('sweep.lastSweep')}
             </>
           ),
           value: latest?.executedAt ? <LiveTimeAgo at={latest.executedAt} /> : '—',

@@ -82,7 +82,7 @@ export function UsersPage() {
     <PageFrame
       eyebrow={
         <>
-          Identity ·{' '}
+          {t('users.identity')} ·{' '}
           <span className="env-inline">
             {tab === 'staff' ? t('users.tabStaff') : t('users.tabUsers')}
           </span>
@@ -93,25 +93,25 @@ export function UsersPage() {
         <div className="policy-strip">
           <div className="policy-strip-item">
             <I.Shield size={11} />
-            <span className="text-muted">RBAC:</span>
-            <span className="fw-600">4 roles</span>
+            <span className="text-muted">{t('users.policyRbac')}</span>
+            <span className="fw-600">{t('users.policyRbacValue')}</span>
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Users size={11} />
-            <span className="text-muted">Staff MFA:</span>
-            <span className="fw-600">enforced</span>
+            <span className="text-muted">{t('users.policyMfa')}</span>
+            <span className="fw-600">{t('users.policyMfaValue')}</span>
             <LiveDot />
           </div>
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Database size={11} />
-            <span className="text-muted">HD wallet:</span>
+            <span className="text-muted">{t('users.policyHdWallet')}</span>
             <span className="fw-600">m/44'/60·501'</span>
           </div>
           <div className="spacer" />
           <span className="policy-strip-item text-mono text-xs text-muted">
-            <I.Logs size={11} /> audit: every action logged
+            <I.Logs size={11} /> {t('users.policyAudit')}
           </span>
         </div>
       }
@@ -125,20 +125,20 @@ export function UsersPage() {
               type="button"
               className="btn btn-accent"
               disabled={!canManageStaff}
-              title={!canManageStaff ? 'Admins only' : ''}
+              title={!canManageStaff ? t('users.adminsOnly') : ''}
               onClick={() => setInviteOpen(true)}
             >
-              <I.Plus size={13} /> Invite staff
+              <I.Plus size={13} /> {t('users.inviteStaff')}
             </button>
           ) : (
             <button
               type="button"
               className="btn btn-accent"
               disabled={!canCreateUser}
-              title={!canCreateUser ? 'No permission' : ''}
+              title={!canCreateUser ? t('users.noPermission') : ''}
               onClick={() => setAddUserOpen(true)}
             >
-              <I.Plus size={13} /> Add user
+              <I.Plus size={13} /> {t('users.addUser')}
             </button>
           )}
         </>
@@ -158,22 +158,22 @@ export function UsersPage() {
             onChange={(v) => setTab(v as Tab)}
             embedded
             tabs={[
-              { value: 'staff', label: 'Staff', count: staffAll.length },
-              { value: 'endusers', label: 'End users', count: totalUsers },
+              { value: 'staff', label: t('users.tabStaff'), count: staffAll.length },
+              { value: 'endusers', label: t('users.tabUsers'), count: totalUsers },
             ]}
           />
           <div className="spacer" />
           <div className="inline-search">
             <I.Search size={13} />
             <input
-              placeholder={tab === 'staff' ? 'Search staff…' : 'Search users…'}
+              placeholder={tab === 'staff' ? t('users.searchStaff') : t('users.searchUsers')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           {tab === 'staff' ? (
             <Filter
-              label="Role"
+              label={t('users.filterRole')}
               value={roleFilter ?? undefined}
               active={!!roleFilter}
               onClick={() =>
@@ -188,19 +188,16 @@ export function UsersPage() {
           ) : (
             <select
               className="input"
-              style={{ fontSize: 12, padding: '4px 8px' }}
+              style={{ fontSize: 12, padding: '4px 8px', width: 'auto', maxWidth: 160 }}
               value={kycFilter}
               onChange={(e) => setKycFilter(e.target.value as KycTier | '')}
             >
-              <option value="">All KYC tiers</option>
-              <option value="none">None</option>
-              <option value="basic">T1 Basic</option>
-              <option value="enhanced">T3 Enhanced</option>
+              <option value="">{t('users.kycAll')}</option>
+              <option value="none">{t('users.kycNone')}</option>
+              <option value="basic">{t('users.kycBasic')}</option>
+              <option value="enhanced">{t('users.kycEnhanced')}</option>
             </select>
           )}
-          <span className="text-xs text-muted text-mono">
-            {tab === 'staff' ? (staffQuery.isLoading ? '…' : staffFiltered.length) : totalUsers}
-          </span>
         </div>
 
         {tab === 'staff' ? (

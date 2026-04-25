@@ -5,9 +5,11 @@ import { AuthContext } from '@/auth/auth-provider';
 // On success: calls /auth/me to hydrate AuthContext, then navigates to dashboard.
 // On error: shows message and redirects to /login.
 import { useContext, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export function AuthCallbackPage() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const authCtx = useContext(AuthContext);
@@ -20,7 +22,7 @@ export function AuthCallbackPage() {
     const error = params.get('error');
 
     if (error || !ok) {
-      setErrorMsg(error ?? 'Authentication failed.');
+      setErrorMsg(error ?? t('auth.authFailed'));
       setStatus('error');
       setTimeout(() => navigate('/login', { replace: true }), 3000);
       return;
@@ -36,7 +38,9 @@ export function AuthCallbackPage() {
       })
       .catch((err) => {
         const msg =
-          err instanceof ApiError ? `Auth error ${err.status}` : 'Session validation failed';
+          err instanceof ApiError
+            ? `Auth error ${err.status}`
+            : t('auth.sessionValidationFailed');
         setErrorMsg(msg);
         setStatus('error');
         setTimeout(() => navigate('/login', { replace: true }), 3000);
@@ -49,7 +53,7 @@ export function AuthCallbackPage() {
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
         <div className="text-center space-y-2">
           <div className="text-[var(--err-text)] text-sm font-medium">{errorMsg}</div>
-          <div className="text-[var(--text-muted)] text-xs">Redirecting to login…</div>
+          <div className="text-[var(--text-muted)] text-xs">{t('auth.redirectingToLogin')}</div>
         </div>
       </div>
     );
@@ -57,7 +61,7 @@ export function AuthCallbackPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-      <div className="text-[var(--text-muted)] text-sm animate-pulse">Signing you in…</div>
+      <div className="text-[var(--text-muted)] text-sm animate-pulse">{t('auth.signingYouIn')}</div>
     </div>
   );
 }

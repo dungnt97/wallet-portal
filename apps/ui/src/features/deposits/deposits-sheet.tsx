@@ -7,6 +7,7 @@ import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtDateTime, fmtUSD } from '@/lib/format';
 import { useTweaksStore } from '@/stores/tweaks-store';
+import { useTranslation } from 'react-i18next';
 import { explorerUrl } from '../_shared/helpers';
 import type { FixDeposit } from './deposit-types';
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function DepositSheet({ deposit, onClose }: Props) {
+  const { t } = useTranslation();
   const toast = useToast();
   const showRiskFlags = useTweaksStore((s) => s.showRiskFlags);
   const addToSweepMutation = useAddDepositToSweep(deposit?.id ?? '');
@@ -26,7 +28,7 @@ export function DepositSheet({ deposit, onClose }: Props) {
     <DetailSheet
       open={!!deposit}
       onClose={onClose}
-      title={`Deposit ${d.id}`}
+      title={t('deposits.sheetTitle', { id: d.id })}
       subtitle={`${d.token} · ${CHAINS[d.chain].name}`}
       footer={
         <>
@@ -36,11 +38,11 @@ export function DepositSheet({ deposit, onClose }: Props) {
             target="_blank"
             rel="noreferrer"
           >
-            <I.External size={13} /> View explorer
+            <I.External size={13} /> {t('deposits.viewExplorer')}
           </a>
           <div className="spacer" />
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Close
+            {t('deposits.close')}
           </button>
           {d.status === 'credited' && (
             <button
@@ -60,7 +62,7 @@ export function DepositSheet({ deposit, onClose }: Props) {
                 });
               }}
             >
-              {addToSweepMutation.isPending ? '…' : 'Add to sweep'}
+              {addToSweepMutation.isPending ? '…' : t('deposits.addToSweep')}
             </button>
           )}
         </>
@@ -71,7 +73,7 @@ export function DepositSheet({ deposit, onClose }: Props) {
         style={{ marginBottom: 20, justifyContent: 'space-between', alignItems: 'flex-start' }}
       >
         <div>
-          <div className="text-xs text-muted">Amount</div>
+          <div className="text-xs text-muted">{t('deposits.amount')}</div>
           <div
             style={{
               fontSize: 28,
@@ -84,20 +86,20 @@ export function DepositSheet({ deposit, onClose }: Props) {
             {fmtUSD(d.amount)} <span className="text-muted text-sm fw-500">{d.token}</span>
           </div>
           <div className="text-xs text-muted text-mono" style={{ marginTop: 2 }}>
-            ≈ ${fmtUSD(d.amount)} USD
+            ≈ ${fmtUSD(d.amount)} USD {/* fmtUSD already formats, label is decorative */}
           </div>
         </div>
         <StatusBadge status={d.status} />
       </div>
 
-      <h4 className="section-head">Lifecycle</h4>
+      <h4 className="section-head">{t('deposits.lifecycle')}</h4>
       <div className="timeline" style={{ marginBottom: 20 }}>
         <div className="timeline-item">
           <div className="timeline-dot ok" />
           <div className="timeline-content">
-            <div className="timeline-title">Detected on chain</div>
+            <div className="timeline-title">{t('deposits.tlDetected')}</div>
             <div className="timeline-meta">
-              block {d.blockNumber.toLocaleString()} · {fmtDateTime(d.detectedAt)}
+              {t('deposits.tlBlock')} {d.blockNumber.toLocaleString()} · {fmtDateTime(d.detectedAt)}
             </div>
           </div>
         </div>
@@ -105,58 +107,58 @@ export function DepositSheet({ deposit, onClose }: Props) {
           <div className={`timeline-dot ${d.status === 'pending' ? 'pending' : 'ok'}`} />
           <div className="timeline-content">
             <div className="timeline-title">
-              {d.confirmations} / {d.requiredConfirmations} confirmations
+              {t('deposits.tlConfs', { a: d.confirmations, b: d.requiredConfirmations })}
             </div>
             <div className="timeline-meta">
-              {d.status === 'pending' ? 'awaiting finality' : 'finalized'}
+              {d.status === 'pending' ? t('deposits.tlWaiting') : t('deposits.tlFinalized')}
             </div>
           </div>
         </div>
         <div className="timeline-item">
           <div className={`timeline-dot ${d.creditedAt ? 'ok' : ''}`} />
           <div className="timeline-content">
-            <div className="timeline-title">Credited to user</div>
+            <div className="timeline-title">{t('deposits.tlCredited')}</div>
             <div className="timeline-meta">{d.creditedAt ? fmtDateTime(d.creditedAt) : '—'}</div>
           </div>
         </div>
         <div className="timeline-item">
           <div className={`timeline-dot ${d.sweptAt ? 'ok' : ''}`} />
           <div className="timeline-content">
-            <div className="timeline-title">Swept to hot wallet</div>
+            <div className="timeline-title">{t('deposits.tlSwept')}</div>
             <div className="timeline-meta">
-              {d.sweptAt ? fmtDateTime(d.sweptAt) : 'awaiting sweep'}
+              {d.sweptAt ? fmtDateTime(d.sweptAt) : t('deposits.tlAwaitingSweep')}
             </div>
           </div>
         </div>
       </div>
 
-      <h4 className="section-head">Details</h4>
+      <h4 className="section-head">{t('deposits.details')}</h4>
       <dl className="dl">
-        <dt>Deposit ID</dt>
+        <dt>{t('deposits.dDepositId')}</dt>
         <dd className="text-mono">{d.id}</dd>
-        <dt>User</dt>
+        <dt>{t('deposits.dUser')}</dt>
         <dd>
           {d.userName} <span className="text-faint text-mono text-xs">{d.userId}</span>
         </dd>
-        <dt>Chain</dt>
+        <dt>{t('deposits.dChain')}</dt>
         <dd>
           <ChainPill chain={d.chain} /> {CHAINS[d.chain].name}
         </dd>
-        <dt>Asset</dt>
+        <dt>{t('deposits.dAsset')}</dt>
         <dd>
           <TokenPill token={d.token} />
         </dd>
-        <dt>To address</dt>
+        <dt>{t('deposits.cToAddr')}</dt>
         <dd className="text-mono text-xs">{d.address}</dd>
-        <dt>Tx hash</dt>
+        <dt>{t('deposits.dTxHash')}</dt>
         <dd className="text-mono text-xs" style={{ wordBreak: 'break-all' }}>
           {d.txHash}
         </dd>
-        <dt>Block</dt>
+        <dt>{t('deposits.dBlock')}</dt>
         <dd className="text-mono">{d.blockNumber.toLocaleString()}</dd>
         {showRiskFlags && (
           <>
-            <dt>Risk</dt>
+            <dt>{t('deposits.dRisk')}</dt>
             <dd>
               <Risk level={d.risk} />
             </dd>

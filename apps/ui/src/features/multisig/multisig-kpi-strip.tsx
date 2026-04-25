@@ -2,6 +2,7 @@
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import type { MultisigOpDisplay } from './multisig-types';
 
 interface Props {
@@ -22,6 +23,7 @@ export function MultisigKpiStrip({
   treasurerCount,
   onlineTreasurerCount,
 }: Props) {
+  const { t } = useTranslation();
   const collecting = ops.filter((o) => o.status === 'collecting');
   const ready = ops.filter((o) => o.status === 'ready');
 
@@ -33,7 +35,7 @@ export function MultisigKpiStrip({
           label: (
             <>
               <I.Clock size={10} />
-              Collecting
+              {t('multisig.collecting')}
             </>
           ),
           value: collecting.length,
@@ -44,7 +46,7 @@ export function MultisigKpiStrip({
               </span>
               <span className="badge-tight warn">
                 <span className="dot" />
-                signing
+                {t('multisig.signing')}
               </span>
             </>
           ),
@@ -54,16 +56,16 @@ export function MultisigKpiStrip({
           label: (
             <>
               <I.Check size={10} />
-              Ready to execute
+              {t('multisig.readyToExecute')}
             </>
           ),
           value: ready.length,
           foot: (
             <>
-              <span className="text-xs text-muted text-mono">threshold met</span>
+              <span className="text-xs text-muted text-mono">{t('multisig.thresholdMet')}</span>
               <span className="badge-tight ok">
                 <span className="dot" />
-                ready
+                {t('multisig.ready')}
               </span>
             </>
           ),
@@ -73,14 +75,14 @@ export function MultisigKpiStrip({
           label: (
             <>
               <I.Users size={10} />
-              Treasurers
+              {t('multisig.treasurers')}
             </>
           ),
           value: treasurerCount ?? '…',
           foot: (
             <>
               <span className="text-xs text-muted">
-                {onlineTreasurerCount === null ? '…' : `${onlineTreasurerCount} online`}
+                {onlineTreasurerCount === null ? '…' : `${onlineTreasurerCount} ${t('multisig.online')}`}
               </span>
               <span
                 className={`badge-tight ${
@@ -88,7 +90,7 @@ export function MultisigKpiStrip({
                 }`}
               >
                 <span className="dot" />
-                {onlineTreasurerCount === null ? '…' : onlineTreasurerCount > 0 ? 'active' : 'idle'}
+                {onlineTreasurerCount === null ? '…' : onlineTreasurerCount > 0 ? t('multisig.active') : t('multisig.idle')}
               </span>
             </>
           ),
@@ -98,13 +100,13 @@ export function MultisigKpiStrip({
           label: (
             <>
               <I.UserX size={10} />
-              Rejected · 30d
+              {t('multisig.rejected30d')}
             </>
           ),
           value: failedCount,
           foot: (
             <span className="text-xs text-muted">
-              {failedCount === 0 ? 'no rejections' : 'review required'}
+              {failedCount === 0 ? t('multisig.noRejections') : t('multisig.reviewRequired')}
             </span>
           ),
         },

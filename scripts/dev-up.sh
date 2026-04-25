@@ -67,15 +67,26 @@ for i in $(seq 1 20); do
 done
 
 # ── Run migrations ────────────────────────────────────────────────────────────
+# Run from host: db:migrate loads DATABASE_URL via dotenv from apps/admin-api/.env
+# (which uses localhost:5433 — the host-mapped port). The compose env file's
+# DATABASE_URL points to the docker-internal hostname `postgres` and is not
+# resolvable from the host.
 echo "[dev-up] Running DB migrations..."
 (
   cd "$REPO_ROOT"
-  # Use the DATABASE_URL from the compose env file
-  export DATABASE_URL
-  DATABASE_URL=$(grep '^DATABASE_URL=' "$ENV_FILE" | cut -d= -f2-)
   pnpm --filter @wp/admin-api db:migrate
 )
 echo "[dev-up] Migrations complete"
+
+# ── Seed dev fixtures ─────────────────────────────────────────────────────────
+# Idempotent — staff/wallets seeders skip duplicates. Required for the UI's
+# demo-account dev-login flow (POST /auth/session/dev-login lookups staff by email).
+echo "[dev-up] Seeding dev fixtures..."
+(
+  cd "$REPO_ROOT"
+  pnpm --filter @wp/admin-api db:seed
+)
+echo "[dev-up] Seed complete"
 
 # ── Start all services ────────────────────────────────────────────────────────
 if [[ "$INFRA_ONLY" == "false" ]]; then

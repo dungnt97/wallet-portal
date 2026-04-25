@@ -4,6 +4,7 @@ import type { UserRecord } from '@/api/users';
 import { KpiStrip } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtCompact } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   users: UserRecord[];
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
+  const { t } = useTranslation();
   const t1 = users.filter((u) => u.kycTier === 'basic').length;
   const t3 = users.filter((u) => u.kycTier === 'enhanced').length;
   const highRisk = users.filter((u) => u.riskScore >= 40).length;
@@ -26,16 +28,18 @@ export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
           label: (
             <>
               <I.Users size={10} />
-              Staff accounts
+              {t('users.kpiStaff')}
             </>
           ),
           value: staff?.length ?? '…',
           foot: (
             <>
-              <span className="text-xs text-muted text-mono">{activeStaff} active</span>
+              <span className="text-xs text-muted text-mono">
+                {t('users.kpiActive', { count: activeStaff })}
+              </span>
               <span className="badge-tight ok">
                 <span className="dot" />
-                MFA
+                {t('users.kpiMfa')}
               </span>
             </>
           ),
@@ -45,7 +49,7 @@ export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
           label: (
             <>
               <I.Users size={10} />
-              End users
+              {t('users.kpiEndUsers')}
             </>
           ),
           value: totalUsers.toLocaleString(),
@@ -62,27 +66,27 @@ export function UsersKpiStrip({ users, totalUsers, staff }: Props) {
           label: (
             <>
               <I.Database size={10} />
-              Active users (page)
+              {t('users.kpiActiveUsers')}
             </>
           ),
           value: `${fmtCompact(users.length)}`,
-          foot: <span className="text-xs text-muted text-mono">shown on this page</span>,
+          foot: <span className="text-xs text-muted text-mono">{t('users.kpiShownOnPage')}</span>,
         },
         {
           key: 'flags',
           label: (
             <>
               <I.AlertTri size={10} />
-              Compliance flags
+              {t('users.kpiCompliance')}
             </>
           ),
           value: highRisk,
           foot: (
             <>
-              <span className="text-xs text-muted">risk ≥ med</span>
+              <span className="text-xs text-muted">{t('users.kpiRiskMed')}</span>
               <span className={`badge-tight ${highRisk > 0 ? 'warn' : 'ok'}`}>
                 <span className="dot" />
-                {highRisk > 0 ? 'Review' : 'Clean'}
+                {highRisk > 0 ? t('users.kpiReview') : t('users.kpiClean')}
               </span>
             </>
           ),

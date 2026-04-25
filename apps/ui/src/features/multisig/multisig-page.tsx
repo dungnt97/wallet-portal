@@ -37,7 +37,7 @@ function apiOpToDisplay(
   staffMap: Map<string, StaffMemberRow>
 ): MultisigOpDisplay {
   // Derive a readable vault name from the chain
-  const safeName = op.chain === 'bnb' ? 'BSC Treasury Safe' : 'Solana Squads Vault';
+  const safeName = op.chain === 'bnb' ? 'BSC Treasury Safe' : 'Solana Squads Vault'; // i18n in VaultCard
 
   return {
     id: op.id,
@@ -126,14 +126,14 @@ export function MultisigPage() {
     if (!coldBalances) return 0;
     return coldBalances
       .filter((b) => b.chain === 'bnb')
-      .reduce((sum, b) => sum + Number.parseFloat(b.balance), 0);
+      .reduce((sum, b) => sum + Number.parseFloat(b.balance) / 1e18, 0);
   }, [coldBalances]);
 
   const solBalance = useMemo(() => {
     if (!coldBalances) return 0;
     return coldBalances
       .filter((b) => b.chain === 'sol')
-      .reduce((sum, b) => sum + Number.parseFloat(b.balance), 0);
+      .reduce((sum, b) => sum + Number.parseFloat(b.balance) / 1e6, 0);
   }, [coldBalances]);
 
   const ops: MultisigOpDisplay[] = useMemo(() => {
@@ -238,7 +238,7 @@ export function MultisigPage() {
         <div className="policy-strip">
           <div className="policy-strip-item">
             <I.Shield size={11} />
-            <span className="text-muted">Threshold:</span>
+            <span className="text-muted">{t('multisig.threshold')}</span>
             <span className="fw-600">
               {MULTISIG_POLICY.required} of {MULTISIG_POLICY.total}
             </span>
@@ -246,7 +246,7 @@ export function MultisigPage() {
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Database size={11} />
-            <span className="text-muted">BSC Safe:</span>
+            <span className="text-muted">{t('multisig.bscSafe')}</span>
             <LiveDot
               variant={
                 syncStatus?.bnb.status === 'synced'
@@ -266,7 +266,7 @@ export function MultisigPage() {
           <div className="policy-strip-sep" />
           <div className="policy-strip-item">
             <I.Database size={11} />
-            <span className="text-muted">SOL Squads:</span>
+            <span className="text-muted">{t('multisig.solSquads')}</span>
             <LiveDot
               variant={
                 syncStatus?.sol.status === 'synced'
@@ -295,7 +295,7 @@ export function MultisigPage() {
                     : 'warn'
               }
             />{' '}
-            last sync{' '}
+            {t('multisig.lastSync')}{' '}
             {syncStatus ? (
               <LiveTimeAgo
                 at={
@@ -331,7 +331,7 @@ export function MultisigPage() {
       <div className="dash-grid-2" style={{ marginTop: 14 }}>
         <VaultCard
           chain="bnb"
-          name="BSC Treasury Safe"
+          name={t('multisig.bnbVaultName')}
           address={bnbVaultAddress}
           policy={`${MULTISIG_POLICY.required} of ${MULTISIG_POLICY.total}`}
           balance={bnbBalance}
@@ -340,7 +340,7 @@ export function MultisigPage() {
         />
         <VaultCard
           chain="sol"
-          name="Solana Squads Vault"
+          name={t('multisig.solVaultName')}
           address={solVaultAddress}
           policy={`${MULTISIG_POLICY.required} of ${MULTISIG_POLICY.total}`}
           balance={solBalance}

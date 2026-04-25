@@ -19,6 +19,7 @@ import {
   canonicalSolanaBytes,
 } from '@wp/shared-types';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSignTypedData, useAccount as useWagmiAccount } from 'wagmi';
 import { evmBroadcastViaSafe, evmSign, getSafeTxServiceUrl } from './evm-adapter';
 import { buildEvmSafeTxTypedData } from './evm-safe-tx-builder';
@@ -62,6 +63,7 @@ export function WalletSignPopup({
   onBroadcastFailed,
   onNeedConnect,
 }: Props) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<SignStatus>('idle');
   const [expanded, setExpanded] = useState(false);
 
@@ -323,18 +325,21 @@ export function WalletSignPopup({
           >
             <I.AlertTri size={28} style={{ color: 'oklch(75% 0.18 70)' }} />
             <div className="wallet-popup-title" style={{ textAlign: 'center' }}>
-              Please connect a {op.chain === 'bnb' ? 'BNB' : 'Solana'} wallet
+              {t('signing.connectWalletRequired', {
+                chain: op.chain === 'bnb' ? 'BNB' : 'Solana',
+              })}
             </div>
             <div className="wallet-popup-sub" style={{ textAlign: 'center' }}>
-              This transaction requires a{' '}
-              {op.chain === 'bnb' ? 'MetaMask / WalletConnect' : 'Phantom / Solflare'} connection.
+              {op.chain === 'bnb'
+                ? t('signing.connectWalletHintEvm')
+                : t('signing.connectWalletHintSol')}
             </div>
             <div className="wallet-popup-foot" style={{ borderTop: 'none', padding: 0 }}>
               <button className="btn btn-primary" onClick={onNeedConnect}>
-                Connect wallet
+                {t('signing.connectWallet')}
               </button>
               <button className="btn btn-ghost" onClick={onRejected}>
-                Cancel
+                {t('signing.cancel')}
               </button>
             </div>
           </div>
@@ -348,7 +353,7 @@ export function WalletSignPopup({
                 }}
               />
               <div>
-                <div className="wallet-popup-acct-name">Treasury Signer</div>
+                <div className="wallet-popup-acct-name">{t('signing.treasurySigner')}</div>
                 <div className="wallet-popup-acct-addr text-mono">
                   {shortHash(signerAddress, 8, 6)}
                 </div>
@@ -356,11 +361,11 @@ export function WalletSignPopup({
             </div>
 
             <div className="wallet-popup-body">
-              <div className="wallet-popup-title">Signature request</div>
+              <div className="wallet-popup-title">{t('signing.signatureRequest')}</div>
               <div className="wallet-popup-sub">
-                Wallet-Portal is requesting a signature for a{' '}
-                {op.chain === 'sol' ? 'Squads proposal' : 'Safe transaction'}.{' '}
-                <strong>This is off-chain</strong> — no gas, no network fee.
+                {op.chain === 'sol'
+                  ? t('signing.signatureSubSol')
+                  : t('signing.signatureSubEvm')}
               </div>
 
               <div className="wallet-popup-data">
@@ -370,11 +375,11 @@ export function WalletSignPopup({
                   onClick={() => setExpanded((v) => !v)}
                 >
                   <span className="text-xs fw-600">
-                    {op.chain === 'sol' ? 'Proposal' : 'SafeTx'}
+                    {op.chain === 'sol' ? t('signing.proposalLabel') : t('signing.safeTxLabel')}
                   </span>
                   <span className="spacer" />
                   <span className="text-xs text-faint">
-                    Click to {expanded ? 'collapse' : 'view raw data'}
+                    {expanded ? t('signing.collapse') : t('signing.viewRawData')}
                   </span>
                   <I.ArrowRight
                     size={11}
@@ -407,23 +412,23 @@ export function WalletSignPopup({
               {status === 'idle' && (
                 <>
                   <button className="btn btn-ghost" onClick={onRejected}>
-                    Reject
+                    {t('signing.reject')}
                   </button>
                   <button className="btn btn-primary" onClick={() => void sign()}>
-                    Sign
+                    {t('signing.sign')}
                   </button>
                 </>
               )}
               {status === 'signing' && (
                 <div className="wallet-popup-signing">
                   <I.Loader size={14} />
-                  <span>Signing…</span>
+                  <span>{t('signing.signing')}</span>
                 </div>
               )}
               {status === 'done' && (
                 <div className="wallet-popup-done">
                   <I.Check size={16} />
-                  <span>Signed</span>
+                  <span>{t('signing.signed')}</span>
                 </div>
               )}
             </div>

@@ -116,6 +116,15 @@ export function AuthProvider({ children }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Session heartbeat — updates lastLoginAt every 60s for presence detection
+  useEffect(() => {
+    if (!staff) return;
+    const ping = () => api.post('/auth/session/heartbeat').catch(() => {});
+    ping();
+    const id = window.setInterval(ping, 60_000);
+    return () => clearInterval(id);
+  }, [staff]);
+
   /**
    * Initiate Google OIDC login — calls /auth/session/initiate, redirects to Google.
    * Browser lands on /auth/callback after consent (handled by AuthCallbackPage).

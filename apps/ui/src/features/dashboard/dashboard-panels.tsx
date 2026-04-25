@@ -5,6 +5,7 @@ import { type OpsHealth, useComplianceSummary, useOpsHealth, useSlaSummary } fro
 import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
 import type { NotificationPayload } from '@wp/shared-types';
+import { useTranslation } from 'react-i18next';
 import { LiveDot, LiveTimeAgo } from '../_shared/realtime';
 import { useNotifications } from '../notifs/use-notifications';
 
@@ -106,6 +107,7 @@ export function SystemStatusList() {
 }
 
 export function GasWalletList() {
+  const { t } = useTranslation();
   const { data: health, isLoading } = useOpsHealth();
 
   // Gas wallet native-token balances (BNB/SOL) are not exposed by /cold/balances
@@ -143,20 +145,18 @@ export function GasWalletList() {
           <div className="gas-info">
             <div className="gas-name">{g.name}</div>
             <div className="gas-meta text-xs text-muted text-mono">
-              lag {g.lag} blk · status {g.status}
+              {t('dashboard.gasLagStatus', { lag: g.lag, status: g.status })}
             </div>
           </div>
           <div className="gas-bal">
             <span className={`text-mono fw-600 text-xs ${g.isWarn ? 'text-err' : 'text-ok'}`}>
-              {g.isWarn ? 'degraded' : 'healthy'}
+              {g.isWarn ? t('dashboard.gasDegraded') : t('dashboard.gasHealthy')}
             </span>
           </div>
         </div>
       ))}
       <div className="gas-row" style={{ opacity: 0.55, fontSize: 11 }}>
-        <span className="text-muted text-xs">
-          Native gas balances (BNB/SOL) available once /ops/gas-wallets endpoint is added.
-        </span>
+        <span className="text-muted text-xs">{t('dashboard.gasNativeHint')}</span>
       </div>
     </div>
   );
@@ -200,12 +200,13 @@ function slaBarPct(actualSec: number | null, targetSec: number): number {
 }
 
 export function SLAGrid() {
+  const { t } = useTranslation();
   const { data: sla, isLoading } = useSlaSummary();
 
   if (isLoading) {
     return (
       <div className="sla-grid">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="sla-cell skeleton-row" />
         ))}
       </div>
@@ -218,36 +219,43 @@ export function SLAGrid() {
   return (
     <div className="sla-grid">
       <SLACell
-        label="Deposit credit (p50)"
+        label={t('dashboard.slaDepositCreditP50')}
         target="< 60s"
         actual={fmtSec(depositSec)}
         pct={slaBarPct(depositSec, 60)}
         ok={depositSec === null || depositSec < 60}
       />
       <SLACell
-        label="Sweep confirm (p50)"
+        label={t('dashboard.slaSweepConfirmP50')}
         target="< 5m"
         actual={fmtSec(sweepSec)}
         pct={slaBarPct(sweepSec, 300)}
         ok={sweepSec === null || sweepSec < 300}
       />
       <SLACell
-        label="Pending deposits"
+        label={t('dashboard.slaPendingDeposits')}
         target="< 50"
         actual={String(sla?.pendingDeposits ?? '—')}
         pct={Math.min(100, Math.round(((sla?.pendingDeposits ?? 0) / 50) * 100))}
         ok={(sla?.pendingDeposits ?? 0) < 50}
       />
       <SLACell
-        label="Pending sweeps"
+        label={t('dashboard.slaPendingSweeps')}
         target="< 20"
         actual={String(sla?.pendingSweeps ?? '—')}
         pct={Math.min(100, Math.round(((sla?.pendingSweeps ?? 0) / 20) * 100))}
         ok={(sla?.pendingSweeps ?? 0) < 20}
       />
       <SLACell
-        label="24h deposits"
-        target="real-time"
+        label={t('dashboard.slaPendingWithdrawals')}
+        target="< 10"
+        actual={String(sla?.pendingWithdrawals ?? '—')}
+        pct={Math.min(100, Math.round(((sla?.pendingWithdrawals ?? 0) / 10) * 100))}
+        ok={(sla?.pendingWithdrawals ?? 0) < 10}
+      />
+      <SLACell
+        label={t('dashboard.sla24hDeposits')}
+        target={t('dashboard.slaRealTime')}
         actual={String(sla?.depositsLast24h ?? '—')}
         pct={100}
       />
@@ -331,6 +339,7 @@ function severityIcon(severity: NotificationPayload['severity']) {
 }
 
 export function AlertsList() {
+  const { t } = useTranslation();
   // Fetch latest 20 notifications, surface critical + warning unread ones first
   const { data, isLoading } = useNotifications(20);
 
@@ -358,7 +367,7 @@ export function AlertsList() {
         <div className="alert-compact alert-info">
           <div className="alert-compact-head">
             <I.Check size={11} />
-            <span className="alert-compact-title">No active alerts</span>
+            <span className="alert-compact-title">{t('dashboard.noActiveAlerts')}</span>
           </div>
         </div>
       </div>

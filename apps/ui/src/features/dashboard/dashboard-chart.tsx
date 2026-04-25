@@ -9,25 +9,24 @@ import { fmtCompact, fmtUSD } from '@/lib/format';
 // Dashboard chart + holdings — tabbed pro-card with AreaChart and asset rows.
 // Time-series data from GET /dashboard/history — real DB buckets, no synthetic fallback.
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AreaChart, Sparkline } from '../_shared/charts';
 
-/** Build x-axis date labels for the given range, ending with "Today" */
-function buildAxisLabels(range: DashboardHistoryRange): string[] {
+function buildAxisLabels(range: DashboardHistoryRange, todayLabel: string): string[] {
   const days = range === '24h' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
   const labels: string[] = [];
   const now = new Date();
-  // Pick a reasonable number of visible tick points (max 7)
   const ticks = Math.min(days, 7);
   const step = days / (ticks - 1);
   for (let i = 0; i < ticks - 1; i++) {
     const d = new Date(now.getTime() - (days - i * step) * 24 * 60 * 60 * 1000);
     if (range === '24h') {
-      labels.push(d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }));
+      labels.push(d.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true }));
     } else {
-      labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      labels.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
     }
   }
-  labels.push('Today');
+  labels.push(todayLabel);
   return labels;
 }
 
@@ -51,6 +50,7 @@ function fmtDelta(delta: number | null): string {
 }
 
 export function DashboardChart() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<DashboardHistoryRange>('7d');
   const [metric, setMetric] = useState<DashboardHistoryMetric>('aum');
 
@@ -70,7 +70,8 @@ export function DashboardChart() {
   const stroke =
     metric === 'aum' ? 'var(--accent)' : metric === 'deposits' ? 'var(--ok)' : 'var(--info)';
 
-  const axisLabels = useMemo(() => buildAxisLabels(range), [range]);
+  const todayLabel = t('dashboard.today');
+  const axisLabels = useMemo(() => buildAxisLabels(range, todayLabel), [range, todayLabel]);
 
   // Compute real deltas from historical series
   const aumDelta = useMemo(() => {
@@ -91,21 +92,21 @@ export function DashboardChart() {
   const tabs = [
     {
       id: 'aum' as const,
-      label: 'AUM',
+      label: t('dashboard.kpiTabAum'),
       value: `$${fmtCompact(total)}`,
       delta: fmtDelta(aumDelta),
       positive: aumDelta === null || aumDelta >= 0,
     },
     {
       id: 'deposits' as const,
-      label: 'Deposits (pending)',
+      label: t('dashboard.kpiTabDeposits'),
       value: `$${fmtCompact(pendingDepositsValue)}`,
       delta: fmtDelta(depDelta),
       positive: depDelta === null || depDelta >= 0,
     },
     {
       id: 'withdrawals' as const,
-      label: 'Withdrawals (pending)',
+      label: t('dashboard.kpiTabWithdrawals'),
       value: String(pendingWithdrawals),
       delta: fmtDelta(wdDelta),
       positive: wdDelta === null || wdDelta >= 0,
@@ -154,9 +155,7 @@ export function DashboardChart() {
               justifyContent: 'center',
             }}
           >
-            <span className="text-sm text-muted">
-              No historical data yet — activity will appear here
-            </span>
+            <span className="text-sm text-muted">{t('dashboard.chartNoData')}</span>
           </div>
         ) : (
           <AreaChart data={series} height={180} stroke={stroke} label={metric} />
@@ -172,6 +171,7 @@ export function DashboardChart() {
 }
 
 export function HoldingsList() {
+  const { t } = useTranslation();
   const { data: metrics } = useDashboardMetrics();
 
   const breakdown = metrics?.aumBreakdown ?? {
@@ -229,8 +229,8 @@ export function HoldingsList() {
   return (
     <div className="card pro-card">
       <div className="pro-card-header">
-        <h3 className="card-title">Holdings</h3>
-        <span className="text-xs text-muted text-mono">Assets · % of AUM</span>
+        <h3 className="card-title">{t('dashboard.holdingsTitle')}</h3>
+        <span className="text-xs text-muted text-mono">{t('dashboard.holdingsMeta2')}</span>
       </div>
       <div className="holdings-list">
         {rows.map((r, i) => (
@@ -241,7 +241,7 @@ export function HoldingsList() {
             </div>
             <div className="holdings-cell-val">
               <div className="text-mono fw-600">${fmtUSD(r.bal)}</div>
-              <div className="text-xs text-muted">{r.pct}% of AUM</div>
+              <div className="text-xs text-muted">{r.pct}{t('dashboard.holdingsPctOfAum')}</div>
             </div>
             {r.series.length >= 2 ? (
               <Sparkline data={r.series} width={60} height={20} stroke={r.color} />

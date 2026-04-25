@@ -6,8 +6,10 @@ import { CheckCircle2, KeyRound, Loader2, ShieldCheck } from 'lucide-react';
 // /app/account/security — manage WebAuthn credentials + login history
 // MVP: single "Add security key" button that runs the registration ceremony.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function SecurityPage() {
+  const { t } = useTranslation();
   const [state, setState] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [deviceName, setDeviceName] = useState('My Security Key');
@@ -35,9 +37,9 @@ export function SecurityPage() {
       const msg =
         err instanceof Error
           ? err.name === 'NotAllowedError'
-            ? 'Registration was cancelled or timed out.'
+            ? t('auth.registrationCancelled')
             : err.message
-          : 'Registration failed.';
+          : t('auth.registrationFailed');
       setErrorMsg(msg);
       setState('error');
     }
@@ -46,10 +48,9 @@ export function SecurityPage() {
   return (
     <div className="p-6 max-w-2xl space-y-6">
       <div>
-        <h1 className="text-[18px] font-semibold text-[var(--text)]">Security keys</h1>
+        <h1 className="text-[18px] font-semibold text-[var(--text)]">{t('auth.securityKeys')}</h1>
         <p className="text-[13px] text-[var(--text-muted)] mt-1">
-          Register a hardware security key or passkey to enable WebAuthn step-up for write
-          operations.
+          {t('auth.securityKeysDesc')}
         </p>
       </div>
 
@@ -59,9 +60,12 @@ export function SecurityPage() {
             <KeyRound size={16} />
           </div>
           <div>
-            <div className="text-[13px] font-medium text-[var(--text)]">Add a new security key</div>
+            <div className="text-[13px] font-medium text-[var(--text)]">
+              {t('auth.addSecurityKey')}
+            </div>
             <div className="text-[11px] text-[var(--text-muted)]">
-              Works with FIDO2 hardware keys (YubiKey, etc.) and platform passkeys.
+              {/* Keep FIDO2, YubiKey as technical terms */}
+              {t('auth.fido2Hint')}
             </div>
           </div>
         </div>
@@ -71,7 +75,7 @@ export function SecurityPage() {
             htmlFor="device-name"
             className="block text-[12px] font-medium text-[var(--text-muted)] mb-1"
           >
-            Device name (optional)
+            {t('auth.deviceName')}
           </label>
           <input
             id="device-name"
@@ -79,7 +83,7 @@ export function SecurityPage() {
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value)}
             maxLength={100}
-            placeholder="e.g. YubiKey 5C, MacBook Touch ID"
+            placeholder={t('auth.deviceNamePlaceholder')}
             disabled={state === 'pending'}
             className={cn(
               'w-full px-3 py-2 rounded-md border text-[13px] bg-[var(--bg)] text-[var(--text)]',
@@ -98,7 +102,7 @@ export function SecurityPage() {
         {state === 'success' ? (
           <div className="flex items-center gap-2 text-[13px] text-[var(--success-text)] bg-[var(--success-soft)] px-3 py-2 rounded-md">
             <CheckCircle2 size={14} />
-            Security key registered successfully.
+            {t('auth.keyRegisteredSuccess')}
           </div>
         ) : (
           <button
@@ -114,12 +118,12 @@ export function SecurityPage() {
             {state === 'pending' ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                Follow browser prompt…
+                {t('auth.followBrowserPrompt')}
               </>
             ) : (
               <>
                 <ShieldCheck size={14} />
-                Add security key
+                {t('auth.addSecurityKey')}
               </>
             )}
           </button>

@@ -4,6 +4,7 @@ import { ChainPill, TokenPill } from '@/components/custody';
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   snapshot: ReconciliationSnapshot;
@@ -22,11 +23,12 @@ function minorToUsd(minor: string, chain: string): number {
 }
 
 function SeverityBadge({ severity, suppressed }: { severity: string; suppressed: boolean }) {
+  const { t } = useTranslation();
   if (suppressed) {
     return (
-      <span className="badge-tight" title="Suppressed — in-flight operation">
+      <span className="badge-tight" title={t('recon.suppressedTitle')}>
         <span className="dot" style={{ background: 'var(--text-faint)' }} />
-        suppressed
+        {t('recon.suppressed')}
       </span>
     );
   }
@@ -35,10 +37,15 @@ function SeverityBadge({ severity, suppressed }: { severity: string; suppressed:
     warning: 'badge-tight warn',
     info: 'badge-tight ok',
   };
+  const labelMap: Record<string, string> = {
+    critical: t('recon.severityCritical'),
+    warning: t('recon.severityWarning'),
+    info: t('recon.severityInfo'),
+  };
   return (
     <span className={map[severity] ?? 'badge-tight'}>
       <span className="dot" />
-      {severity}
+      {labelMap[severity] ?? severity}
     </span>
   );
 }
@@ -48,6 +55,7 @@ type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DriftDrilldown({ snapshot, drifts }: Props) {
+  const { t } = useTranslation();
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
 
   const critCount = drifts.filter((d) => d.severity === 'critical' && !d.suppressedReason).length;
@@ -64,7 +72,7 @@ export function DriftDrilldown({ snapshot, drifts }: Props) {
         <div className="pro-card-header">
           <h3 className="card-title">
             <I.Database size={12} style={{ marginRight: 6 }} />
-            Snapshot {snapshot.id.slice(0, 8)}…
+            {t('recon.snapshotTitle', { id: snapshot.id.slice(0, 8) })}…
           </h3>
           <div className="spacer" />
           <span className="text-xs text-muted text-mono">
@@ -73,7 +81,7 @@ export function DriftDrilldown({ snapshot, drifts }: Props) {
         </div>
         <div className="kpi-strip" style={{ padding: '8px 0' }}>
           <div className="kpi-mini">
-            <div className="kpi-mini-label">Critical drifts</div>
+            <div className="kpi-mini-label">{t('recon.criticalDrifts')}</div>
             <div
               className="kpi-mini-value"
               style={{ color: critCount > 0 ? 'var(--err-text)' : 'var(--ok-text)' }}
@@ -82,7 +90,7 @@ export function DriftDrilldown({ snapshot, drifts }: Props) {
             </div>
           </div>
           <div className="kpi-mini">
-            <div className="kpi-mini-label">Warning drifts</div>
+            <div className="kpi-mini-label">{t('recon.warningDrifts')}</div>
             <div
               className="kpi-mini-value"
               style={{ color: warnCount > 0 ? 'var(--warn-text)' : 'var(--ok-text)' }}
@@ -91,7 +99,7 @@ export function DriftDrilldown({ snapshot, drifts }: Props) {
             </div>
           </div>
           <div className="kpi-mini">
-            <div className="kpi-mini-label">Suppressed</div>
+            <div className="kpi-mini-label">{t('recon.suppressed')}</div>
             <div className="kpi-mini-value text-muted">{suppCount}</div>
           </div>
           <div className="kpi-mini">
@@ -113,13 +121,20 @@ export function DriftDrilldown({ snapshot, drifts }: Props) {
           <div className="spacer" />
           {/* Severity filter pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            {(['all', 'critical', 'warning', 'info'] as SeverityFilter[]).map((f) => (
+            {(
+              [
+                ['all', t('recon.severityAll')],
+                ['critical', t('recon.severityCritical')],
+                ['warning', t('recon.severityWarning')],
+                ['info', t('recon.severityInfo')],
+              ] as [SeverityFilter, string][]
+            ).map(([f, label]) => (
               <button
                 key={f}
                 className={`btn btn-xs ${severityFilter === f ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setSeverityFilter(f)}
               >
-                {f}
+                {label}
               </button>
             ))}
           </div>

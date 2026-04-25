@@ -2,6 +2,7 @@
 import type { ReconciliationSnapshot } from '@/api/reconciliation';
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   snapshots: ReconciliationSnapshot[];
@@ -13,24 +14,23 @@ interface Props {
 
 function formatMinorUsd(minor: string | null): string {
   if (!minor) return '—';
-  // USDT/USDC on BNB = 18 dec; on SOL = 6 dec. We display as approximate USD.
-  // Minor values stored as aggregate across chains; treat as 6-dec for display.
   const val = Number(minor) / 1e6;
   return `$${fmtUSD(val)}`;
 }
 
 function StatusBadge({ status }: { status: ReconciliationSnapshot['status'] }) {
-  const map: Record<typeof status, { cls: string; label: string }> = {
-    running: { cls: 'badge-tight warn', label: 'Running' },
-    completed: { cls: 'badge-tight ok', label: 'Completed' },
-    failed: { cls: 'badge-tight err', label: 'Failed' },
-    cancelled: { cls: 'badge-tight', label: 'Cancelled' },
+  const { t } = useTranslation();
+  const map: Record<typeof status, { cls: string; key: string }> = {
+    running: { cls: 'badge-tight warn', key: 'recon.statusRunning' },
+    completed: { cls: 'badge-tight ok', key: 'recon.statusCompleted' },
+    failed: { cls: 'badge-tight err', key: 'recon.statusFailed' },
+    cancelled: { cls: 'badge-tight', key: 'recon.statusCancelled' },
   };
-  const cfg = map[status] ?? { cls: 'badge-tight', label: status };
+  const cfg = map[status] ?? { cls: 'badge-tight', key: '' };
   return (
     <span className={cfg.cls}>
       <span className="dot" />
-      {cfg.label}
+      {cfg.key ? t(cfg.key) : status}
     </span>
   );
 }
@@ -38,10 +38,12 @@ function StatusBadge({ status }: { status: ReconciliationSnapshot['status'] }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function SnapshotList({ snapshots, selectedId, onSelect }: Props) {
+  const { t } = useTranslation();
+
   if (snapshots.length === 0) {
     return (
       <div className="card pro-card" style={{ padding: 24, textAlign: 'center' }}>
-        <p className="text-muted text-sm">No snapshots yet. Run a reconciliation to begin.</p>
+        <p className="text-muted text-sm">{t('recon.noSnapshots')}</p>
       </div>
     );
   }
@@ -49,18 +51,20 @@ export function SnapshotList({ snapshots, selectedId, onSelect }: Props) {
   return (
     <div className="card pro-card">
       <div className="pro-card-header">
-        <h3 className="card-title">Snapshots</h3>
+        <h3 className="card-title">{t('recon.snapshots')}</h3>
         <div className="spacer" />
-        <span className="text-xs text-muted">{snapshots.length} entries</span>
+        <span className="text-xs text-muted">
+          {t('recon.entries', { n: snapshots.length })}
+        </span>
       </div>
       <table className="table table-tight">
         <thead>
           <tr>
-            <th>Started</th>
-            <th>Scope</th>
-            <th>Triggered by</th>
-            <th className="num">Drift total</th>
-            <th>Status</th>
+            <th>{t('recon.colStarted')}</th>
+            <th>{t('recon.colScope')}</th>
+            <th>{t('recon.colTriggeredBy')}</th>
+            <th className="num">{t('recon.colDriftTotal')}</th>
+            <th>{t('common.status')}</th>
             <th />
           </tr>
         </thead>
@@ -81,7 +85,9 @@ export function SnapshotList({ snapshots, selectedId, onSelect }: Props) {
                   </span>
                 )}
               </td>
-              <td className="text-xs text-muted">{s.triggeredBy ? 'manual' : 'cron'}</td>
+              <td className="text-xs text-muted">
+                {s.triggeredBy ? t('recon.triggerManual') : t('recon.triggerCron')}
+              </td>
               <td className="num text-mono">{formatMinorUsd(s.driftTotalMinor)}</td>
               <td>
                 <StatusBadge status={s.status} />

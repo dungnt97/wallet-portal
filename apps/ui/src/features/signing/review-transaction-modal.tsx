@@ -3,6 +3,7 @@ import { fmtUSD, shortHash } from '@/lib/format';
 // Review transaction modal — pre-sign summary + policy trace + simulation.
 // Ported from prototype signing_modals.jsx ReviewTransactionModal.
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { evaluatePolicy } from './policy-preview';
 import type { SigningOp } from './signing-flow';
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject }: Props) {
+  const { t } = useTranslation();
   const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
       >
         <div className="modal-header">
           <div>
-            <div className="modal-title">Review transaction</div>
+            <div className="modal-title">{t('signing.reviewTitle')}</div>
             <div className="modal-subtitle">
               {op.id} · {op.chain === 'sol' ? 'Squads v4' : 'Safe v1.4.1'}
             </div>
@@ -49,7 +51,7 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
 
         <div className="review-primary">
           <div className="review-amount">
-            <div className="review-amount-label">You're approving</div>
+            <div className="review-amount-label">{t('signing.approving')}</div>
             <div className="review-amount-value">${fmtUSD(op.amount)}</div>
             <div className="review-amount-token">
               {op.token} · {chainName}
@@ -59,15 +61,15 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
             <I.ArrowRight size={20} />
           </div>
           <div className="review-dest">
-            <div className="review-dest-label">Send to</div>
+            <div className="review-dest-label">{t('signing.sendTo')}</div>
             <div className="review-dest-value text-mono">{shortHash(op.destination, 10, 8)}</div>
             {op.destinationKnown ? (
               <div className="review-dest-note ok">
-                <I.Check size={10} /> Previously used destination
+                <I.Check size={10} /> {t('signing.knownDest')}
               </div>
             ) : (
               <div className="review-dest-note warn">
-                <I.AlertTri size={10} /> First-time destination
+                <I.AlertTri size={10} /> {t('signing.firstTimeDest')}
               </div>
             )}
           </div>
@@ -76,20 +78,20 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
         <div className="review-section">
           <div className="review-section-head">
             <span className="section-dot sim" />
-            <span className="review-section-title">Simulation</span>
-            <span className="section-tag">Tenderly · dry-run</span>
+            <span className="review-section-title">{t('signing.simulation')}</span>
+            <span className="section-tag">{t('signing.simTag')}</span>
           </div>
           <div className="sim-grid">
             <div className="sim-cell">
-              <div className="sim-cell-label">Balance change</div>
+              <div className="sim-cell-label">{t('signing.simBalance')}</div>
               <div className="sim-cell-value err">-${fmtUSD(op.amount)}</div>
             </div>
             <div className="sim-cell">
-              <div className="sim-cell-label">Gas for this signature</div>
-              <div className="sim-cell-value">Free (off-chain)</div>
+              <div className="sim-cell-label">{t('signing.simGas')}</div>
+              <div className="sim-cell-value">{t('signing.simGasValue')}</div>
             </div>
             <div className="sim-cell">
-              <div className="sim-cell-label">Signature type</div>
+              <div className="sim-cell-label">{t('signing.simSigType')}</div>
               <div className="sim-cell-value text-mono text-xs">{sigType}</div>
             </div>
           </div>
@@ -98,9 +100,12 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
         <div className="review-section">
           <div className="review-section-head">
             <span className={`section-dot ${policy.passed ? 'ok' : 'err'}`} />
-            <span className="review-section-title">Policy checks</span>
+            <span className="review-section-title">{t('signing.policyChecks')}</span>
             <span className="section-tag">
-              {policy.checks.filter((c) => c.ok).length} / {policy.checks.length} passed
+              {t('signing.policyPassed', {
+                a: policy.checks.filter((c) => c.ok).length,
+                b: policy.checks.length,
+              })}
             </span>
           </div>
           <div className="policy-trace">
@@ -125,29 +130,29 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
         <div className="review-section">
           <div className="review-section-head">
             <span className="section-dot info" />
-            <span className="review-section-title">On-chain context</span>
+            <span className="review-section-title">{t('signing.onChainContext')}</span>
           </div>
           <div className="onchain-grid">
             <div>
               <span className="text-faint text-xs">
-                {op.chain === 'sol' ? 'Squads PDA' : 'Safe address'}
+                {op.chain === 'sol' ? t('signing.squadsPda') : t('signing.safeAddress')}
               </span>
               <div className="text-mono text-xs">{shortHash(op.safeAddress ?? '', 10, 8)}</div>
             </div>
             <div>
-              <span className="text-faint text-xs">Nonce</span>
+              <span className="text-faint text-xs">{t('signing.nonce')}</span>
               <div className="text-mono text-xs">{op.nonce ?? 0}</div>
             </div>
             <div>
-              <span className="text-faint text-xs">Threshold</span>
+              <span className="text-faint text-xs">{t('signing.threshold')}</span>
               <div className="text-mono text-xs">
                 {op.signaturesRequired}/{op.totalSigners}
               </div>
             </div>
             <div>
-              <span className="text-faint text-xs">Your position</span>
+              <span className="text-faint text-xs">{t('signing.yourPosition')}</span>
               <div className="text-mono text-xs">
-                Signer {op.myIndex ?? 1} of {op.totalSigners}
+                {t('signing.signerOf', { i: op.myIndex ?? 1, n: op.totalSigners })}
               </div>
             </div>
           </div>
@@ -159,23 +164,23 @@ export function ReviewTransactionModal({ open, op, onClose, onConfirm, onReject 
             checked={acknowledged}
             onChange={(e) => setAcknowledged(e.target.checked)}
           />
-          <span>I reviewed the destination, amount, and chain</span>
+          <span>{t('signing.ack')}</span>
         </label>
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onReject}>
-            Reject
+            {t('signing.reject')}
           </button>
           <div className="spacer" />
           <button className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t('signing.cancel')}
           </button>
           <button
             className={`btn ${policy.passed ? 'btn-primary' : 'btn-danger'}`}
             disabled={!acknowledged}
             onClick={onConfirm}
           >
-            {policy.passed ? 'Sign in wallet' : 'Blocked by policy'}
+            {policy.passed ? t('signing.signInWallet') : t('signing.blockedByPolicy')}
             {policy.passed && <I.ArrowRight size={12} />}
           </button>
         </div>

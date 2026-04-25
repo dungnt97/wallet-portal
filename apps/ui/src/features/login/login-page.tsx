@@ -7,6 +7,7 @@ import { I } from '@/icons';
 // Right column lists demo accounts that short-circuit via POST /auth/session/dev-login
 // when VITE_AUTH_DEV_MODE=true (backend AUTH_DEV_MODE must also be true).
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GoogleGlyph } from './google-glyph';
 import type { DemoStaff, Role, StepMode, TwoFaMode, WaState } from './login-types';
 import { DEMO_STAFF, POLICY_REQUIRED, POLICY_TOTAL, ROLE_LABEL } from './login-types';
@@ -14,11 +15,8 @@ import { DEMO_STAFF, POLICY_REQUIRED, POLICY_TOTAL, ROLE_LABEL } from './login-t
 const IS_DEV_MODE = import.meta.env.VITE_AUTH_DEV_MODE === 'true';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { initiateLogin, refresh } = useAuth();
-  const [lang, setLang] = useState<'vi' | 'en'>(
-    () => (localStorage.getItem('wp_lang') as 'vi' | 'en') || 'vi'
-  );
-  const vi = lang === 'vi';
   const [email, setEmail] = useState('mira@treasury.io');
   const [password, setPassword] = useState('••••••••••');
   const [otp, setOtp] = useState('');
@@ -28,11 +26,6 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ssoEmail, setSsoEmail] = useState('');
-  const toggleLang = () => {
-    const next: 'vi' | 'en' = vi ? 'en' : 'vi';
-    setLang(next);
-    localStorage.setItem('wp_lang', next);
-  };
 
   const activeEmail = (ssoEmail || email).trim().toLowerCase();
   const staff: DemoStaff | undefined = DEMO_STAFF.find(
@@ -70,15 +63,11 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     if (!staff) {
-      setError(
-        vi
-          ? 'Không có tài khoản nhân sự khớp với email này.'
-          : 'No staff account matches that email.'
-      );
+      setError(t('login.noStaffMatch'));
       return;
     }
     if (password.length < 6) {
-      setError(vi ? 'Cần nhập mật khẩu.' : 'Password is required.');
+      setError(t('login.passwordRequired'));
       return;
     }
     setLoading(true);
@@ -107,11 +96,7 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     if (otp.length !== 6) {
-      setError(
-        vi
-          ? 'Nhập mã 6 chữ số từ ứng dụng authenticator.'
-          : 'Enter the 6-digit code from your authenticator.'
-      );
+      setError(t('signing.otpSubtitle'));
       return;
     }
     setLoading(true);
@@ -134,14 +119,6 @@ export function LoginPage() {
 
   return (
     <div className="login-root">
-      <button
-        type="button"
-        onClick={toggleLang}
-        className="btn btn-ghost btn-sm"
-        style={{ position: 'absolute', top: 16, right: 16 }}
-      >
-        {vi ? 'EN' : 'VI'}
-      </button>
       <div className="login-shell">
         <div className="login-left">
           <div className="login-brand">
@@ -150,18 +127,14 @@ export function LoginPage() {
             </div>
             <div>
               <div className="fw-600">Wallet Portal</div>
-              <div className="text-xs text-faint">Custodial Treasury · Staff console</div>
+              <div className="text-xs text-faint">{t('login.custodialSub')}</div>
             </div>
           </div>
 
           {step === 'sso' && (
             <div className="login-form">
-              <h1 className="login-title">{vi ? 'Đăng nhập' : 'Sign in'}</h1>
-              <p className="login-sub">
-                {vi
-                  ? 'Chỉ dành cho nhân sự. Quản lý qua Google Workspace.'
-                  : 'Staff access only. Managed through Google Workspace.'}
-              </p>
+              <h1 className="login-title">{t('login.title')}</h1>
+              <p className="login-sub">{t('login.subtitle')}</p>
               <button
                 type="button"
                 className="btn btn-secondary btn-lg login-google"
@@ -169,21 +142,13 @@ export function LoginPage() {
                 disabled={loading}
               >
                 <GoogleGlyph size={16} />
-                <span>
-                  {loading
-                    ? vi
-                      ? 'Đang mở Google…'
-                      : 'Opening Google…'
-                    : vi
-                      ? 'Tiếp tục với Google'
-                      : 'Continue with Google'}
-                </span>
+                <span>{loading ? t('login.openingGoogle') : t('login.continueGoogle')}</span>
               </button>
               <div className="login-divider">
-                <span>{vi ? 'hoặc dùng email & mật khẩu' : 'or use email & password'}</span>
+                <span>{t('login.orEmail')}</span>
               </div>
               <label className="field">
-                <span className="field-label">{vi ? 'Email công việc' : 'Work email'}</span>
+                <span className="field-label">{t('login.workEmailLabel')}</span>
                 <input
                   type="email"
                   className="input"
@@ -200,14 +165,11 @@ export function LoginPage() {
                 onClick={() => setStep('credentials')}
                 style={{ justifyContent: 'space-between' }}
               >
-                <span>{vi ? 'Tiếp tục với mật khẩu' : 'Continue with password'}</span>
+                <span>{t('login.continuePassword')}</span>
                 <I.ArrowRight size={14} />
               </button>
               <div className="login-note">
-                <I.Lock size={11} />{' '}
-                {vi
-                  ? 'Mọi lần đăng nhập và thao tác ghi đều được lưu vào audit log.'
-                  : 'Every sign-in and write action is recorded to the audit trail.'}
+                <I.Lock size={11} /> {t('login.auditNote')}
               </div>
             </div>
           )}
@@ -215,16 +177,12 @@ export function LoginPage() {
           {step === 'credentials' && (
             <form className="login-form" onSubmit={submitCredentials}>
               <button type="button" className="login-back" onClick={() => setStep('sso')}>
-                <I.ArrowLeft size={12} /> {vi ? 'Quay lại' : 'Back'}
+                <I.ArrowLeft size={12} /> {t('login.back')}
               </button>
-              <h1 className="login-title">{vi ? 'Đăng nhập bằng mật khẩu' : 'Password sign-in'}</h1>
-              <p className="login-sub">
-                {vi
-                  ? 'Phương án dự phòng. Ưu tiên Google SSO.'
-                  : 'Fallback path. Google SSO is preferred.'}
-              </p>
+              <h1 className="login-title">{t('login.passwordSignIn')}</h1>
+              <p className="login-sub">{t('login.passwordFallback')}</p>
               <label className="field">
-                <span className="field-label">{vi ? 'Email công việc' : 'Work email'}</span>
+                <span className="field-label">{t('login.workEmailLabel')}</span>
                 <input
                   type="email"
                   className="input"
@@ -234,7 +192,7 @@ export function LoginPage() {
                 />
               </label>
               <label className="field">
-                <span className="field-label">{vi ? 'Mật khẩu' : 'Password'}</span>
+                <span className="field-label">{t('login.passwordLabel')}</span>
                 <input
                   type="password"
                   className="input"
@@ -245,7 +203,7 @@ export function LoginPage() {
               </label>
               {error && <div className="login-err">{error}</div>}
               <button type="submit" className="btn btn-accent btn-lg" disabled={loading}>
-                {loading ? (vi ? 'Đang kiểm tra…' : 'Checking…') : vi ? 'Tiếp tục' : 'Continue'}
+                {loading ? t('login.checking') : t('login.continue')}
               </button>
             </form>
           )}
@@ -253,14 +211,10 @@ export function LoginPage() {
           {step === '2fa' && staff && (
             <div className="login-form">
               <button type="button" className="login-back" onClick={() => setStep('sso')}>
-                <I.ArrowLeft size={12} /> {vi ? 'Quay lại' : 'Back'}
+                <I.ArrowLeft size={12} /> {t('login.back')}
               </button>
-              <h1 className="login-title">{vi ? 'Xác minh danh tính' : "Verify it's you"}</h1>
-              <p className="login-sub">
-                {vi
-                  ? 'Mọi tài khoản nhân sự đều bắt buộc xác thực 2 yếu tố.'
-                  : 'Second factor is required for all staff accounts.'}
-              </p>
+              <h1 className="login-title">{t('login.verifyIdentity')}</h1>
+              <p className="login-sub">{t('login.secondFactorRequired')}</p>
               <div className="login-account">
                 <div className="avatar sm">{staff.initials}</div>
                 <div style={{ minWidth: 0 }}>
@@ -281,7 +235,7 @@ export function LoginPage() {
                     setWaState('idle');
                   }}
                 >
-                  <I.Key size={13} /> {vi ? 'Khoá bảo mật' : 'Security key'}
+                  <I.Key size={13} /> {t('login.securityKey')}
                 </button>
                 <button
                   type="button"
@@ -291,7 +245,7 @@ export function LoginPage() {
                     setError('');
                   }}
                 >
-                  <I.Shield size={13} /> {vi ? 'Ứng dụng authenticator' : 'Authenticator app'}
+                  <I.Shield size={13} /> {t('login.authenticatorApp')}
                 </button>
               </div>
               {mode2fa === 'webauthn' && (
@@ -300,16 +254,14 @@ export function LoginPage() {
                     {waState === 'ok' ? <I.Check size={28} /> : <I.Key size={28} />}
                   </div>
                   <div className="login-webauthn-title">
-                    {waState === 'idle' &&
-                      (vi
-                        ? 'Chạm khoá bảo mật hoặc dùng platform authenticator'
-                        : 'Touch your security key or use platform authenticator')}
-                    {waState === 'prompting' && (vi ? 'Đang chờ thiết bị…' : 'Waiting for device…')}
-                    {waState === 'ok' && (vi ? 'Đã xác minh' : 'Verified')}
-                    {waState === 'error' && (vi ? 'Xác thực thất bại' : 'Authentication failed')}
+                    {waState === 'idle' && t('login.touchKey')}
+                    {waState === 'prompting' && t('login.waitingDevice')}
+                    {waState === 'ok' && t('login.verified')}
+                    {waState === 'error' && t('login.authFailed')}
                   </div>
                   <div className="login-webauthn-sub">
-                    WebAuthn · resident credential · {vi ? 'chống phishing' : 'phishing-resistant'}
+                    {/* Keep technical term WebAuthn in English, translate only the trailing phrase */}
+                    WebAuthn · resident credential · {t('login.phishingResistant')}
                   </div>
                   {error && <div className="login-err">{error}</div>}
                   <button
@@ -320,30 +272,24 @@ export function LoginPage() {
                     style={{ width: '100%' }}
                   >
                     {waState === 'prompting'
-                      ? vi
-                        ? 'Đang xác minh…'
-                        : 'Verifying…'
+                      ? t('login.verifying')
                       : waState === 'ok'
-                        ? vi
-                          ? 'Đang đăng nhập…'
-                          : 'Signing you in…'
-                        : vi
-                          ? 'Dùng khoá bảo mật'
-                          : 'Use security key'}
+                        ? t('login.signingIn')
+                        : t('login.useSecurityKey')}
                   </button>
                   <button
                     type="button"
                     className="login-linkish"
                     onClick={() => setMode2fa('totp')}
                   >
-                    {vi ? 'Dùng ứng dụng authenticator' : 'Use authenticator app instead'}
+                    {t('login.useAuthApp')}
                   </button>
                 </div>
               )}
               {mode2fa === 'totp' && (
                 <form onSubmit={submitTotp} className="login-totp">
                   <label className="field">
-                    <span className="field-label">{vi ? 'Mã 6 chữ số' : '6-digit code'}</span>
+                    <span className="field-label">{t('login.sixDigitCode')}</span>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -362,19 +308,9 @@ export function LoginPage() {
                     className="btn btn-accent btn-lg"
                     disabled={loading || otp.length !== 6}
                   >
-                    {loading
-                      ? vi
-                        ? 'Đang xác minh…'
-                        : 'Verifying…'
-                      : vi
-                        ? 'Đăng nhập'
-                        : 'Sign in'}
+                    {loading ? t('login.verifying') : t('login.signIn')}
                   </button>
-                  <div className="login-note">
-                    {vi
-                      ? 'Mẹo: bất kỳ 6 chữ số nào đều dùng được trong bản prototype này.'
-                      : 'Tip: any 6 digits work in this prototype.'}
-                  </div>
+                  <div className="login-note">{t('login.totpTip')}</div>
                 </form>
               )}
             </div>
@@ -383,12 +319,8 @@ export function LoginPage() {
 
         <div className="login-right">
           <div className="login-right-inner">
-            <div className="login-side-title">{vi ? 'Tài khoản demo' : 'Demo accounts'}</div>
-            <div className="login-side-sub">
-              {vi
-                ? 'Bỏ qua xác thực và vào ngay với một role cụ thể.'
-                : 'Skip auth and jump straight in as a specific role.'}
-            </div>
+            <div className="login-side-title">{t('login.demoAccounts')}</div>
+            <div className="login-side-sub">{t('login.demoSubtitle')}</div>
             <div className="login-accounts">
               {DEMO_STAFF.map((s) => (
                 <button
@@ -408,42 +340,24 @@ export function LoginPage() {
             </div>
             <div className="login-policy">
               <div className="login-policy-title">
-                <I.Shield size={12} /> {vi ? 'Truy cập & duyệt' : 'Access & approvals'}
+                <I.Shield size={12} /> {t('login.accessApprovals')}
               </div>
               <ul className="login-policy-body">
-                {vi ? (
-                  <>
-                    <li>
-                      Danh tính qua <b>Google Workspace</b> (OIDC).
-                    </li>
-                    <li>
-                      <b>WebAuthn</b> hoặc TOTP bắt buộc khi đăng nhập.
-                    </li>
-                    <li>
-                      Mọi transfer ra ngoài cần{' '}
-                      <b>
-                        {POLICY_REQUIRED}/{POLICY_TOTAL}
-                      </b>{' '}
-                      chữ ký Treasurer trước khi lên chain.
-                    </li>
-                  </>
-                ) : (
-                  <>
-                    <li>
-                      Identity via <b>Google Workspace</b> (OIDC).
-                    </li>
-                    <li>
-                      <b>WebAuthn</b> or TOTP required at sign-in.
-                    </li>
-                    <li>
-                      Every outbound transfer needs{' '}
-                      <b>
-                        {POLICY_REQUIRED} of {POLICY_TOTAL}
-                      </b>{' '}
-                      Treasurer co-signatures before it hits chain.
-                    </li>
-                  </>
-                )}
+                <li>
+                  {/* Keep "Google Workspace" and "OIDC" as technical terms */}
+                  Identity via <b>Google Workspace</b> (OIDC).
+                </li>
+                <li>
+                  {/* Keep "WebAuthn" and "TOTP" as technical terms */}
+                  <b>WebAuthn</b> or TOTP required at sign-in.
+                </li>
+                <li>
+                  Every outbound transfer needs{' '}
+                  <b>
+                    {POLICY_REQUIRED} of {POLICY_TOTAL}
+                  </b>{' '}
+                  Treasurer co-signatures before it hits chain.
+                </li>
               </ul>
             </div>
           </div>

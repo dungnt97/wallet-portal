@@ -4,6 +4,7 @@ import { Loader2, ShieldCheck, X } from 'lucide-react';
 // Opened by StepUpProvider when an API call returns 403 STEP_UP_REQUIRED.
 // On success: resolves the pending promise so the original request is retried.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStepUp } from './use-step-up';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function StepUpModal({ onSuccess, onCancel }: Props) {
+  const { t } = useTranslation();
   const { runStepUp } = useStepUp();
   const [state, setState] = useState<'idle' | 'pending' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -27,9 +29,9 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
       const msg =
         err instanceof Error
           ? err.name === 'NotAllowedError'
-            ? 'Verification was cancelled or timed out.'
+            ? t('auth.verificationCancelled')
             : err.message
-          : 'Verification failed.';
+          : t('auth.verificationFailed');
       setErrorMsg(msg);
       setState('error');
     }
@@ -49,7 +51,7 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
           type="button"
           onClick={onCancel}
           className="absolute top-3 right-3 p-1.5 rounded-md text-[var(--text-muted)] hover:bg-[var(--bg-muted)] transition-colors"
-          aria-label="Cancel"
+          aria-label={t('common.cancel')}
         >
           <X size={14} />
         </button>
@@ -61,18 +63,17 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
           </div>
           <div>
             <div className="text-[14px] font-semibold text-[var(--text)]">
-              Security verification required
+              {t('auth.stepUpTitle')}
             </div>
             <div className="text-[12px] text-[var(--text-muted)]">
-              Verify with your security key or passkey.
+              {t('auth.stepUpDesc')}
             </div>
           </div>
         </div>
 
         {/* Body */}
         <p className="text-[13px] text-[var(--text-muted)]">
-          This action requires step-up authentication. Touch your security key or use your
-          device&apos;s built-in authenticator when prompted.
+          {t('auth.stepUpBody')}
         </p>
 
         {errorMsg && (
@@ -88,7 +89,7 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
             onClick={onCancel}
             className="flex-1 py-2 rounded-md text-[13px] font-medium border border-[var(--line)] text-[var(--text-muted)] hover:bg-[var(--bg-muted)] transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -101,7 +102,7 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
             )}
           >
             {state === 'pending' && <Loader2 size={14} className="animate-spin" />}
-            {state === 'pending' ? 'Waiting for key…' : 'Verify with security key'}
+            {state === 'pending' ? t('auth.waitingForKey') : t('auth.verifyWithKey')}
           </button>
         </div>
       </div>

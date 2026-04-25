@@ -2,6 +2,7 @@
 // Ported from prototype signing_modals.jsx ExecuteTxModal.
 import { I } from '@/icons';
 import { fmtUSD, shortHash } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { explorerUrl } from '../_shared/helpers';
 import type { BroadcastResult, SigningOp } from './signing-flow';
 
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
+  const { t } = useTranslation();
+
   if (!open || !op) return null;
 
   const chainName = op.chain === 'sol' ? 'Solana Mainnet' : 'BNB Smart Chain';
@@ -35,9 +38,9 @@ export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
         <div className="modal-header">
           <div>
             <div className="modal-title">
-              {confirmed ? 'Transaction confirmed' : 'Broadcasting to chain…'}
+              {confirmed ? t('signing.txConfirmed') : t('signing.broadcasting')}
             </div>
-            <div className="modal-subtitle">{op.id} · threshold met</div>
+            <div className="modal-subtitle">{op.id} · {t('signing.thresholdMet')}</div>
           </div>
           {confirmed && (
             <button className="modal-close" onClick={onClose} aria-label="Close">
@@ -51,26 +54,26 @@ export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
             <div className="exec-waiting-spinner">
               <I.Loader size={44} />
             </div>
-            <div className="exec-waiting-title">Waiting for network confirmation…</div>
+            <div className="exec-waiting-title">{t('signing.waitingNetwork')}</div>
             <div className="exec-meta" style={{ marginTop: 18 }}>
               <div>
-                <span>Network</span>
+                <span>{t('signing.network')}</span>
                 <span>{chainName}</span>
               </div>
               <div>
-                <span>Est. gas</span>
+                <span>{t('signing.estGas')}</span>
                 <span className="text-mono">
                   {gasEst.native} {gasEst.label} · ~${gasEst.usd.toFixed(4)}
                 </span>
               </div>
               <div>
-                <span>Amount</span>
+                <span>{t('signing.amount')}</span>
                 <span className="text-mono">
                   ${fmtUSD(op.amount)} {op.token}
                 </span>
               </div>
               <div>
-                <span>Destination</span>
+                <span>{t('signing.destination')}</span>
                 <span className="text-mono text-xs">{shortHash(op.destination, 10, 8)}</span>
               </div>
             </div>
@@ -83,7 +86,7 @@ export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
               <I.Check size={36} />
             </div>
             <div className="exec-confirmed-title">
-              Confirmed at block {broadcast.blockNumber.toLocaleString()}
+              {t('signing.confirmedAtBlock', { number: broadcast.blockNumber.toLocaleString() })}
             </div>
             <a
               className="exec-confirmed-hash text-mono text-xs"
@@ -95,7 +98,7 @@ export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
             </a>
             <div className="modal-footer" style={{ marginTop: 20 }}>
               <button className="btn btn-primary" onClick={onClose}>
-                Done
+                {t('signing.done')}
               </button>
             </div>
           </div>

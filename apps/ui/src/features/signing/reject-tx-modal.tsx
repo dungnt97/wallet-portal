@@ -2,16 +2,8 @@ import { I } from '@/icons';
 // Reject transaction modal — capture rejection reason + optional comment.
 // Ported from prototype signing_modals.jsx RejectTxModal.
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { SigningOp } from './signing-flow';
-
-const REASONS = [
-  { value: 'wrong-destination', label: 'Wrong destination' },
-  { value: 'wrong-amount', label: 'Wrong amount' },
-  { value: 'off-policy', label: 'Off policy (daily limit / whitelist)' },
-  { value: 'suspicious', label: 'Suspicious request' },
-  { value: 'duplicate', label: 'Duplicate operation' },
-  { value: 'other', label: 'Other' },
-];
 
 export interface RejectReason {
   reason: string;
@@ -26,8 +18,19 @@ interface Props {
 }
 
 export function RejectTxModal({ open, op, onClose, onRejected }: Props) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('wrong-destination');
   const [comment, setComment] = useState('');
+
+  // Build REASONS inside the component so labels are reactive to locale changes
+  const REASONS = [
+    { value: 'wrong-destination', label: t('signing.reasonWrongDest') },
+    { value: 'wrong-amount', label: t('signing.reasonWrongAmount') },
+    { value: 'off-policy', label: t('signing.reasonOffPolicy') },
+    { value: 'suspicious', label: t('signing.reasonSuspicious') },
+    { value: 'duplicate', label: t('signing.reasonDuplicate') },
+    { value: 'other', label: t('signing.reasonOther') },
+  ];
 
   useEffect(() => {
     if (open) {
@@ -48,8 +51,8 @@ export function RejectTxModal({ open, op, onClose, onRejected }: Props) {
       >
         <div className="modal-header">
           <div>
-            <div className="modal-title">Reject operation {op.id}</div>
-            <div className="modal-subtitle">Counted as a rejection on-chain</div>
+            <div className="modal-title">{t('signing.rejectOpTitle', { id: op.id })}</div>
+            <div className="modal-subtitle">{t('signing.rejectOnChainNote')}</div>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
             <I.X size={14} />
@@ -57,7 +60,7 @@ export function RejectTxModal({ open, op, onClose, onRejected }: Props) {
         </div>
 
         <div className="field">
-          <div className="field-label">Reason</div>
+          <div className="field-label">{t('signing.reasonLabel')}</div>
           <div className="reject-reasons">
             {REASONS.map((r) => (
               <label
@@ -79,20 +82,21 @@ export function RejectTxModal({ open, op, onClose, onRejected }: Props) {
 
         <label className="field">
           <span className="field-label">
-            Comment <span className="text-faint">· optional, visible to other signers</span>
+            {t('signing.commentLabel')}{' '}
+            <span className="text-faint">{t('signing.commentOptional')}</span>
           </span>
           <textarea
             className="input"
             rows={3}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Why are you rejecting?"
+            placeholder={t('signing.commentPlaceholder')}
           />
         </label>
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t('signing.cancel')}
           </button>
           <button
             className="btn btn-danger"
@@ -101,7 +105,7 @@ export function RejectTxModal({ open, op, onClose, onRejected }: Props) {
               onClose();
             }}
           >
-            Reject
+            {t('signing.reject')}
           </button>
         </div>
       </div>

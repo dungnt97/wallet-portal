@@ -2,6 +2,7 @@ import { ChainPill, StatusBadge, Tabs } from '@/components/custody';
 // Multisig pending/failed ops table — uses MultisigOpDisplay (real API shape).
 import { I } from '@/icons';
 import { fmtUSD } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { LiveTimeAgo } from '../_shared/realtime';
 import type { MultisigOpDisplay } from './multisig-types';
 
@@ -24,6 +25,7 @@ export function MultisigOpsTable({
   list,
   onSelect,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="card pro-card" style={{ marginTop: 14 }}>
       <div className="pro-card-header">
@@ -32,22 +34,22 @@ export function MultisigOpsTable({
           onChange={(v) => onTabChange(v as Tab)}
           embedded
           tabs={[
-            { value: 'pending', label: 'Pending', count: pendingCount },
-            { value: 'failed', label: 'Failed', count: failedCount },
+            { value: 'pending', label: t('multisig.tabPending'), count: pendingCount },
+            { value: 'failed', label: t('multisig.tabFailed'), count: failedCount },
           ]}
         />
         <div className="spacer" />
-        <span className="text-xs text-muted text-mono">{list.length} ops</span>
+        <span className="text-xs text-muted text-mono">{t('multisig.opsCount', { count: list.length })}</span>
       </div>
       <table className="table table-tight">
         <thead>
           <tr>
-            <th>Operation</th>
-            <th>Vault</th>
-            <th className="num">Amount</th>
-            <th>Approvals</th>
-            <th>Status</th>
-            <th className="num">Expires</th>
+            <th>{t('multisig.colOp')}</th>
+            <th>{t('multisig.colVault')}</th>
+            <th className="num">{t('multisig.colAmount')}</th>
+            <th>{t('multisig.colApprovals')}</th>
+            <th>{t('multisig.colStatus')}</th>
+            <th className="num">{t('multisig.colExpires')}</th>
           </tr>
         </thead>
         <tbody>
@@ -55,8 +57,8 @@ export function MultisigOpsTable({
             <tr>
               <td colSpan={6}>
                 <div className="table-empty">
-                  <div className="table-empty-title">No operations</div>
-                  <div className="text-sm">New co-signing operations appear here.</div>
+                  <div className="table-empty-title">{t('multisig.noOps')}</div>
+                  <div className="text-sm">{t('multisig.noOpsHint')}</div>
                 </div>
               </td>
             </tr>

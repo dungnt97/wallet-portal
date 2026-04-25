@@ -3,6 +3,7 @@ import { Modal } from '@/components/overlays';
 import { I } from '@/icons';
 import { CHAINS } from '@/lib/constants';
 import { fmtUSD } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -29,34 +30,31 @@ export function SweepConfirmModal({
   estFee,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onClose={() => !executing && onClose()}
-      title="Confirm sweep batch"
+      title={t('sweep.confirmTitle')}
       footer={
         <>
           <button className="btn btn-secondary" onClick={onClose} disabled={executing}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-accent" onClick={onConfirm} disabled={executing}>
             {executing ? (
               <>
-                Executing… <I.Refresh size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                {t('sweep.executing')} <I.Refresh size={12} style={{ animation: 'spin 1s linear infinite' }} />
               </>
             ) : (
-              <>Sign &amp; broadcast ({addressesCount})</>
+              <>{t('sweep.signBroadcast', { n: addressesCount })}</>
             )}
           </button>
         </>
       }
     >
       <p className="text-sm text-muted" style={{ marginTop: 0 }}>
-        Sweep{' '}
-        <strong className="text-mono" style={{ color: 'var(--text)' }}>
-          ${fmtUSD(total)}
-        </strong>{' '}
-        from {addressesCount} addresses on {CHAINS[chain].name}.
+        {t('sweep.confirmBody', { amt: `$${fmtUSD(total)}`, n: addressesCount, chain: CHAINS[chain].name })}
       </p>
       <div
         className="card"
@@ -68,21 +66,21 @@ export function SweepConfirmModal({
       >
         <div style={{ padding: 16 }}>
           <dl className="dl">
-            <dt>Destination</dt>
+            <dt>{t('sweep.mDestination')}</dt>
             <dd className="text-mono text-xs">
               {chain === 'bnb' ? 'BSC hot wallet 0x71C…' : 'Solana hot wallet 8Hk…'}
             </dd>
-            <dt>Addresses</dt>
+            <dt>{t('sweep.mAddresses')}</dt>
             <dd>{addressesCount}</dd>
             <dt>USDT</dt>
             <dd>${fmtUSD(totalUSDT)}</dd>
             <dt>USDC</dt>
             <dd>${fmtUSD(totalUSDC)}</dd>
-            <dt>Network fee</dt>
+            <dt>{t('sweep.mNetworkFee')}</dt>
             <dd>
               {estFee.toFixed(chain === 'bnb' ? 4 : 6)} {chain === 'bnb' ? 'BNB' : 'SOL'}
             </dd>
-            <dt>Idempotency key</dt>
+            <dt>{t('sweep.mIdempotency')}</dt>
             <dd className="text-mono text-xs">sweep_{Date.now().toString(36)}</dd>
           </dl>
         </div>
@@ -90,8 +88,8 @@ export function SweepConfirmModal({
       <div className="alert warn">
         <I.AlertTri size={14} className="alert-icon" />
         <div className="alert-body">
-          <div className="alert-title">Irreversible</div>
-          <div className="alert-text">On-chain transfer — once broadcast, cannot be cancelled.</div>
+          <div className="alert-title">{t('sweep.irreversibleTitle')}</div>
+          <div className="alert-text">{t('sweep.irreversibleText')}</div>
         </div>
       </div>
     </Modal>

@@ -37,34 +37,30 @@ const makeDbRow = (id = AUDIT_ID, overrides = {}) => ({
 function makeMockDb(rows: ReturnType<typeof makeDbRow>[] = []) {
   // Chain for list queries: select -> from -> leftJoin -> where -> orderBy -> limit -> offset
   const offsetMock = vi.fn().mockResolvedValue(rows);
-  const limitMockForList = vi.fn().mockReturnValue({ offset: offsetMock });
-
-  // orderByMock returns limit chain
-  const orderByMock = vi.fn().mockReturnValue({ limit: limitMockForList });
-  // But when orderBy is called with asc(), it returns rows directly (for export)
-  // We need to detect this dynamically, so we return something that can be either
-  const orderByReturnsObject = {
-    limit: limitMockForList, // For list queries
-  };
-
-  // Override to return promise for export queries
-  const orderByMockFactory = vi.fn((arg: unknown) => {
-    // If it's asc/desc call from export, return rows promise
-    // Otherwise return limit chain
-    // For simplicity, we'll check if it's being awaited
-    return Promise.resolve(rows);
-  });
-
-  // Actually, let's make orderByMock smarter - it returns the limit chain
-  const orderByMockActual = vi.fn(() => limitMockForList);
+  const limitMock = vi.fn().mockReturnValue({ offset: offsetMock });
+  const orderByMockForList = vi.fn().mockReturnValue({ limit: limitMock });
 
   // Chain for get query: select -> from -> leftJoin -> where -> limit
   const limitMockForGet = vi.fn().mockResolvedValue(rows);
 
+  // Chain for export query: select -> from -> leftJoin -> where -> orderBy (no limit/offset)
+  const orderByMockForExport = vi.fn().mockResolvedValue(rows);
+
+  // where() needs to return different things depending on context (list vs get vs export)
+  // We detect by the mock state: if orderByMockForList is called, it's list; if limitMockForGet is called directly, it's get
   const whereMock = vi.fn((arg: unknown) => {
-    // Return an object that has both orderBy and limit
+    // Return object with both orderBy and limit so callers can chain either way
     return {
-      orderBy: orderByMockActual,
+      orderBy: vi.fn((orderArg: unknown) => {
+        // For export queries (orderBy returns promise)
+        // For list queries (orderBy returns limit chain)
+        // We can detect the intent by checking if another method is called on us
+        return {
+          limit: limitMock,
+          // Also make it thenable for export query case (when export doesn't call limit)
+          then: (cb: (val: unknown) => unknown) => Promise.resolve(rows).then(cb),
+        };
+      }),
       limit: limitMockForGet,
     };
   });

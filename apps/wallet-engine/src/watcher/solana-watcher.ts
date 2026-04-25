@@ -17,6 +17,7 @@ import { parseSplTransfers } from './solana-tx-parser.js';
 const logger = pino({ name: 'solana-watcher' });
 
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
+const MAX_BACKOFF_MS = 60_000;
 
 export interface SolanaWatcherOptions {
   pollIntervalMs?: number;
@@ -29,6 +30,7 @@ export class SolanaWatcher {
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private lastProcessedSlot = -1;
   private consecutiveErrors = 0;
+  private skipUntil = 0;
 
   constructor(
     private readonly connection: Connection,
@@ -81,6 +83,7 @@ export class SolanaWatcher {
 
   private async tick(): Promise<void> {
     if (this.stopped) return;
+    if (Date.now() < this.skipUntil) return;
 
     let tip: number;
     try {
@@ -88,9 +91,11 @@ export class SolanaWatcher {
       this.consecutiveErrors = 0;
     } catch (err) {
       this.consecutiveErrors++;
+      const backoff = Math.min(1_000 * 2 ** (this.consecutiveErrors - 1), MAX_BACKOFF_MS);
+      this.skipUntil = Date.now() + backoff;
       logger.warn(
-        { err, consecutiveErrors: this.consecutiveErrors },
-        'Solana getSlot failed — staying idle'
+        { err, consecutiveErrors: this.consecutiveErrors, backoffMs: backoff },
+        'Solana getSlot failed — backing off'
       );
       return;
     }
@@ -103,9 +108,11 @@ export class SolanaWatcher {
 
     if (tip <= this.lastProcessedSlot) return;
 
-    // Process one slot per tick (Solana can produce many slots fast; avoid stacking)
-    const targetSlot = this.lastProcessedSlot + 1;
-    await this.processSlot(targetSlot);
+    const maxSlotsPerTick = 5;
+    const endSlot = Math.min(tip, this.lastProcessedSlot + maxSlotsPerTick);
+    for (let slot = this.lastProcessedSlot + 1; slot <= endSlot; slot++) {
+      await this.processSlot(slot);
+    }
   }
 
   private async processSlot(slot: number): Promise<void> {
@@ -118,9 +125,16 @@ export class SolanaWatcher {
         commitment: 'confirmed',
       })) as unknown as VersionedBlockResponse | null;
     } catch (err) {
+      const msg = String(err);
+      if (msg.includes('429')) {
+        this.consecutiveErrors++;
+        const backoff = Math.min(1_000 * 2 ** (this.consecutiveErrors - 1), MAX_BACKOFF_MS);
+        this.skipUntil = Date.now() + backoff;
+        logger.warn({ slot, backoffMs: backoff }, 'Solana getBlock rate-limited — backing off');
+        return;
+      }
       // Slot may be skipped (no block produced) — not an error
       logger.debug({ err, slot }, 'Solana getBlock failed (slot may be skipped)');
-      // Advance anyway so we don't get stuck
       this.lastProcessedSlot = slot;
       await this.checkpoint.save('sol', slot);
       return;
@@ -140,10 +154,21 @@ export class SolanaWatcher {
       const parsed = tx as unknown as ParsedTransactionWithMeta;
       if (!parsed.transaction?.signatures?.[0]) continue;
 
-      const transfers = parseSplTransfers(parsed, slot, this.opts.usdtMint, this.opts.usdcMint);
+      let transfers: ReturnType<typeof parseSplTransfers>;
+      try {
+        transfers = parseSplTransfers(parsed, slot, this.opts.usdtMint, this.opts.usdcMint);
+      } catch (err) {
+        logger.warn(
+          { err, slot, sig: parsed.transaction.signatures[0] },
+          'parseSplTransfers failed — skipping tx'
+        );
+        continue;
+      }
 
       for (const transfer of transfers) {
-        const entry = this.registry.lookup('sol', transfer.destination);
+        // SPL transfer destination is the ATA; use postTokenBalances owner (wallet) for lookup
+        const lookupAddr = transfer.owner ?? transfer.destination;
+        const entry = this.registry.lookup('sol', lookupAddr);
         if (!entry) continue;
 
         await detectDeposit(this.db, this.queue, {
@@ -153,7 +178,7 @@ export class SolanaWatcher {
           blockNumber: slot,
           token: transfer.token,
           amount: transfer.amount,
-          to: transfer.destination,
+          to: lookupAddr,
           userId: entry.userId,
         });
       }

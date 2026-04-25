@@ -29,7 +29,10 @@ interface ConfirmResult {
 }
 
 /** Check BNB transaction confirmations via provider */
-async function checkBnbConfirmations(txHash: string, cfg: AppConfig): Promise<ConfirmResult> {
+export async function checkBnbConfirmations(
+  txHash: string,
+  cfg: AppConfig
+): Promise<ConfirmResult> {
   const { JsonRpcProvider } = await import('ethers');
   const provider = new JsonRpcProvider(cfg.RPC_BNB_PRIMARY);
   try {
@@ -48,19 +51,31 @@ async function checkBnbConfirmations(txHash: string, cfg: AppConfig): Promise<Co
 }
 
 /** Check Solana transaction confirmations via connection */
-async function checkSolanaConfirmations(txHash: string, cfg: AppConfig): Promise<ConfirmResult> {
+export async function checkSolanaConfirmations(
+  txHash: string,
+  cfg: AppConfig
+): Promise<ConfirmResult> {
   const { Connection } = await import('@solana/web3.js');
   const conn = new Connection(cfg.RPC_SOLANA_PRIMARY, 'confirmed');
-  const status = await conn.getSignatureStatuses([txHash]);
+  const status = await conn.getSignatureStatuses([txHash], { searchTransactionHistory: true });
   const info = status.value[0];
-  if (!info || info.err) {
+  if (!info) {
+    // Status purged from recent history — fetch tx directly to check if it exists on-chain
+    const tx = await conn.getTransaction(txHash, { maxSupportedTransactionVersion: 0 });
+    if (tx && !tx.meta?.err) {
+      return { confirmed: true, confirmations: CONFIRM_DEPTH_SOLANA };
+    }
     return { confirmed: false, confirmations: 0 };
   }
+  if (info.err) {
+    return { confirmed: false, confirmations: 0 };
+  }
+  // confirmationStatus 'finalized' means max confirmations (null confirmations field)
+  if (info.confirmationStatus === 'finalized') {
+    return { confirmed: true, confirmations: CONFIRM_DEPTH_SOLANA };
+  }
   const confirmations = info.confirmations ?? 0;
-  return {
-    confirmed: confirmations >= CONFIRM_DEPTH_SOLANA || info.confirmationStatus === 'finalized',
-    confirmations,
-  };
+  return { confirmed: confirmations >= CONFIRM_DEPTH_SOLANA, confirmations };
 }
 
 /**

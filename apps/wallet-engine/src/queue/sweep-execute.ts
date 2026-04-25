@@ -39,7 +39,7 @@ export async function enqueueSweepExecute(
   data: SweepExecuteJobData
 ): Promise<void> {
   const job = await queue.add(SWEEP_EXECUTE_QUEUE_NAME, data, {
-    jobId: `sweep_execute:${data.sweepId}`,
+    jobId: `sweep_execute_${data.sweepId}`,
   });
   logger.info(
     { jobId: job.id, sweepId: data.sweepId, chain: data.chain },

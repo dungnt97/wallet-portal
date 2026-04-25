@@ -18,8 +18,10 @@ const DISC_TRANSFER_CHECKED = 12;
 export type SplTokenSymbol = 'USDT' | 'USDC';
 
 export interface ParsedSplTransfer {
-  /** Destination token account public key (base58) */
+  /** Destination token account public key (base58) — this is the ATA, not the wallet */
   destination: string;
+  /** Wallet address that owns the destination ATA (from postTokenBalances) */
+  owner: string | null;
   /** Raw token amount (u64, no decimal adjustment) */
   amount: bigint;
   txHash: string;
@@ -44,14 +46,10 @@ function readAmount(buf: Buffer, offset = 1): bigint | null {
   return buf.readBigUInt64LE(offset);
 }
 
-/** Resolve account key string from parsed message */
-function resolveAccountKey(
-  accountKeys: Array<string | { pubkey: PublicKey }>,
-  idx: number
-): string | null {
+/** Resolve account key string from pre-flattened key array */
+function resolveAccountKey(accountKeys: string[], idx: number): string | null {
   const k = accountKeys[idx];
-  if (!k) return null;
-  return typeof k === 'string' ? k : k.pubkey.toBase58();
+  return k && k.length > 0 ? k : null;
 }
 
 /** Resolve mint from post-token balances by destination account index */
@@ -69,10 +67,36 @@ function resolveMint(
   return null;
 }
 
+/** Resolve wallet owner of an ATA from postTokenBalances */
+function resolveOwner(tx: ParsedTransactionWithMeta, destIndex: number): string | null {
+  for (const bal of tx.meta?.postTokenBalances ?? []) {
+    if (bal.accountIndex === destIndex) {
+      return (bal as { owner?: string | null }).owner ?? null;
+    }
+  }
+  return null;
+}
+
 interface RawInstruction {
   programIdIndex: number;
+  accounts?: number[];
+  accountKeyIndexes?: number[];
+  data?: string | Uint8Array;
+}
+
+function normaliseIx(ix: RawInstruction): {
+  programIdIndex: number;
   accounts: number[];
-  data?: string;
+  data: string | undefined;
+} {
+  const accounts = ix.accounts ?? ix.accountKeyIndexes ?? [];
+  let data: string | undefined;
+  if (ix.data instanceof Uint8Array) {
+    data = bs58.encode(ix.data);
+  } else {
+    data = ix.data;
+  }
+  return { programIdIndex: ix.programIdIndex, accounts, data };
 }
 
 /**
@@ -88,17 +112,40 @@ export function parseSplTransfers(
   const sig = tx.transaction.signatures[0];
   if (!sig) return [];
 
-  const { accountKeys } = tx.transaction.message;
+  // Build full account key list: static keys + address lookup table entries
+  type AccountKeyLike =
+    | string
+    | { pubkey?: { toBase58?: () => string }; toBase58?: () => string; toString?: () => string };
+  type LoadedAddresses = { writable?: AccountKeyLike[]; readonly?: AccountKeyLike[] };
+  type MessageWithKeys = {
+    accountKeys?: AccountKeyLike[];
+    instructions?: unknown[];
+    compiledInstructions?: unknown[];
+  };
+  const toKeyString = (k: AccountKeyLike): string =>
+    typeof k === 'string'
+      ? k
+      : (k?.pubkey?.toBase58?.() ?? k?.toBase58?.() ?? k?.toString?.() ?? '');
+
+  const message = tx.transaction.message as unknown as MessageWithKeys;
+  const staticKeys: string[] = (message.accountKeys ?? []).map(toKeyString);
+  const loaded = (tx.meta as unknown as { loadedAddresses?: LoadedAddresses })?.loadedAddresses;
+  const loadedWritable: string[] = (loaded?.writable ?? []).map(toKeyString);
+  const loadedReadonly: string[] = (loaded?.readonly ?? []).map(toKeyString);
+  const accountKeys: string[] = [...staticKeys, ...loadedWritable, ...loadedReadonly];
   const results: ParsedSplTransfer[] = [];
 
-  // Flatten top-level + inner instructions
-  const topLevel = tx.transaction.message.instructions as unknown as RawInstruction[];
-  const inner = (tx.meta?.innerInstructions ?? []).flatMap(
-    (ii) => ii.instructions as unknown as RawInstruction[]
-  );
+  // Flatten top-level + inner instructions (handle both legacy and versioned tx formats)
+  const rawTopLevel = message.instructions ?? message.compiledInstructions ?? [];
+  const topLevel = Array.isArray(rawTopLevel) ? (rawTopLevel as RawInstruction[]) : [];
+  const inner = (tx.meta?.innerInstructions ?? []).flatMap((ii) => {
+    const ixs = ii.instructions;
+    return Array.isArray(ixs) ? (ixs as unknown as RawInstruction[]) : [];
+  });
   const allIxs: RawInstruction[] = [...topLevel, ...inner];
 
-  for (const ix of allIxs) {
+  for (const rawIx of allIxs) {
+    const ix = normaliseIx(rawIx);
     const programId = resolveAccountKey(accountKeys, ix.programIdIndex);
     if (programId !== TOKEN_PROGRAM_ID && programId !== TOKEN_2022_PROGRAM_ID) continue;
 
@@ -120,8 +167,9 @@ export function parseSplTransfers(
       const mint = resolveMint(tx, destIdx, usdtMint, usdcMint);
       if (!mint) continue;
 
+      const owner = resolveOwner(tx, destIdx);
       const token: SplTokenSymbol = mint === usdtMint ? 'USDT' : 'USDC';
-      results.push({ destination, amount, txHash: sig, slot, token, mint });
+      results.push({ destination, owner, amount, txHash: sig, slot, token, mint });
     } else if (disc === DISC_TRANSFER_CHECKED) {
       // accounts: [source(0), mint(1), destination(2), authority(3)]
       const mintIdx = ix.accounts[1];
@@ -136,8 +184,9 @@ export function parseSplTransfers(
       const amount = readAmount(data);
       if (amount === null) continue;
 
+      const owner = resolveOwner(tx, destIdx);
       const token: SplTokenSymbol = mintAddr === usdtMint ? 'USDT' : 'USDC';
-      results.push({ destination, amount, txHash: sig, slot, token, mint: mintAddr });
+      results.push({ destination, owner, amount, txHash: sig, slot, token, mint: mintAddr });
     }
   }
 

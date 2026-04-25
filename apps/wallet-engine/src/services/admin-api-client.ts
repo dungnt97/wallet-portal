@@ -38,6 +38,7 @@ export async function creditDeposit(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${opts.bearerToken}`,
       },
+      body: JSON.stringify({}),
     });
   } catch (err) {
     logger.error({ err, depositId }, 'admin-api credit request network error');

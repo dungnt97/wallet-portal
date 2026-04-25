@@ -235,6 +235,52 @@ const internalRoutes: FastifyPluginAsync<{ bearerToken: string }> = async (app, 
     }
   );
 
+  // ── GET /internal/withdrawals/:id/signatures ──────────────────────────────────
+  // Called by wallet-engine withdrawal-execute worker to fetch collected signer
+  // addresses + raw signatures before broadcasting Safe/Squads tx on-chain.
+  r.get(
+    '/internal/withdrawals/:id/signatures',
+    {
+      schema: {
+        tags: ['internal'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({
+            signatures: z.array(z.object({ signer: z.string(), signature: z.string() })),
+          }),
+          401: z.object({ code: z.string(), message: z.string() }),
+          404: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      const withdrawal = await app.db.query.withdrawals.findFirst({
+        where: eq(schema.withdrawals.id, req.params.id),
+      });
+      if (!withdrawal || !withdrawal.multisigOpId) {
+        return reply.code(404).send({
+          code: 'NOT_FOUND',
+          message: `Withdrawal ${req.params.id} not found or has no multisig op`,
+        });
+      }
+
+      const approvals = await app.db
+        .select({
+          signer: schema.staffSigningKeys.address,
+          signature: schema.multisigApprovals.signature,
+        })
+        .from(schema.multisigApprovals)
+        .innerJoin(
+          schema.staffSigningKeys,
+          eq(schema.multisigApprovals.staffSigningKeyId, schema.staffSigningKeys.id)
+        )
+        .where(eq(schema.multisigApprovals.opId, withdrawal.multisigOpId));
+
+      return reply.code(200).send({ signatures: approvals });
+    }
+  );
+
   // ── POST /internal/withdrawals/:id/execute ────────────────────────────────────
   // Called by wallet-engine cold-timelock-broadcast worker to trigger broadcast
   r.post(

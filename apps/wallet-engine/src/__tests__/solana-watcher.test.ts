@@ -1,107 +1,24 @@
 import type { Connection } from '@solana/web3.js';
-import bs58 from 'bs58';
 import type { Queue } from 'bullmq';
 // Integration test for SolanaWatcher — mock Connection, no real RPC
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Db } from '../db/client.js';
 import { AddressRegistry } from '../watcher/address-registry.js';
 import { BlockCheckpoint } from '../watcher/block-checkpoint.js';
-import { TOKEN_PROGRAM_ID } from '../watcher/solana-tx-parser.js';
 import { SolanaWatcher } from '../watcher/solana-watcher.js';
-
-const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
-const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const DST_ATA = 'DstTokenAccount111111111111111111111111111111';
-const SRC_ATA = 'SrcTokenAccount111111111111111111111111111111';
-const AUTHORITY = 'Authority111111111111111111111111111111111111';
-const USER_ID = 'user-sol-1';
-const SIG = 'solSig1111111111111111111111111111111111111111111111111111111111';
-
-/** Encode SPL Transfer (disc=3) instruction data */
-function encodeTransfer(amount: bigint): string {
-  const buf = Buffer.alloc(9);
-  buf.writeUInt8(3, 0);
-  buf.writeBigUInt64LE(amount, 1);
-  return bs58.encode(buf);
-}
-
-/** Build a minimal block fixture with one SPL Transfer to DST_ATA */
-function makeBlock(slot: number, destAta = DST_ATA) {
-  const accountKeys = [
-    { pubkey: { toBase58: () => TOKEN_PROGRAM_ID } },
-    { pubkey: { toBase58: () => SRC_ATA } },
-    { pubkey: { toBase58: () => destAta } },
-    { pubkey: { toBase58: () => AUTHORITY } },
-    { pubkey: { toBase58: () => USDT_MINT } },
-  ];
-
-  const instruction = {
-    programIdIndex: 0,
-    accounts: [1, 2, 3], // src, dst, authority
-    data: encodeTransfer(500_000n),
-  };
-
-  const tx = {
-    transaction: {
-      signatures: [SIG],
-      message: {
-        accountKeys,
-        instructions: [instruction],
-        recentBlockhash: 'blockhash',
-      },
-    },
-    meta: {
-      err: null,
-      innerInstructions: [],
-      postTokenBalances: [
-        {
-          accountIndex: 2,
-          mint: USDT_MINT,
-          uiTokenAmount: { amount: '500000', decimals: 6, uiAmount: 0.5, uiAmountString: '0.5' },
-          owner: AUTHORITY,
-          programId: TOKEN_PROGRAM_ID,
-        },
-      ],
-      preTokenBalances: [],
-      logMessages: [],
-    },
-  };
-
-  return {
-    blockhash: `hash${slot}`,
-    previousBlockhash: `hash${slot - 1}`,
-    parentSlot: slot - 1,
-    transactions: [tx],
-    blockTime: 1700000000,
-    blockHeight: slot,
-    rewards: [],
-  };
-}
-
-function makeDb(): Db {
-  return {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    }),
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        onConflictDoUpdate: vi.fn().mockResolvedValue([]),
-        returning: vi.fn().mockResolvedValue([{ id: 'dep-sol-1' }]),
-      }),
-    }),
-    update: vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(1) }),
-    }),
-  } as unknown as Db;
-}
-
-function makeQueue(): Queue {
-  return { add: vi.fn().mockResolvedValue({ id: 'job-sol-1' }) } as unknown as Queue;
-}
+import {
+  AUTHORITY,
+  DST_ATA,
+  SIG,
+  SRC_ATA,
+  USDC_MINT,
+  USDT_MINT,
+  USER_ID,
+  WALLET_ADDR,
+  makeBlock,
+  makeDb,
+  makeQueue,
+} from './solana-watcher.fixtures.js';
 
 describe('SolanaWatcher', () => {
   let db: Db;
@@ -115,6 +32,8 @@ describe('SolanaWatcher', () => {
     checkpoint = new BlockCheckpoint(db);
 
     registry = new AddressRegistry();
+    // Bug 1 fix: registry must store WALLET_ADDR (the wallet), not DST_ATA (the ATA).
+    // The watcher resolves ATA→wallet via transfer.owner and looks up the wallet address.
     const seedDb = {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockResolvedValue([
@@ -122,7 +41,7 @@ describe('SolanaWatcher', () => {
             id: 'addr-sol-1',
             userId: USER_ID,
             chain: 'sol',
-            address: DST_ATA,
+            address: WALLET_ADDR,
             derivationPath: null,
           },
         ]),
@@ -161,8 +80,15 @@ describe('SolanaWatcher', () => {
     expect(queue.add).toHaveBeenCalledTimes(1);
   });
 
-  it('skips enqueue when destination is not in registry', async () => {
-    const block = makeBlock(200, 'UnknownATA111111111111111111111111111111111');
+  it('skips enqueue when neither ATA destination nor wallet owner is in registry', async () => {
+    // Both the destination ATA and the postTokenBalances.owner are unknown addresses.
+    // The watcher looks up transfer.owner first (bug-fix behaviour), then falls back to
+    // transfer.destination — neither is in the registry, so no job is enqueued.
+    const block = makeBlock(
+      200,
+      'UnknownATA111111111111111111111111111111111',
+      'UnknownWallet1111111111111111111111111111111'
+    );
     const connection = {
       getSlot: vi.fn().mockResolvedValue(200),
       getBlock: vi.fn().mockResolvedValue(block),

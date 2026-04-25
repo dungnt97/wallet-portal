@@ -174,7 +174,7 @@ describe('BnbWatcher', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
-  it('clamps catch-up to MAX_BLOCKS_PER_TICK (100)', async () => {
+  it('clamps catch-up to MAX_BLOCKS_PER_TICK (10)', async () => {
     // Tip is 200 blocks ahead of checkpoint
     const provider = makeProvider({ blockNumber: 200, logs: [] });
     vi.spyOn(checkpoint, 'load').mockResolvedValue(0);
@@ -190,9 +190,9 @@ describe('BnbWatcher', () => {
     await new Promise((r) => setTimeout(r, 80));
     await watcher.stop();
 
-    // getLogs called with toBlock capped at fromBlock + 99 = 100
+    // getLogs called with toBlock capped at fromBlock + MAX_BLOCKS_PER_TICK - 1 = 1 + 10 - 1 = 10
     expect(provider.getLogs).toHaveBeenCalledWith(
-      expect.objectContaining({ fromBlock: 1, toBlock: 100 })
+      expect.objectContaining({ fromBlock: 1, toBlock: 10 })
     );
   });
 

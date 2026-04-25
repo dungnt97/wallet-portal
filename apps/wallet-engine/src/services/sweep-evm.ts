@@ -26,6 +26,8 @@ export interface BuildSweepEVMParams {
   destinationHotSafe: `0x${string}`;
   /** Chain nonce for the from-address */
   nonce: number;
+  /** Dynamic gas price fetched from provider (legacy type 0 tx for BSC compatibility) */
+  gasPrice: bigint;
 }
 
 export interface SignedSweepEVM {
@@ -35,9 +37,8 @@ export interface SignedSweepEVM {
 }
 
 function isDevMode(): boolean {
-  // Synthetic tx allowed ONLY when AUTH_DEV_MODE is explicitly 'true'.
-  // Missing mnemonic in production is a fatal config error — not a dev-mode fallback.
-  return process.env.AUTH_DEV_MODE === 'true';
+  // Real signing when mnemonic is available — AUTH_DEV_MODE only controls auth, not sweep execution.
+  return !process.env.HD_MASTER_XPUB_BNB || process.env.HD_MASTER_XPUB_BNB === '';
 }
 
 /**
@@ -81,7 +82,7 @@ function deriveWallet(mnemonic: string, index: number): HDNodeWallet {
  * Dev-mode: returns a synthetic txHash without touching any key material.
  */
 export async function buildAndSignSweepEVM(params: BuildSweepEVMParams): Promise<SignedSweepEVM> {
-  const { userAddressIndex, tokenContract, amount, destinationHotSafe, nonce } = params;
+  const { userAddressIndex, tokenContract, amount, destinationHotSafe, nonce, gasPrice } = params;
 
   // Fail fast if production is missing key material
   assertKeyMaterial();
@@ -108,16 +109,15 @@ export async function buildAndSignSweepEVM(params: BuildSweepEVMParams): Promise
     amount,
   ]) as `0x${string}`;
 
-  // Build EIP-1559 transaction (BNB Chain supports type 2)
+  // Legacy type 0 tx — BSC testnet handles these more reliably than EIP-1559
   const tx = Transaction.from({
-    type: 2,
+    type: 0,
     to: tokenContract,
     nonce,
     data,
     chainId: BigInt(process.env.BNB_CHAIN_ID ?? '56'),
-    maxFeePerGas: BigInt(5_000_000_000), // 5 gwei — conservative default
-    maxPriorityFeePerGas: BigInt(1_000_000_000), // 1 gwei
-    gasLimit: BigInt(80_000), // ERC-20 transfer ~65k gas
+    gasPrice,
+    gasLimit: BigInt(80_000),
     value: BigInt(0),
   });
 

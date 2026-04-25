@@ -34,7 +34,7 @@ export async function enqueueDepositConfirm(
   data: DepositConfirmJobData
 ): Promise<void> {
   const job = await queue.add('deposit_confirm', data, {
-    jobId: `deposit:${data.txHash}`, // Idempotent — deduplicates by tx hash
+    jobId: `deposit-${data.txHash}`,
   });
   logger.info({ jobId: job.id, txHash: data.txHash }, 'Enqueued deposit_confirm job');
 }

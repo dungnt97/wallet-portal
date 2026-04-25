@@ -156,7 +156,7 @@ async function persistAndEnqueue(
       userId,
       chain,
       token: transfer.token,
-      amount: (Number(transfer.amount) / 1e18).toFixed(18),
+      amount: (Number(transfer.amount) / (chain === 'sol' ? 1e6 : 1e18)).toFixed(18),
       txHash: transfer.txHash,
       status: 'pending',
     })

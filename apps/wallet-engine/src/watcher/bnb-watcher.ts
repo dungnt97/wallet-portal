@@ -12,9 +12,9 @@ import { detectDeposit } from './deposit-detector.js';
 
 const logger = pino({ name: 'bnb-watcher' });
 
-const DEFAULT_POLL_INTERVAL_MS = 3_000;
-/** Max blocks to catch up per tick — prevents huge getLogs spans on restarts */
-const MAX_BLOCKS_PER_TICK = 100;
+const DEFAULT_POLL_INTERVAL_MS = 5_000;
+/** Max blocks to catch up per tick — BSC testnet public RPCs limit getLogs range */
+const MAX_BLOCKS_PER_TICK = 10;
 /** Exponential backoff: max delay between retries on RPC error (ms) */
 const MAX_BACKOFF_MS = 30_000;
 

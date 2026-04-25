@@ -70,14 +70,15 @@ async function getHotSafeAddress(db: Db, chain: 'bnb' | 'sol'): Promise<string> 
 }
 
 /**
- * Extract the last numeric component from a BIP-44 derivation path.
- * e.g. "m/44'/60'/0'/0/5" → 5
+ * Extract the derivation index from a BIP-44 path.
+ * BNB: m/44'/60'/0'/0/{index} → last segment
+ * SOL: m/44'/501'/{index}'/0' → 4th segment (index 3)
  */
-function parseDerivationIndex(path: string | null): number {
+function parseDerivationIndex(path: string | null, chain: 'bnb' | 'sol'): number {
   if (!path) return 0;
   const parts = path.split('/');
-  const last = parts[parts.length - 1];
-  const index = Number.parseInt(last?.replace("'", '') ?? '0', 10);
+  const segment = chain === 'sol' ? parts[3] : parts[parts.length - 1];
+  const index = Number.parseInt(segment?.replace("'", '') ?? '0', 10);
   return Number.isNaN(index) ? 0 : index;
 }
 
@@ -137,8 +138,6 @@ export async function createSweeps(
       continue;
     }
 
-    // Get credited deposit balance for this address
-    // Simplified: use all credited deposits for this userId+chain as proxy
     const deposits = await db
       .select({ amount: schema.deposits.amount, token: schema.deposits.token })
       .from(schema.deposits)
@@ -150,69 +149,71 @@ export async function createSweeps(
         )
       );
 
-    // Take first token found (MVP: one sweep per address per token type)
     const grouped = deposits.reduce<Record<string, number>>((acc, d) => {
       acc[d.token] = (acc[d.token] ?? 0) + Number(d.amount);
       return acc;
     }, {});
 
-    const token = (Object.keys(grouped)[0] ?? 'USDT') as 'USDT' | 'USDC';
-    const amount = String(grouped[token] ?? '0');
     const hotSafe = await getHotSafeAddress(db, ua.chain);
-    const derivationIndex = parseDerivationIndex(ua.derivationPath ?? null);
+    const derivationIndex = parseDerivationIndex(ua.derivationPath ?? null, ua.chain);
 
-    // Insert sweep row inside a transaction
-    const [sweep] = await db
-      .insert(schema.sweeps)
-      .values({
+    // Create one sweep per token type (USDT, USDC, or both)
+    for (const [tokenKey, tokenAmount] of Object.entries(grouped)) {
+      if (tokenAmount <= 0) continue;
+      const token = tokenKey as 'USDT' | 'USDC';
+      const amount = String(tokenAmount);
+
+      const [sweep] = await db
+        .insert(schema.sweeps)
+        .values({
+          userAddressId: ua.id,
+          chain: ua.chain,
+          token,
+          fromAddr: ua.address,
+          toMultisig: hotSafe,
+          amount,
+          status: 'pending',
+          createdBy: staffId,
+        })
+        .returning();
+
+      if (!sweep) throw new Error(`Failed to insert sweep for userAddressId=${ua.id}`);
+
+      await emitAudit(db, {
+        staffId,
+        action: 'sweep.created',
+        resourceType: 'sweep',
+        resourceId: sweep.id,
+        changes: { status: 'pending', fromAddr: ua.address, amount, token },
+      });
+
+      const jobData: SweepExecuteJobData = {
+        sweepId: sweep.id,
         userAddressId: ua.id,
+        derivationIndex,
         chain: ua.chain,
         token,
-        fromAddr: ua.address,
-        toMultisig: hotSafe,
         amount,
-        status: 'pending',
-        createdBy: staffId,
-      })
-      .returning();
+        fromAddr: ua.address,
+        destinationHotSafe: hotSafe,
+      };
 
-    if (!sweep) throw new Error(`Failed to insert sweep for userAddressId=${ua.id}`);
+      const job = await queue.add(SWEEP_EXECUTE_QUEUE, jobData, {
+        jobId: `sweep_execute_${sweep.id}`,
+      });
 
-    await emitAudit(db, {
-      staffId,
-      action: 'sweep.created',
-      resourceType: 'sweep',
-      resourceId: sweep.id,
-      changes: { status: 'pending', fromAddr: ua.address, amount, token },
-    });
+      io.of('/stream').emit('sweep.started', {
+        sweepId: sweep.id,
+        fromAddr: ua.address,
+        chain: ua.chain,
+      });
 
-    // Enqueue BullMQ job (idempotent)
-    const jobData: SweepExecuteJobData = {
-      sweepId: sweep.id,
-      userAddressId: ua.id,
-      derivationIndex,
-      chain: ua.chain,
-      token,
-      amount,
-      fromAddr: ua.address,
-      destinationHotSafe: hotSafe,
-    };
-
-    const job = await queue.add(SWEEP_EXECUTE_QUEUE, jobData, {
-      jobId: `sweep_execute:${sweep.id}`,
-    });
-
-    io.of('/stream').emit('sweep.started', {
-      sweepId: sweep.id,
-      fromAddr: ua.address,
-      chain: ua.chain,
-    });
-
-    result.created.push({
-      sweepId: sweep.id,
-      userAddressId: ua.id,
-      jobId: job.id ?? `sweep_execute:${sweep.id}`,
-    });
+      result.created.push({
+        sweepId: sweep.id,
+        userAddressId: ua.id,
+        jobId: job.id ?? `sweep_execute_${sweep.id}`,
+      });
+    }
   }
 
   return result;

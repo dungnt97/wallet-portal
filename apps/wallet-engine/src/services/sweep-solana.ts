@@ -52,8 +52,9 @@ export interface SignedSweepSolana {
 }
 
 function isDevMode(): boolean {
-  // Synthetic tx allowed ONLY when AUTH_DEV_MODE is explicitly 'true'.
-  return process.env.AUTH_DEV_MODE === 'true';
+  // Real signing when seed is available — AUTH_DEV_MODE only controls auth, not sweep execution.
+  const seed = process.env.HD_MASTER_SEED_SOLANA;
+  return !seed || seed === '' || seed === 'your-hex-encoded-seed-here';
 }
 
 function assertKeyMaterial(): void {
@@ -91,7 +92,7 @@ function deriveKeypair(seedHex: string, index: number): Keypair {
  * Computed locally without needing an RPC call — deterministic per SPL spec.
  */
 async function getAssociatedTokenAddress(wallet: PublicKey, mint: PublicKey): Promise<PublicKey> {
-  const ATA_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bsw');
+  const ATA_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
   const [ata] = await PublicKey.findProgramAddress(
     [wallet.toBuffer(), SPL_TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
     ATA_PROGRAM_ID

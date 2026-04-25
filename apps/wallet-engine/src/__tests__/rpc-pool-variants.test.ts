@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { makeBnbPool, destroyBnbPool, type BnbPool } from '../rpc/bnb-pool.js';
-import { makeSolanaPool, destroySolanaPool, solanaCall, type SolanaPool } from '../rpc/solana-pool.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { type BnbPool, destroyBnbPool, makeBnbPool } from '../rpc/bnb-pool.js';
+import {
+  type SolanaPool,
+  destroySolanaPool,
+  makeSolanaPool,
+  solanaCall,
+} from '../rpc/solana-pool.js';
 
 describe('rpc-pool-variants', () => {
   describe('BNB Pool', () => {
@@ -41,11 +46,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should assign weight 2 to first provider, weight 1 to others', () => {
-        const urls = [
-          'https://primary.rpc',
-          'https://secondary.rpc',
-          'https://tertiary.rpc',
-        ];
+        const urls = ['https://primary.rpc', 'https://secondary.rpc', 'https://tertiary.rpc'];
         const pool = makeBnbPool(urls);
 
         const configs = pool.provider.providerConfigs;
@@ -71,10 +72,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should wrap multiple URLs in FallbackProvider', () => {
-        const urls = [
-          'https://bsc-dataseed1.binance.org',
-          'https://bsc-dataseed2.binance.org',
-        ];
+        const urls = ['https://bsc-dataseed1.binance.org', 'https://bsc-dataseed2.binance.org'];
         const pool = makeBnbPool(urls);
 
         // FallbackProvider has providerConfigs
@@ -112,16 +110,22 @@ describe('rpc-pool-variants', () => {
         expect(result instanceof Promise).toBe(true);
       });
 
-      it('should handle pool teardown', async () => {
-        const urls = [
-          'https://bsc-dataseed1.binance.org',
-          'https://bsc-dataseed2.binance.org',
-        ];
+      it('should handle single provider teardown (JsonRpcProvider)', async () => {
+        const pool = makeBnbPool(['https://bsc-dataseed1.binance.org']);
+        const destroySpy = vi.spyOn(pool.provider, 'destroy');
+
+        await destroyBnbPool(pool);
+        expect(destroySpy).toHaveBeenCalled();
+      });
+
+      it('should handle multiple provider teardown (FallbackProvider)', async () => {
+        const urls = ['https://bsc-dataseed1.binance.org', 'https://bsc-dataseed2.binance.org'];
         const pool = makeBnbPool(urls);
 
-        // Pool teardown is called
-        const result = destroyBnbPool(pool);
-        expect(result instanceof Promise).toBe(true);
+        // FallbackProvider case with providerConfigs
+        await destroyBnbPool(pool);
+        // Should not throw
+        expect(true).toBe(true);
       });
     });
   });
@@ -154,10 +158,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should set first connection as primary', () => {
-        const urls = [
-          'https://api.mainnet-beta.solana.com',
-          'https://solana-api.projectserum.com',
-        ];
+        const urls = ['https://api.mainnet-beta.solana.com', 'https://solana-api.projectserum.com'];
         const pool = makeSolanaPool(urls);
 
         expect(pool.primary).toBe(pool.connections[0]);
@@ -184,10 +185,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should create independent connections', () => {
-        const urls = [
-          'https://api.mainnet-beta.solana.com',
-          'https://solana-api.projectserum.com',
-        ];
+        const urls = ['https://api.mainnet-beta.solana.com', 'https://solana-api.projectserum.com'];
         const pool = makeSolanaPool(urls);
 
         // Connections should be different objects
@@ -207,10 +205,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should retry on failure', async () => {
-        const urls = [
-          'https://api.mainnet-beta.solana.com',
-          'https://solana-api.projectserum.com',
-        ];
+        const urls = ['https://api.mainnet-beta.solana.com', 'https://solana-api.projectserum.com'];
         const pool = makeSolanaPool(urls);
 
         let callCount = 0;
@@ -295,10 +290,7 @@ describe('rpc-pool-variants', () => {
       });
 
       it('should work with multiple connections', async () => {
-        const urls = [
-          'https://api.mainnet-beta.solana.com',
-          'https://solana-api.projectserum.com',
-        ];
+        const urls = ['https://api.mainnet-beta.solana.com', 'https://solana-api.projectserum.com'];
         const pool = makeSolanaPool(urls);
 
         await expect(destroySolanaPool(pool)).resolves.not.toThrow();
@@ -315,20 +307,14 @@ describe('rpc-pool-variants', () => {
 
   describe('Pool comparison', () => {
     it('BNB pool uses FallbackProvider (ethers built-in)', () => {
-      const bnbPool = makeBnbPool([
-        'https://rpc1.binance.org',
-        'https://rpc2.binance.org',
-      ]);
+      const bnbPool = makeBnbPool(['https://rpc1.binance.org', 'https://rpc2.binance.org']);
 
       // Verify FallbackProvider properties
       expect(bnbPool.provider.providerConfigs).toBeDefined();
     });
 
     it('Solana pool uses manual failover', () => {
-      const solPool = makeSolanaPool([
-        'https://rpc1.solana.com',
-        'https://rpc2.solana.com',
-      ]);
+      const solPool = makeSolanaPool(['https://rpc1.solana.com', 'https://rpc2.solana.com']);
 
       // Solana pool stores connections array for manual failover
       expect(solPool.connections.length).toBe(2);
@@ -340,7 +326,11 @@ describe('rpc-pool-variants', () => {
     });
 
     it('both pools preserve URL order', () => {
-      const bnbUrls = ['https://rpc1.binance.org', 'https://rpc2.binance.org', 'https://rpc3.binance.org'];
+      const bnbUrls = [
+        'https://rpc1.binance.org',
+        'https://rpc2.binance.org',
+        'https://rpc3.binance.org',
+      ];
       const solUrls = [
         'https://api.mainnet-beta.solana.com',
         'https://solana-api.projectserum.com',

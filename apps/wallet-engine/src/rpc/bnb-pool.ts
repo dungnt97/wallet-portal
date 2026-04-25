@@ -39,8 +39,14 @@ export function makeBnbPool(urls: string[]): BnbPool {
 
 /** Destroy underlying providers (closes WebSocket connections if any) */
 export async function destroyBnbPool(pool: BnbPool): Promise<void> {
-  for (const p of pool.provider.providerConfigs) {
-    (p.provider as JsonRpcProvider).destroy();
+  // Single provider case (JsonRpcProvider, not FallbackProvider)
+  if ('destroy' in pool.provider && typeof pool.provider.destroy === 'function') {
+    (pool.provider as JsonRpcProvider).destroy();
+  } else if ('providerConfigs' in pool.provider) {
+    // FallbackProvider case with multiple providers
+    for (const p of (pool.provider as FallbackProvider).providerConfigs) {
+      (p.provider as JsonRpcProvider).destroy();
+    }
   }
   logger.info('BNB RPC pool destroyed');
 }

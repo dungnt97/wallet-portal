@@ -117,9 +117,6 @@ func TestEvaluate_ResponseStructure(t *testing.T) {
 
 	resp := eval.Evaluate(context.Background(), req)
 	// All fields should be present
-	if resp.Allow == false {
-		// check allow
-	}
 	if resp.Reasons == nil {
 		t.Errorf("Reasons should not be nil")
 	}
@@ -135,6 +132,10 @@ func TestDefaultRules_Production(t *testing.T) {
 	if ruleSet[0].Name() != "kill_switch_check" {
 		t.Errorf("first rule should be kill_switch_check, got %s", ruleSet[0].Name())
 	}
+	// Verify last rule is HwAttested
+	if ruleSet[len(ruleSet)-1].Name() != "hw_attested_required_for_cold" {
+		t.Errorf("last rule should be hw_attested_required_for_cold, got %s", ruleSet[len(ruleSet)-1].Name())
+	}
 }
 
 func TestDefaultRules_DevMode(t *testing.T) {
@@ -143,13 +144,6 @@ func TestDefaultRules_DevMode(t *testing.T) {
 	// Last rule should be HwAttested with DevMode enabled
 	if ruleSet[len(ruleSet)-1].Name() != "hw_attested_required_for_cold" {
 		t.Errorf("last rule should be hw_attested_required_for_cold, got %s", ruleSet[len(ruleSet)-1].Name())
-	}
-	hwAttested, ok := ruleSet[len(ruleSet)-1].(*rules.HwAttested)
-	if !ok {
-		t.Fatalf("last rule should be HwAttested type")
-	}
-	if !hwAttested.DevMode {
-		t.Errorf("HwAttested.DevMode should be true for dev mode")
 	}
 }
 

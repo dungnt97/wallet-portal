@@ -38,16 +38,33 @@ function makeMockDb(rows: ReturnType<typeof makeDbRow>[] = []) {
   // Chain for list queries: select -> from -> leftJoin -> where -> orderBy -> limit -> offset
   const offsetMock = vi.fn().mockResolvedValue(rows);
   const limitMockForList = vi.fn().mockReturnValue({ offset: offsetMock });
+
+  // orderByMock returns limit chain
   const orderByMock = vi.fn().mockReturnValue({ limit: limitMockForList });
+  // But when orderBy is called with asc(), it returns rows directly (for export)
+  // We need to detect this dynamically, so we return something that can be either
+  const orderByReturnsObject = {
+    limit: limitMockForList, // For list queries
+  };
+
+  // Override to return promise for export queries
+  const orderByMockFactory = vi.fn((arg: unknown) => {
+    // If it's asc/desc call from export, return rows promise
+    // Otherwise return limit chain
+    // For simplicity, we'll check if it's being awaited
+    return Promise.resolve(rows);
+  });
+
+  // Actually, let's make orderByMock smarter - it returns the limit chain
+  const orderByMockActual = vi.fn(() => limitMockForList);
 
   // Chain for get query: select -> from -> leftJoin -> where -> limit
   const limitMockForGet = vi.fn().mockResolvedValue(rows);
 
-  const whereMock = vi.fn(function (arg: unknown) {
-    // Return either orderBy (for list) or limit (for get) depending on context
-    // We'll return an object that has both
+  const whereMock = vi.fn((arg: unknown) => {
+    // Return an object that has both orderBy and limit
     return {
-      orderBy: orderByMock,
+      orderBy: orderByMockActual,
       limit: limitMockForGet,
     };
   });
@@ -59,7 +76,7 @@ function makeMockDb(rows: ReturnType<typeof makeDbRow>[] = []) {
   const countFromMock = vi.fn().mockReturnValue({ where: countWhereMock });
 
   return {
-    select: vi.fn(function (arg: unknown) {
+    select: vi.fn((arg: unknown) => {
       if (typeof arg === 'object' && arg !== null && 'value' in arg) {
         return { from: countFromMock };
       }

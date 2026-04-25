@@ -100,7 +100,7 @@ function makeMockIo() {
 }
 
 function makeMockQueue() {
-  const addFn = vi.fn().mockResolvedValue({ id: `sweep_execute:${SWEEP_ID}` });
+  const addFn = vi.fn().mockResolvedValue({ id: `sweep_execute_${SWEEP_ID}` });
   return { add: addFn, _add: addFn };
 }
 
@@ -263,7 +263,7 @@ describe('Sweep E2E dev-mode happy path', () => {
     expect(queue._add).toHaveBeenCalledWith(
       SWEEP_EXECUTE_QUEUE,
       expect.objectContaining({ userAddressId: UA_ID, chain: 'bnb' }),
-      expect.objectContaining({ jobId: expect.stringContaining('sweep_execute:') })
+      expect.objectContaining({ jobId: expect.stringContaining('sweep_execute_') })
     );
 
     expect(io._emit).toHaveBeenCalledWith(

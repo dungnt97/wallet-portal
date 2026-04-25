@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome check src",
     "gen:api-types": "tsx scripts/gen-api-types.ts",
     "test:e2e": "playwright test",

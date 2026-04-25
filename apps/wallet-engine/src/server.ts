@@ -155,6 +155,16 @@ async function start(): Promise<void> {
     squadsPda: cfg.SQUADS_MULTISIG_ADDRESS,
   });
 
+  // Warn if Safe Tx Service URL is not configured — multi-sig signature collection
+  // will fall back to DB-only mode (admin-api collects sigs in multisig_approvals table).
+  // Set SAFE_TX_SERVICE_URL after bringing up infra/docker/safe-tx-service.compose.yml.
+  if (!cfg.SAFE_TX_SERVICE_URL) {
+    logger.warn(
+      'SAFE_TX_SERVICE_URL not set — Safe Transaction Service integration disabled; ' +
+        'run infra/docker/safe-tx-service.compose.yml and set SAFE_TX_SERVICE_URL=http://localhost:8888'
+    );
+  }
+
   // Verify connectivity
   try {
     const bnbBlock = await bnbPool.provider.getBlockNumber();

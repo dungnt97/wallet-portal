@@ -1,4 +1,4 @@
-import { Withdrawal } from '@wp/shared-types';
+import { SigningSession, Withdrawal } from '@wp/shared-types';
 import { eq } from 'drizzle-orm';
 // Withdrawals routes — full CRUD + approve + execute + CSV export
 import type { FastifyPluginAsync } from 'fastify';
@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { requirePerm } from '../auth/rbac.middleware.js';
 import * as schema from '../db/schema/index.js';
 import { notifyStaff } from '../services/notify-staff.service.js';
+import { verifySigningSession } from '../services/signing-session-verifier.js';
 import {
   countWithdrawalsForExport,
   queryWithdrawalsForExport,
@@ -283,6 +284,9 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
           signedAt: z.string().datetime(),
           multisigOpId: z.string().uuid(),
           chain: z.enum(['bnb', 'sol']),
+          // Mandatory SigningSession — backend verifies cryptographic integrity.
+          // Missing or tampered session → HTTP 400.
+          session: SigningSession,
           // Slice 7 HW-attestation: optional for hot-tier, required for cold-tier (enforced by policy-engine)
           attestationBlob: z.string().base64().optional(),
           attestationType: z.enum(['ledger', 'trezor']).optional(),
@@ -298,6 +302,7 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
             progress: z.string(),
             thresholdMet: z.boolean(),
           }),
+          400: z.object({ code: z.string(), message: z.string() }),
           403: z.object({
             code: z.string(),
             message: z.string(),
@@ -310,6 +315,24 @@ const withdrawalsRoutes: FastifyPluginAsync = async (app) => {
     },
     async (req, reply) => {
       const staffId = (req.session.staff ?? { id: '' }).id;
+
+      // Mandatory cryptographic verification — reject missing/tampered session immediately.
+      const verifyResult = verifySigningSession(
+        req.body.session,
+        req.body.signature,
+        req.body.signerAddress
+      );
+      if (!verifyResult.ok) {
+        app.log.warn(
+          { withdrawalId: req.params.id, signerAddress: req.body.signerAddress },
+          'signature verification failed'
+        );
+        return reply.code(400).send({
+          code: 'INVALID_SIGNATURE',
+          message: `Signature verification failed: ${verifyResult.reason}`,
+        });
+      }
+
       try {
         // Build input explicitly to satisfy exactOptionalPropertyTypes:
         // Zod infers optional fields as `T | undefined`; we only spread them when defined.

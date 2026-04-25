@@ -107,8 +107,9 @@ console.log(`  Threshold: 2 of ${owners.length}`);
 const safeAccountConfig: SafeAccountConfig = { owners, threshold: 2 };
 const predictedSafe: PredictedSafeProps = { safeAccountConfig };
 
-// Safe.init with predictedSafe config — predicts address without deploying
-const safeSdk = await Safe.init({
+// ESM/CJS interop: Safe may resolve as { default: class } or class directly
+const SafeFactory = typeof Safe.init === 'function' ? Safe : (Safe as any).default;
+const safeSdk = await SafeFactory.init({
   provider: BNB_CHAPEL_RPC,
   signer: DEPLOYER_PRIVATE_KEY,
   predictedSafe,

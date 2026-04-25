@@ -1,4 +1,83 @@
-// MVP STUB — real Safe multisig ABI added during withdrawal phase (P09+)
-// Replace with imported JSON ABI from @safe-global/safe-contracts when wiring multisig execution.
-// biome-ignore lint/suspicious/noExplicitAny: ABI entries are dynamically typed; real ABI replaces this in P09
-export const SAFE_ABI: readonly any[] = [] as const;
+export const SAFE_ABI = [
+  {
+    type: 'function',
+    name: 'execTransaction',
+    inputs: [
+      { name: 'to', type: 'address', internalType: 'address' },
+      { name: 'value', type: 'uint256', internalType: 'uint256' },
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
+      { name: 'operation', type: 'uint8', internalType: 'enum Enum.Operation' },
+      { name: 'safeTxGas', type: 'uint256', internalType: 'uint256' },
+      { name: 'baseGas', type: 'uint256', internalType: 'uint256' },
+      { name: 'gasPrice', type: 'uint256', internalType: 'uint256' },
+      { name: 'gasToken', type: 'address', internalType: 'address' },
+      { name: 'refundReceiver', type: 'address', internalType: 'address payable' },
+      { name: 'signatures', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [{ name: 'success', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'nonce',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getOwners',
+    inputs: [],
+    outputs: [{ name: '', type: 'address[]', internalType: 'address[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getThreshold',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getTransactionHash',
+    inputs: [
+      { name: 'to', type: 'address', internalType: 'address' },
+      { name: 'value', type: 'uint256', internalType: 'uint256' },
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
+      { name: 'operation', type: 'uint8', internalType: 'enum Enum.Operation' },
+      { name: 'safeTxGas', type: 'uint256', internalType: 'uint256' },
+      { name: 'baseGas', type: 'uint256', internalType: 'uint256' },
+      { name: 'gasPrice', type: 'uint256', internalType: 'uint256' },
+      { name: 'gasToken', type: 'address', internalType: 'address' },
+      { name: 'refundReceiver', type: 'address', internalType: 'address' },
+      { name: '_nonce', type: 'uint256', internalType: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isOwner',
+    inputs: [{ name: 'owner', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'approvedHashes',
+    inputs: [
+      { name: '', type: 'address', internalType: 'address' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'domainSeparator',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
+  },
+] as const;

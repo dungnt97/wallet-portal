@@ -110,6 +110,7 @@
       "connected": "Wallet connected",
       "connectedAs": "Connected as {{address}}",
       "error": "Connection failed",
+      "cancelled": "Connection cancelled",
       "disclaimer": "Only connect wallets you control",
       "footNote": "Signatures are off-chain — no gas required"
     }

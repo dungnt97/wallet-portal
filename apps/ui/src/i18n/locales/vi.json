@@ -110,6 +110,7 @@
       "connected": "Đã kết nối ví",
       "connectedAs": "Đã kết nối: {{address}}",
       "error": "Kết nối thất bại",
+      "cancelled": "Đã huỷ kết nối ví",
       "disclaimer": "Chỉ kết nối ví bạn kiểm soát",
       "footNote": "Chữ ký off-chain — không tốn phí gas"
     }

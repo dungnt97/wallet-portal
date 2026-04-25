@@ -4,6 +4,7 @@ export * from './deposit.js';
 export * from './ledger.js';
 export * from './multisig.js';
 export * from './primitives.js';
+export * from './signing-session.js';
 export * from './staff.js';
 export * from './user.js';
 export * from './wallet.js';

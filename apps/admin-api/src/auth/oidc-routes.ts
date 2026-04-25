@@ -267,4 +267,29 @@ export const oidcRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts)
       return reply.code(200).send(req.session.staff);
     }
   );
+
+  // ── POST /auth/session/heartbeat — update last_login_at for presence ────────
+  r.post(
+    '/auth/session/heartbeat',
+    {
+      schema: {
+        tags: ['auth'],
+        response: {
+          204: z.void(),
+          401: z.object({ code: z.string(), message: z.string() }),
+        },
+      },
+    },
+    async (req, reply) => {
+      if (!req.session?.staff) {
+        return reply.code(401).send({ code: 'UNAUTHENTICATED', message: 'Login required' });
+      }
+      app.db
+        .update(staffMembers)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(staffMembers.id, req.session.staff.id))
+        .catch((err) => app.log.error({ err }, 'Failed to update last_login_at via heartbeat'));
+      return reply.code(204).send();
+    }
+  );
 };

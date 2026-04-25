@@ -5,6 +5,16 @@
   "scripts": {
     "deploy:safe-bnb-testnet": "tsx scripts/deploy-safe-bnb-testnet.ts",
     "deploy:squads-devnet": "tsx scripts/deploy-squads-devnet.ts",
+    "keygen": "tsx scripts/generate-testnet-keys.ts",
+    "keygen:force": "tsx scripts/generate-testnet-keys.ts --force",
+    "fund:bnb": "tsx scripts/fund-multisig-vault.ts --chain bnb",
+    "fund:sol": "tsx scripts/fund-multisig-vault.ts --chain sol",
+    "sign": "tsx scripts/cli-sign-withdrawal.ts",
+    "sync-envs": "tsx scripts/sync-deployed-envs.ts",
+    "e2e:bnb": "tsx scripts/e2e-testnet-verify.ts --chain bnb",
+    "e2e:sol": "tsx scripts/e2e-testnet-verify.ts --chain sol",
+    "e2e:all": "tsx scripts/e2e-testnet-verify.ts --chain all",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -18,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2"
   }
 }

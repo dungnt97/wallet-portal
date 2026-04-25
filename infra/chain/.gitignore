@@ -1,9 +1,13 @@
 # Deployed addresses (commit .deployed.json.example as template, not the real file)
 .deployed.json
 
+# Testnet keypairs — contains private keys, NEVER commit
+.testnet-keys.json
+
 # Local env — contains private keys, NEVER commit
 .env
 
 # Build artefacts
 dist/
 node_modules/
+.deployer-devnet.json

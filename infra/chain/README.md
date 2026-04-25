@@ -73,18 +73,7 @@ SUCCESS — Safe deployed at: 0xSafe...
 
 ### After deploy
 
-Copy the Safe address to all three env files:
-
-```bash
-# apps/ui/.env
-VITE_SAFE_ADDRESS_BNB_TESTNET=0xSafe...
-
-# apps/admin-api/.env
-SAFE_ADDRESS_BNB_TESTNET=0xSafe...
-
-# apps/wallet-engine/.env
-SAFE_ADDRESS_BNB_TESTNET=0xSafe...
-```
+Run the sync-envs helper — it propagates the address automatically (see [End-to-end flow](#end-to-end-flow) below).
 
 ---
 
@@ -151,6 +140,97 @@ SQUADS_MULTISIG_PDA_DEVNET=<multisig-pda>
 # apps/wallet-engine/.env
 SQUADS_MULTISIG_PDA_DEVNET=<multisig-pda>
 ```
+
+---
+
+## End-to-end flow
+
+Complete sequence to go from a fresh checkout to running backends with Safe configured.
+
+### Step 1 — Deploy Safe on Chapel
+
+```bash
+pnpm --filter @wp/chain-scripts deploy:safe-bnb-testnet
+```
+
+Produces `infra/chain/.deployed.json` with `SAFE_ADDRESS_BNB_TESTNET`.
+
+### Step 2 — Record Safe Tx Service URL in .deployed.json
+
+After you have the Safe address, edit `.deployed.json` to add the service URL:
+
+```json
+{
+  "SAFE_ADDRESS_BNB_TESTNET": "0xYourSafeAddress",
+  "SAFE_TX_SERVICE_URL": "http://localhost:8888",
+  ...
+}
+```
+
+> If you are not yet running the self-hosted Safe Tx Service, skip this field for now
+> and add it later. The backends will warn on boot but continue operating.
+
+### Step 3 — Bring up self-hosted Safe Tx Service
+
+```bash
+# First, ensure the main dev stack redis is running (provides wp-net + redis)
+docker compose -f infra/docker-compose.yml up -d redis
+
+# Then start the Safe Tx Service stack
+docker compose -f infra/docker/safe-tx-service.compose.yml up -d
+```
+
+See `infra/docker/README.md` for configuration details (`DJANGO_SECRET_KEY`, `START_BLOCK`, etc.).
+
+Verify it is healthy:
+
+```bash
+curl http://localhost:8888/api/v1/about/
+# Expected: HTTP 200 with JSON body containing "eth_chain_id": "97"
+```
+
+### Step 4 — Sync env vars to all apps
+
+```bash
+pnpm --filter @wp/chain-scripts sync-envs
+```
+
+This single command:
+- Reads `infra/chain/.deployed.json`
+- Writes/updates `apps/ui/.env.local` with `VITE_`-prefixed keys
+- Writes/updates `apps/admin-api/.env.local` with bare key names
+- Writes/updates `apps/wallet-engine/.env.local` with bare key names
+- **Preserves** all unrelated keys already in each `.env.local`
+- Is **idempotent** — re-running with unchanged `.deployed.json` produces no diff
+
+Keys written by this command:
+
+| `.deployed.json` key | `apps/ui` | `apps/admin-api` / `apps/wallet-engine` |
+|---|---|---|
+| `SQUADS_MULTISIG_PDA_DEVNET` | `VITE_SQUADS_MULTISIG_PDA_DEVNET` | `SQUADS_MULTISIG_PDA_DEVNET` |
+| `SQUADS_VAULT_PDA_DEVNET` | `VITE_SQUADS_VAULT_PDA_DEVNET` | `SQUADS_VAULT_PDA_DEVNET` |
+| `SAFE_ADDRESS_BNB_TESTNET` | `VITE_SAFE_ADDRESS_BNB_TESTNET` | `SAFE_ADDRESS_BNB_TESTNET` |
+| `SAFE_TX_SERVICE_URL` | `VITE_SAFE_TX_SERVICE_URL` | `SAFE_TX_SERVICE_URL` |
+
+> All `.env.local` files are git-ignored. No secrets are committed.
+
+### Step 5 — Start backends
+
+```bash
+pnpm dev
+# or individually:
+pnpm --filter @wp/admin-api dev
+pnpm --filter @wp/wallet-engine dev
+```
+
+wallet-engine logs a warning on boot if `SAFE_TX_SERVICE_URL` is empty — this is
+expected if the Safe Tx Service is not yet running. The rest of the stack continues normally.
+
+---
+
+## After deploy — sync to apps
+
+Shortcut alias for Step 4 above:
 
 ---
 

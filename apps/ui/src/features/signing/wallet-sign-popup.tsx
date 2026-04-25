@@ -5,12 +5,19 @@
 //         SafeTxData + safeTxHash before signing. Value/data/nonce are correct.
 // C4 fix: Solana path builds real SPL/SOL transfer instruction; missing PDA
 //         throws instead of silently returning a fake hash.
+// Phase-03: both paths build a typed SigningSession (v:1) and sign canonical bytes.
+//           The session is posted alongside the signature for mandatory backend verification.
 import { I } from '@/icons';
 import { shortHash } from '@/lib/format';
 import {
   useConnection as useSolanaConnection,
   useWallet as useSolanaWallet,
 } from '@solana/wallet-adapter-react';
+import {
+  type SigningSessionEvm,
+  type SigningSessionSolana,
+  canonicalSolanaBytes,
+} from '@wp/shared-types';
 import { useEffect, useState } from 'react';
 import { useSignTypedData, useAccount as useWagmiAccount } from 'wagmi';
 import { evmBroadcastViaSafe, evmSign, getSafeTxServiceUrl } from './evm-adapter';
@@ -141,16 +148,44 @@ export function WalletSignPopup({
           op,
         });
 
+        // Phase-03: build typed SigningSession for mandatory backend verification
+        const evmSession: SigningSessionEvm = {
+          v: 1,
+          kind: 'evm',
+          safeAddress: safeAddress as string,
+          chainId: typedData.domain.chainId ?? 97,
+          safeTxHash,
+          domain: {
+            name: (typedData.domain.name as string) ?? 'Safe',
+            version: (typedData.domain.version as string) ?? '1.4.1',
+            chainId: typedData.domain.chainId ?? 97,
+            verifyingContract: (typedData.domain.verifyingContract as string) ?? safeAddress,
+          },
+          message: {
+            to: String(typedData.message.to),
+            value: String(typedData.message.value),
+            data: String(typedData.message.data),
+            operation: Number(typedData.message.operation ?? 0),
+            safeTxGas: String(typedData.message.safeTxGas),
+            baseGas: String(typedData.message.baseGas),
+            gasPrice: String(typedData.message.gasPrice),
+            gasToken: String(typedData.message.gasToken),
+            refundReceiver: String(typedData.message.refundReceiver),
+            nonce: String(typedData.message.nonce),
+          },
+        };
+
         // Cast: wagmi overloaded type is not directly assignable; runtime shape matches
         const evmResult = await evmSign(
           { typedData, fromAddress: evmAddress as `0x${string}` },
           signTypedDataAsync as (args: unknown) => Promise<`0x${string}`>
         );
 
-        const signed: SignedSignature = {
+        const signed: SignedSignature & { session: SigningSessionEvm } = {
           signer: evmResult.signer,
           signature: evmResult.signature,
           at: evmResult.signedAt.toISOString(),
+          session: evmSession,
         };
 
         setStatus('done');
@@ -196,22 +231,30 @@ export function WalletSignPopup({
           );
         }
 
-        const msgBytes = new TextEncoder().encode(
-          JSON.stringify({
-            id: op.id,
-            chain: op.chain,
-            amount: op.amount,
-            destination: op.destination,
-            nonce: op.nonce ?? 0,
-          })
-        );
+        // Phase-03: build typed SigningSession for canonical byte signing and backend verification.
+        // token must be USDT | USDC | SOL — op.token covers USDT/USDC; SOL not currently in SigningOp
+        const solSession: SigningSessionSolana = {
+          v: 1,
+          kind: 'sol',
+          multisigPda: multisigPda.toBase58(),
+          opId: op.id,
+          // amount in base units: op.amount is a number (display units); multiply by 1e6 for USDT/USDC
+          amount: String(Math.round(op.amount * 1_000_000)),
+          tokenTag: op.token as 'USDT' | 'USDC',
+          destination: op.destination,
+          nonce: String(op.nonce ?? 0),
+        };
+
+        // Phase-03: sign canonical bytes instead of JSON.stringify (non-canonical key order)
+        const msgBytes = canonicalSolanaBytes(solSession);
 
         const solResult = await solanaSign({ message: msgBytes }, solSignMessage);
 
-        const signed: SignedSignature = {
+        const signed: SignedSignature & { session: SigningSessionSolana } = {
           signer: solPubKey.toBase58(),
           signature: Buffer.from(solResult.signature).toString('base64'),
           at: solResult.signedAt.toISOString(),
+          session: solSession,
         };
 
         setStatus('done');

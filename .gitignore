@@ -13,6 +13,8 @@
 
 # testing
 /coverage
+**/coverage/
+.vitest-cache/
 
 # next.js
 /.next/
@@ -112,3 +114,4 @@ worktrees/
 terraform.tfvars
 !terraform.tfvars.example
 infra/aws/.terraform/
+.playwright-mcp/

@@ -17,19 +17,22 @@
  * Timeout: 5 min — Safe tx requires 2 signatures + execution + 3-block confirm.
  */
 import { expect } from '@playwright/test';
-import { parseUnits, formatUnits } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers';
 
-import { test, gotoApp, DEV_TREASURER_0, DEV_TREASURER_1, seedRealAuth } from '../fixtures/testnet-auth-fixture.js';
+import { pollWithdrawalById, submitWithdrawalApproval } from '../fixtures/testnet-api-poller.js';
 import {
-  mintBnbTestToken,
-  getBnbTokenBalance,
+  DEV_TREASURER_0,
+  DEV_TREASURER_1,
+  gotoApp,
+  seedRealAuth,
+  test,
+} from '../fixtures/testnet-auth-fixture.js';
+import {
   formatTokenAmount,
+  getBnbTokenBalance,
+  mintBnbTestToken,
   waitForBnbConfirmation,
 } from '../fixtures/testnet-chain-client.js';
-import {
-  pollWithdrawalById,
-  submitWithdrawalApproval,
-} from '../fixtures/testnet-api-poller.js';
 
 const WITHDRAWAL_AMOUNT_HUMAN = '10'; // 10 tUSDT — small but meaningful
 const TOKEN_DECIMALS = 18;
@@ -106,16 +109,33 @@ test.describe('Testnet: BNB withdrawal multi-sig flow', () => {
       .first();
     await amountInput.fill(WITHDRAWAL_AMOUNT_HUMAN);
 
-    // Select BNB chain if a chain selector exists
-    const chainSelect = dialog.locator('select[name="chain"], [role="combobox"]').first();
-    if (await chainSelect.isVisible()) {
-      await chainSelect.selectOption({ label: /bnb|bsc/i });
+    // Select BNB chain if a native <select> exists; for custom comboboxes click by text
+    const chainSelect = dialog.locator('select[name="chain"]').first();
+    if (await chainSelect.isVisible({ timeout: 2_000 })) {
+      await chainSelect.selectOption({ label: 'BNB' });
+    } else {
+      // Custom combobox — click the option containing BNB/BSC text
+      const chainCombo = dialog.locator('[role="combobox"]').first();
+      if (await chainCombo.isVisible({ timeout: 2_000 })) {
+        await chainCombo.click();
+        await page
+          .locator('[role="option"], li')
+          .filter({ hasText: /bnb|bsc/i })
+          .first()
+          .click();
+      }
     }
 
-    // Select tUSDT token if a token selector exists
-    const tokenSelect = dialog.locator('select[name="token"], [role="combobox"]').nth(1);
-    if (await tokenSelect.isVisible()) {
-      await tokenSelect.selectOption({ label: /usdt/i });
+    // Select tUSDT token if a native <select> exists
+    const tokenSelect = dialog.locator('select[name="token"]').first();
+    if (await tokenSelect.isVisible({ timeout: 2_000 })) {
+      await tokenSelect.selectOption({ label: 'tUSDT' });
+    } else {
+      const tokenCombo = dialog.locator('[role="combobox"]').nth(1);
+      if (await tokenCombo.isVisible({ timeout: 2_000 })) {
+        await tokenCombo.click();
+        await page.locator('[role="option"], li').filter({ hasText: /usdt/i }).first().click();
+      }
     }
 
     // Submit form
@@ -130,12 +150,10 @@ test.describe('Testnet: BNB withdrawal multi-sig flow', () => {
     await page.waitForTimeout(1_000);
 
     // ── 3. Capture the new withdrawal ID from the table ───────────────────────
-    const firstRow = page
-      .locator('[data-testid="withdrawal-row"], tr, .withdrawal-row')
-      .first();
+    const firstRow = page.locator('[data-testid="withdrawal-row"], tr, .withdrawal-row').first();
     await expect(firstRow).toBeVisible({ timeout: 10_000 });
     const withdrawalId = await firstRow.getAttribute('data-id');
-    expect(withdrawalId, 'Withdrawal row missing data-id attribute').toBeTruthy();
+    if (!withdrawalId) throw new Error('Withdrawal row missing data-id attribute');
     console.log(`[withdrawal-bnb] Created withdrawal id=${withdrawalId}`);
 
     // Verify initial status is pending
@@ -143,31 +161,21 @@ test.describe('Testnet: BNB withdrawal multi-sig flow', () => {
     await expect(initialStatus).toContainText(/pending/i, { timeout: 5_000 });
 
     // ── 4. Treasurer-0 approves via admin-API (simulates UI approval) ─────────
-    await submitWithdrawalApproval(
-      page,
-      tnEnv.adminApiUrl,
-      withdrawalId!,
-      DEV_TREASURER_0.email
-    );
+    await submitWithdrawalApproval(page, tnEnv.adminApiUrl, withdrawalId, DEV_TREASURER_0.email);
     console.log(`[withdrawal-bnb] Treasurer-0 approved withdrawal ${withdrawalId}`);
 
     // Status should now be 'approved' (1 of 2 required)
-    await pollWithdrawalById(page, tnEnv.adminApiUrl, withdrawalId!, 'approved', 30_000);
+    await pollWithdrawalById(page, tnEnv.adminApiUrl, withdrawalId, 'approved', 30_000);
 
     // ── 5. Treasurer-1 approves — triggers threshold, wallet-engine executes ──
-    await submitWithdrawalApproval(
-      page,
-      tnEnv.adminApiUrl,
-      withdrawalId!,
-      DEV_TREASURER_1.email
-    );
+    await submitWithdrawalApproval(page, tnEnv.adminApiUrl, withdrawalId, DEV_TREASURER_1.email);
     console.log(`[withdrawal-bnb] Treasurer-1 approved withdrawal ${withdrawalId}`);
 
     // ── 6. Poll until 'confirmed' (Safe signs + broadcasts + 3 block confirm) ─
     const withdrawal = await pollWithdrawalById(
       page,
       tnEnv.adminApiUrl,
-      withdrawalId!,
+      withdrawalId,
       'confirmed',
       240_000 // 4 min — Safe execution can be slow on Chapel
     );
@@ -200,7 +208,7 @@ test.describe('Testnet: BNB withdrawal multi-sig flow', () => {
 
     const confirmedRow = page
       .locator('[data-testid="withdrawal-row"], tr, .withdrawal-row')
-      .filter({ hasText: withdrawalId!.slice(0, 8) })
+      .filter({ hasText: withdrawalId.slice(0, 8) })
       .first();
     await expect(confirmedRow).toBeVisible({ timeout: 15_000 });
 

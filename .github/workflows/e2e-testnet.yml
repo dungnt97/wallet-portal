@@ -1,0 +1,207 @@
+name: E2E — Real Testnet (Nightly + On-demand)
+
+on:
+  schedule:
+    # 02:00 UTC daily — off-peak for Chapel/Devnet RPC load
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: 'Which chain(s) to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - bnb
+          - sol
+      debug_retain_artifacts:
+        description: 'Always upload artifacts (even on success)'
+        required: false
+        default: false
+        type: boolean
+
+# Never run two testnet jobs in parallel — nonce conflicts on shared wallets
+concurrency:
+  group: e2e-testnet
+  cancel-in-progress: false
+
+env:
+  VITE_AUTH_DEV_MODE: 'true'
+  VITE_TEST_MODE: 'true'
+  NODE_ENV: test
+  # Default RPC fallbacks — overridden by secrets when set
+  BNB_TESTNET_RPC: https://data-seed-prebsc-1-s1.bnbchain.org:8545
+  SOL_DEVNET_RPC: https://api.devnet.solana.com
+
+jobs:
+  testnet-e2e:
+    name: Testnet E2E (BNB Chapel + Solana Devnet)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75  # full suite + infrastructure startup
+
+    steps:
+      # ── Checkout & toolchain ──────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: apps/ui
+        run: pnpm exec playwright install chromium --with-deps
+
+      # ── Infrastructure (Postgres + Redis) ────────────────────────────────────
+      - name: Start Postgres and Redis
+        working-directory: infra
+        run: |
+          docker compose up -d postgres redis
+          # Wait for postgres to accept connections
+          for i in $(seq 1 30); do
+            docker compose exec -T postgres pg_isready -U postgres && break
+            echo "Waiting for postgres... attempt $i"
+            sleep 2
+          done
+
+      # ── Build and start backend services ─────────────────────────────────────
+      - name: Build admin-api and wallet-engine
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal
+          REDIS_URL: redis://localhost:6379
+        run: |
+          pnpm --filter @wp/wallet-engine build
+          pnpm --filter @wp/admin-api build
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal
+        run: pnpm --filter @wp/wallet-engine db:migrate
+
+      - name: Seed database with test users and addresses
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal
+          AUTH_DEV_MODE: 'true'
+        run: pnpm --filter @wp/wallet-engine db:seed
+
+      - name: Start admin-api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal
+          REDIS_URL: redis://localhost:6379
+          AUTH_DEV_MODE: 'true'
+          PORT: 3001
+          BNB_TESTNET_RPC: ${{ secrets.BNB_TESTNET_RPC || env.BNB_TESTNET_RPC }}
+          SOL_DEVNET_RPC: ${{ secrets.SOL_DEVNET_RPC || env.SOL_DEVNET_RPC }}
+          SAFE_ADDRESS_BNB_TESTNET: ${{ secrets.SAFE_ADDRESS_BNB_TESTNET }}
+          SQUADS_MULTISIG_PDA_DEVNET: ${{ secrets.SQUADS_MULTISIG_PDA_DEVNET }}
+        run: |
+          pnpm --filter @wp/admin-api start > /tmp/admin-api.log 2>&1 &
+          echo "ADMIN_API_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Start wallet-engine with watcher enabled
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet_portal
+          REDIS_URL: redis://localhost:6379
+          AUTH_DEV_MODE: 'true'
+          PORT: 3002
+          WATCHER_ENABLED: 'true'
+          BNB_TESTNET_RPC: ${{ secrets.BNB_TESTNET_RPC || env.BNB_TESTNET_RPC }}
+          SOL_DEVNET_RPC: ${{ secrets.SOL_DEVNET_RPC || env.SOL_DEVNET_RPC }}
+          SAFE_ADDRESS_BNB_TESTNET: ${{ secrets.SAFE_ADDRESS_BNB_TESTNET }}
+          SQUADS_MULTISIG_PDA_DEVNET: ${{ secrets.SQUADS_MULTISIG_PDA_DEVNET }}
+          USDT_BNB_ADDRESS: ${{ secrets.USDT_BNB_ADDRESS }}
+          USDC_SOL_MINT: ${{ secrets.USDC_SOL_MINT }}
+        run: |
+          pnpm --filter @wp/wallet-engine start > /tmp/wallet-engine.log 2>&1 &
+          echo "WALLET_ENGINE_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Wait for services to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/health && \
+            curl -sf http://localhost:3002/health && break
+            echo "Waiting for services... attempt $i"
+            sleep 3
+          done
+
+      # ── Run testnet E2E suite ─────────────────────────────────────────────────
+      - name: Run real-testnet E2E tests
+        working-directory: apps/ui
+        env:
+          CI: 'true'
+          ADMIN_API_URL: http://localhost:3001
+          UI_BASE_URL: http://localhost:5173
+          # Chain RPC — prefer secret, fall back to env default
+          BNB_TESTNET_RPC: ${{ secrets.BNB_TESTNET_RPC || env.BNB_TESTNET_RPC }}
+          SOL_DEVNET_RPC: ${{ secrets.SOL_DEVNET_RPC || env.SOL_DEVNET_RPC }}
+          # Deployed contract addresses (required — no fallback)
+          SAFE_ADDRESS_BNB_TESTNET: ${{ secrets.SAFE_ADDRESS_BNB_TESTNET }}
+          SQUADS_MULTISIG_PDA_DEVNET: ${{ secrets.SQUADS_MULTISIG_PDA_DEVNET }}
+          USDT_BNB_ADDRESS: ${{ secrets.USDT_BNB_ADDRESS }}
+          USDC_SOL_MINT: ${{ secrets.USDC_SOL_MINT }}
+          # Test wallet credentials (never committed — CI secrets only)
+          DEPLOYER_PRIVATE_KEY_BNB: ${{ secrets.DEPLOYER_PRIVATE_KEY_BNB }}
+          DEPLOYER_KEYPAIR_SOL_BASE64: ${{ secrets.DEPLOYER_KEYPAIR_SOL_BASE64 }}
+          TREASURER_PRIVATE_KEY_BNB_0: ${{ secrets.TREASURER_PRIVATE_KEY_BNB_0 }}
+          TREASURER_PRIVATE_KEY_BNB_1: ${{ secrets.TREASURER_PRIVATE_KEY_BNB_1 }}
+          TREASURER_KEYPAIR_SOL_0_BASE64: ${{ secrets.TREASURER_KEYPAIR_SOL_0_BASE64 }}
+          TREASURER_KEYPAIR_SOL_1_BASE64: ${{ secrets.TREASURER_KEYPAIR_SOL_1_BASE64 }}
+        run: pnpm test:e2e:testnet
+
+      # ── Artifact upload ───────────────────────────────────────────────────────
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-e2e-report-${{ github.run_number }}
+          path: apps/ui/playwright-testnet-report/
+          retention-days: 14
+
+      - name: Upload test results (XML for dashboards)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-e2e-results-${{ github.run_number }}
+          path: apps/ui/playwright-testnet-results.xml
+          retention-days: 14
+
+      - name: Upload failure videos and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-e2e-failure-artifacts-${{ github.run_number }}
+          path: apps/ui/test-results/
+          retention-days: 7
+
+      - name: Upload success artifacts (when debug mode enabled)
+        if: inputs.debug_retain_artifacts == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-e2e-debug-artifacts-${{ github.run_number }}
+          path: apps/ui/test-results/
+          retention-days: 3
+
+      # ── Service log dump on failure ────────────────────────────────────────────
+      - name: Dump admin-api logs on failure
+        if: failure()
+        run: cat /tmp/admin-api.log || true
+
+      - name: Dump wallet-engine logs on failure
+        if: failure()
+        run: cat /tmp/wallet-engine.log || true
+
+      - name: Dump docker compose logs on failure
+        if: failure()
+        working-directory: infra
+        run: docker compose logs --tail=100 || true

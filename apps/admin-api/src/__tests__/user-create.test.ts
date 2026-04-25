@@ -128,13 +128,11 @@ describe('createUser service', () => {
 
   it('re-throws unknown DB errors as-is', async () => {
     const db = {
-      insert: vi
-        .fn()
-        .mockReturnValue({
-          values: vi
-            .fn()
-            .mockReturnValue({ returning: vi.fn().mockRejectedValue(new Error('DB down')) }),
-        }),
+      insert: vi.fn().mockReturnValue({
+        values: vi
+          .fn()
+          .mockReturnValue({ returning: vi.fn().mockRejectedValue(new Error('DB down')) }),
+      }),
     };
     await expect(
       createUser(db as unknown as Parameters<typeof createUser>[0], WALLET_ENGINE_OPTS, VALID_INPUT)

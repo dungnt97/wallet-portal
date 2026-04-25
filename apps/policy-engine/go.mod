@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.6
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/getsentry/sentry-go v0.46.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/jackc/pgx/v5 v5.9.2

@@ -43,13 +43,11 @@ function makeUpdateChain() {
 function makeInsertChain() {
   const returning = vi.fn().mockResolvedValue([]);
   const onConflict = vi.fn().mockResolvedValue([]);
-  const values = vi
-    .fn()
-    .mockReturnValue({
-      returning,
-      onConflictDoUpdate: onConflict,
-      then: (r: (v: unknown) => void) => r([]),
-    });
+  const values = vi.fn().mockReturnValue({
+    returning,
+    onConflictDoUpdate: onConflict,
+    then: (r: (v: unknown) => void) => r([]),
+  });
   return vi.fn().mockReturnValue({ values });
 }
 

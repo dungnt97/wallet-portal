@@ -6,17 +6,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // ── Module mocks (must precede service imports) ───────────────────────────────
 
 vi.mock('../services/deposit-credit.service.js', () => ({
-  creditDeposit: vi
-    .fn()
-    .mockResolvedValue({
-      id: 'dep-1',
-      userId: 'u-1',
-      status: 'credited',
-      txHash: 'h',
-      amount: '100',
-      token: 'USDT',
-      chain: 'bnb',
-    }),
+  creditDeposit: vi.fn().mockResolvedValue({
+    id: 'dep-1',
+    userId: 'u-1',
+    status: 'credited',
+    txHash: 'h',
+    amount: '100',
+    token: 'USDT',
+    chain: 'bnb',
+  }),
   NotFoundError: class NotFoundError extends Error {
     statusCode = 404;
     code = 'NOT_FOUND';

@@ -52,8 +52,7 @@ vi.mock('@solana/wallet-adapter-react', () => ({
   }),
 }));
 
-// Mock at the path relative to wallet-widget.tsx's location
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/connect-wallet-modal', () => ({
+vi.mock('../connect-wallet-modal', () => ({
   ConnectWalletModal: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
     open ? (
       <div data-testid="connect-wallet-modal">

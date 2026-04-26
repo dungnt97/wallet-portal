@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/components/overlays/sheet', () => ({
+vi.mock('../sheet', () => ({
   Sheet: ({
     open,
     onClose,

@@ -49,25 +49,25 @@ vi.mock('@/components/overlays', () => ({
     ) : null,
 }));
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/env-picker', () => ({
+vi.mock('../env-picker', () => ({
   EnvPicker: () => <div data-testid="env-picker" />,
 }));
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/lang-switcher', () => ({
+vi.mock('../lang-switcher', () => ({
   LangSwitcher: () => <div data-testid="lang-switcher" />,
 }));
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/nav-structure', () => ({
+vi.mock('../nav-structure', () => ({
   pageTitleKey: (seg: string) => `nav.${seg}`,
 }));
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/user-menu', () => ({
+vi.mock('../user-menu', () => ({
   UserMenu: ({ compact }: { compact: boolean }) => (
     <div data-testid={`user-menu-compact-${compact}`} />
   ),
 }));
 
-vi.mock('/Users/dungngo97/Documents/wallet-portal/apps/ui/src/shell/wallet-widget', () => ({
+vi.mock('../wallet-widget', () => ({
   WalletWidget: () => <div data-testid="wallet-widget" />,
 }));
 

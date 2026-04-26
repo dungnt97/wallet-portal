@@ -21,6 +21,7 @@ export const queryKeys = {
     ['dashboard', 'history', metric, range] as const,
   killSwitch: () => ['ops', 'killSwitch'] as const,
   opsHealth: () => ['ops', 'health'] as const,
+  opsGasWallets: () => ['ops', 'gasWallets'] as const,
   coldBalances: () => ['cold', 'balances'] as const,
   coldWallets: () => ['cold', 'wallets'] as const,
   rebalanceHistory: () => ['rebalance', 'history'] as const,
@@ -192,6 +193,30 @@ export function useOpsHealth() {
     queryFn: () => api.get<OpsHealth>('/ops/health'),
     staleTime: 10_000,
     refetchInterval: 10_000,
+  });
+}
+
+export interface GasWallet {
+  chain: 'bnb' | 'sol';
+  address: string;
+  symbol: string;
+  balance: string | null;
+  thresholdLow: number;
+  isLow: boolean;
+  status: ProbeStatus;
+  error?: string;
+}
+
+export interface GasWalletsResponse {
+  wallets: GasWallet[];
+}
+
+export function useGasWallets() {
+  return useQuery({
+    queryKey: queryKeys.opsGasWallets(),
+    queryFn: () => api.get<GasWalletsResponse>('/ops/gas-wallets'),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 }
 

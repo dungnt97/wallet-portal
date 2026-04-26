@@ -190,6 +190,36 @@ describe('GasWalletList', () => {
     queues: [],
   };
 
+  const mockGasWallets = {
+    wallets: [
+      {
+        chain: 'bnb',
+        address: '0xabcdef0123456789abcdef0123456789abcdef01',
+        symbol: 'BNB',
+        balance: '0.1234',
+        thresholdLow: 0.05,
+        isLow: false,
+        status: 'ok',
+      },
+      {
+        chain: 'sol',
+        address: 'So11111111111111111111111111111111111111112',
+        symbol: 'SOL',
+        balance: '2.5',
+        thresholdLow: 0.5,
+        isLow: false,
+        status: 'ok',
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.mocked(queries.useGasWallets).mockReturnValue({
+      data: mockGasWallets,
+      isLoading: false,
+    } as any);
+  });
+
   it('renders chain RPC rows', () => {
     vi.mocked(queries.useOpsHealth).mockReturnValue({
       data: mockHealth,
@@ -245,8 +275,8 @@ describe('GasWalletList', () => {
 
     wrap(<GasWalletList />);
 
-    expect(screen.getByTestId('chain-bnb')).toBeInTheDocument();
-    expect(screen.getByTestId('chain-sol')).toBeInTheDocument();
+    expect(screen.getAllByTestId('chain-bnb').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('chain-sol').length).toBeGreaterThan(0);
   });
 
   it('shows loading skeleton when data is loading', () => {

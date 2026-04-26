@@ -227,7 +227,9 @@
     "gasDegraded": "degraded",
     "gasHealthy": "healthy",
     "gasWatcherIdle": "watcher idle",
-    "gasNativeHint": "Native gas balances (BNB/SOL) available once /ops/gas-wallets endpoint is added.",
+    "gasHotLabel": "hot wallet",
+    "gasLowWarn": "low — top up below {{threshold}} {{symbol}}",
+    "gasProbeError": "probe failed",
     "noActiveAlerts": "No active alerts",
     "today": "Today"
   },

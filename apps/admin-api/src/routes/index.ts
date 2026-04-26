@@ -16,6 +16,7 @@ import notificationAdminRoutes from './notification-admin.routes.js';
 import notifChannelsRoutes from './notification-channels.routes.js';
 import notificationsRoutes from './notifications.routes.js';
 import opsBackupRoutes from './ops-backup.routes.js';
+import opsGasWalletsRoutes from './ops-gas-wallets.routes.js';
 import opsHealthRoutes from './ops-health.routes.js';
 import opsKillSwitchRoutes from './ops-kill-switch.routes.js';
 import opsSlaComplianceRoutes from './ops-sla-compliance.routes.js';
@@ -78,6 +79,7 @@ const routes: FastifyPluginAsync<{ cfg: Config }> = async (app, opts) => {
   await app.register(opsHealthRoutes);
   await app.register(opsBackupRoutes);
   await app.register(opsSlaComplianceRoutes);
+  await app.register(opsGasWalletsRoutes);
 
   // Internal service-to-service routes (bearer token, D4) — paths include /internal prefix
   await app.register(internalRoutes, {

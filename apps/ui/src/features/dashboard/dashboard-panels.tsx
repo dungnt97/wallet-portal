@@ -1,11 +1,18 @@
 // Port of ~/Documents/portal/src/page_dashboard.jsx (sub-sections) — visual fidelity verified 2026-04-20.
 // Dashboard panel components — System status / Gas wallets / SLA / Compliance / Alerts.
 // Split from dashboard-page.tsx to keep each file under 200 LOC.
-import { type OpsHealth, useComplianceSummary, useOpsHealth, useSlaSummary } from '@/api/queries';
+import {
+  type OpsHealth,
+  useComplianceSummary,
+  useGasWallets,
+  useOpsHealth,
+  useSlaSummary,
+} from '@/api/queries';
 import { ChainPill } from '@/components/custody';
 import { I } from '@/icons';
 import type { NotificationPayload } from '@wp/shared-types';
 import { useTranslation } from 'react-i18next';
+import { shortAddr } from '../_shared/helpers';
 import { LiveDot, LiveTimeAgo } from '../_shared/realtime';
 import { useNotifications } from '../notifs/use-notifications';
 
@@ -108,13 +115,10 @@ export function SystemStatusList() {
 
 export function GasWalletList() {
   const { t } = useTranslation();
-  const { data: health, isLoading } = useOpsHealth();
+  const { data: health, isLoading: healthLoading } = useOpsHealth();
+  const { data: gasData, isLoading: gasLoading } = useGasWallets();
 
-  // Gas wallet native-token balances (BNB/SOL) are not exposed by /cold/balances
-  // (which only returns USDT/USDC). Until a dedicated /ops/gas-wallets endpoint
-  // is added (tracked in roadmap), we derive RPC status from health and show
-  // chain connectivity as a proxy for operational readiness.
-  if (isLoading || !health) {
+  if (healthLoading || gasLoading || !health) {
     return (
       <div className="gas-list">
         {Array.from({ length: 2 }).map((_, i) => (
@@ -131,7 +135,6 @@ export function GasWalletList() {
     const lagThreshold = chainId === 'sol' ? 200 : 50;
     const idle = Boolean(c.watcherIdle);
     const isError = c.status !== 'ok';
-    // Real chain lag only counts when watcher is actively advancing checkpoints
     const isLagWarn = !idle && !isError && lag > lagThreshold;
     return {
       chain: chainId as 'bnb' | 'sol',
@@ -144,6 +147,8 @@ export function GasWalletList() {
       checkpointBlock: c.checkpointBlock,
     };
   });
+
+  const wallets = gasData?.wallets ?? [];
 
   return (
     <div className="gas-list">
@@ -174,9 +179,32 @@ export function GasWalletList() {
           </div>
         );
       })}
-      <div className="gas-row" style={{ opacity: 0.55, fontSize: 11 }}>
-        <span className="text-muted text-xs">{t('dashboard.gasNativeHint')}</span>
-      </div>
+      {wallets.map((w) => {
+        const isError = w.status === 'error';
+        const cls = isError ? 'text-err' : w.isLow ? 'text-warn' : 'text-ok';
+        const balanceLabel = isError
+          ? t('dashboard.gasProbeError')
+          : `${w.balance ?? '0'} ${w.symbol}`;
+        const meta = isError
+          ? (w.error ?? t('dashboard.gasProbeError'))
+          : w.isLow
+            ? t('dashboard.gasLowWarn', { threshold: w.thresholdLow, symbol: w.symbol })
+            : shortAddr(w.address, 6, 4);
+        return (
+          <div key={`${w.chain}:${w.address}`} className="gas-row">
+            <ChainPill chain={w.chain} />
+            <div className="gas-info">
+              <div className="gas-name">
+                {w.symbol} {t('dashboard.gasHotLabel')}
+              </div>
+              <div className="gas-meta text-xs text-muted text-mono">{meta}</div>
+            </div>
+            <div className="gas-bal">
+              <span className={`text-mono fw-600 text-xs ${cls}`}>{balanceLabel}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -227,7 +227,9 @@
     "gasDegraded": "suy giảm",
     "gasHealthy": "bình thường",
     "gasWatcherIdle": "watcher idle",
-    "gasNativeHint": "Số dư gas gốc (BNB/SOL) sẽ hiển thị khi endpoint /ops/gas-wallets được thêm.",
+    "gasHotLabel": "ví hot",
+    "gasLowWarn": "thấp — cần nạp khi dưới {{threshold}} {{symbol}}",
+    "gasProbeError": "không lấy được số dư",
     "noActiveAlerts": "Không có cảnh báo nào",
     "today": "Hôm nay"
   },

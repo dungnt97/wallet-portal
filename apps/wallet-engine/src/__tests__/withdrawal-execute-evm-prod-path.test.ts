@@ -148,7 +148,7 @@ async function bootProcessor() {
 describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
     // Set all required env vars
     process.env.SAFE_ADDRESS = '0xSafeContractAddr';
     process.env.BNB_RPC_URL = 'https://fake-bnb-rpc';
@@ -180,11 +180,11 @@ describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
   });
 
   afterEach(() => {
-    process.env.SAFE_ADDRESS = undefined;
-    process.env.BNB_RPC_URL = undefined;
-    process.env.WALLET_ENGINE_EXECUTOR_KEY = undefined;
-    process.env.BNB_USDT_ADDRESS = undefined;
-    process.env.BNB_USDC_ADDRESS = undefined;
+    process.env.SAFE_ADDRESS = '';
+    process.env.BNB_RPC_URL = '';
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = '';
+    process.env.BNB_USDT_ADDRESS = '';
+    process.env.BNB_USDC_ADDRESS = '';
     vi.unstubAllGlobals();
     vi.resetModules();
   });
@@ -264,7 +264,7 @@ describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
   });
 
   it('EVM prod: missing SAFE_ADDRESS throws FATAL', async () => {
-    process.env.SAFE_ADDRESS = undefined;
+    process.env.SAFE_ADDRESS = '';
 
     const processor = await bootProcessor();
     await expect(
@@ -281,7 +281,7 @@ describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
   });
 
   it('EVM prod: missing BNB_RPC_URL throws FATAL', async () => {
-    process.env.BNB_RPC_URL = undefined;
+    process.env.BNB_RPC_URL = '';
 
     const processor = await bootProcessor();
     await expect(
@@ -298,7 +298,7 @@ describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
   });
 
   it('EVM prod: missing WALLET_ENGINE_EXECUTOR_KEY throws FATAL', async () => {
-    process.env.WALLET_ENGINE_EXECUTOR_KEY = undefined;
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = '';
 
     const processor = await bootProcessor();
     await expect(
@@ -320,7 +320,7 @@ describe('withdrawal-execute-worker — EVM prod path (lines 156-200)', () => {
 describe('withdrawal-execute-worker — Solana toNumber() fallback (line 251)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
     process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsMultisigPda222';
     process.env.SOL_RPC_URL = 'https://fake-sol-rpc';
     process.env.WALLET_ENGINE_SOL_PAYER_KEY = Buffer.from(new Uint8Array(64)).toString('base64');
@@ -342,9 +342,9 @@ describe('withdrawal-execute-worker — Solana toNumber() fallback (line 251)', 
   });
 
   afterEach(() => {
-    process.env.SQUADS_MULTISIG_ADDRESS = undefined;
-    process.env.SOL_RPC_URL = undefined;
-    process.env.WALLET_ENGINE_SOL_PAYER_KEY = undefined;
+    process.env.SQUADS_MULTISIG_ADDRESS = '';
+    process.env.SOL_RPC_URL = '';
+    process.env.WALLET_ENGINE_SOL_PAYER_KEY = '';
     vi.unstubAllGlobals();
     vi.resetModules();
   });
@@ -373,7 +373,7 @@ describe('withdrawal-execute-worker — Solana toNumber() fallback (line 251)', 
 describe('withdrawal-execute-worker — unknown chain', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse(200, { signatures: [] })));
   });
 

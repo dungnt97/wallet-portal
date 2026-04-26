@@ -136,8 +136,8 @@ describe('sweep-execute-worker — dev-mode (no HD keys set)', () => {
     mockCallSweepBroadcasted.mockResolvedValue(undefined);
     mockCallSweepConfirmed.mockResolvedValue(undefined);
     // No HD key → dev mode active
-    process.env.HD_MASTER_XPUB_BNB = undefined;
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_XPUB_BNB = '';
+    process.env.HD_MASTER_SEED_SOLANA = '';
   });
 
   afterEach(() => {
@@ -175,7 +175,7 @@ describe('sweep-execute-worker — kill-switch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsKillSwitchEnabled.mockResolvedValue(true); // ON
-    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.HD_MASTER_XPUB_BNB = '';
   });
 
   afterEach(() => {
@@ -211,7 +211,7 @@ describe('sweep-execute-worker — prod EVM path', () => {
   });
 
   afterEach(() => {
-    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.HD_MASTER_XPUB_BNB = '';
     vi.clearAllMocks();
   });
 

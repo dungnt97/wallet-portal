@@ -100,7 +100,7 @@ describe('signer-ceremony-broadcast-worker — dev-mode', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
   });
 
   it('dev mode: generates synthetic hash and calls /chain-confirmed', async () => {
@@ -144,7 +144,7 @@ describe('signer-ceremony-broadcast-worker — idempotency guard', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
   });
 
   it('chain already confirmed with txHash: skips, no fetch call', async () => {
@@ -171,7 +171,7 @@ describe('signer-ceremony-broadcast-worker — cancelled ceremony', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
   });
 
   it('ceremony.status=cancelled: skips broadcast, no fetch call', async () => {
@@ -195,7 +195,7 @@ describe('signer-ceremony-broadcast-worker — ceremony not found', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
   });
 
   it('ceremony row missing in DB: returns without throwing or calling fetch', async () => {
@@ -219,7 +219,7 @@ describe('signer-ceremony-broadcast-worker — chain-confirmed failure', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    process.env.AUTH_DEV_MODE = undefined;
+    process.env.AUTH_DEV_MODE = '';
   });
 
   it('chain-confirmed returns 500: calls /chain-failed and re-throws for BullMQ retry', async () => {

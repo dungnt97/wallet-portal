@@ -21,6 +21,8 @@ describe('loadConfig', () => {
     for (const key of Object.keys(VALID_ENV)) {
       delete process.env[key];
     }
+    delete process.env.PORT;
+    delete process.env.RPC_BNB_FALLBACK;
   });
 
   afterEach(() => {
@@ -28,6 +30,8 @@ describe('loadConfig', () => {
     for (const key of Object.keys(VALID_ENV)) {
       delete process.env[key];
     }
+    delete process.env.PORT;
+    delete process.env.RPC_BNB_FALLBACK;
     Object.assign(process.env, savedEnv);
   });
 
@@ -42,14 +46,14 @@ describe('loadConfig', () => {
 
   it('applies PORT default of 3002', () => {
     Object.assign(process.env, VALID_ENV);
-    process.env.PORT = undefined; // must use delete — =undefined coerces to string 'undefined'
+    delete process.env.PORT;
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3002);
   });
 
   it('throws when DATABASE_URL missing', () => {
     Object.assign(process.env, VALID_ENV);
-    process.env.DATABASE_URL = undefined; // must use delete — =undefined coerces to string 'undefined'
+    delete process.env.DATABASE_URL;
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 

@@ -88,7 +88,7 @@ function makeParams(): BuildSweepSolanaParams {
 describe('buildAndSignSweepSolana — dev-mode (no seed)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -118,7 +118,7 @@ describe('buildAndSignSweepSolana — placeholder seed (dev guard)', () => {
     process.env.HD_MASTER_SEED_SOLANA = 'your-hex-encoded-seed-here';
   });
   afterEach(() => {
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
     vi.clearAllMocks();
   });
 
@@ -134,7 +134,7 @@ describe('buildAndSignSweepSolana — prod path', () => {
     process.env.HD_MASTER_SEED_SOLANA = 'a'.repeat(128); // non-empty, non-placeholder hex seed
   });
   afterEach(() => {
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
     vi.clearAllMocks();
   });
 
@@ -160,7 +160,7 @@ describe('buildAndSignSweepSolana — prod path', () => {
 describe('broadcastSweepSolana — dev-mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -184,7 +184,7 @@ describe('broadcastSweepSolana — prod path', () => {
     process.env.HD_MASTER_SEED_SOLANA = 'a'.repeat(128);
   });
   afterEach(() => {
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
     vi.clearAllMocks();
   });
 

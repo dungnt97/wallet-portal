@@ -138,8 +138,8 @@ describe('sweep-execute-worker — Solana prod path (HD_MASTER_SEED_SOLANA set)'
   });
 
   afterEach(() => {
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
-    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
+    process.env.HD_MASTER_XPUB_BNB = '';
     vi.clearAllMocks();
   });
 
@@ -195,8 +195,8 @@ describe('sweep-execute-worker — policy engine rejection', () => {
   });
 
   afterEach(() => {
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
-    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
+    process.env.HD_MASTER_XPUB_BNB = '';
     vi.clearAllMocks();
   });
 
@@ -222,7 +222,7 @@ describe('sweep-execute-worker — policy engine rejection', () => {
 describe('sweep-execute-worker — event handler callbacks invoked', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = '';
   });
 
   afterEach(() => {

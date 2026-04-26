@@ -221,7 +221,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    process.env.AUTH_DEV_MODE = undefined; // not dev mode
+    process.env.AUTH_DEV_MODE = ''; // not dev mode
   });
 
   afterEach(() => {
@@ -264,7 +264,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
   });
 
   it('missing SAFE_ADDRESS in prod EVM: throws FATAL', async () => {
-    process.env.SAFE_ADDRESS = undefined;
+    process.env.SAFE_ADDRESS = '';
     vi.stubGlobal(
       'fetch',
       vi

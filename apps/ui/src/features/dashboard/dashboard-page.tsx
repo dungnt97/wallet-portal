@@ -57,9 +57,6 @@ export function DashboardPage() {
             <I.Refresh size={13} />
             {t('dashboard.refresh')}
           </button>
-          <button className="btn btn-accent" onClick={() => goTo('withdrawals')}>
-            <I.Plus size={13} /> {t('dashboard.newWithdrawal')}
-          </button>
         </>
       }
       kpis={<DashboardKpiGrid onNavigate={(p) => goTo(p)} />}

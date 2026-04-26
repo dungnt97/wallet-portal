@@ -193,11 +193,6 @@ describe('DashboardPage', () => {
     expect(screen.getByText('common.empty')).toBeInTheDocument();
   });
 
-  it('shows new withdrawal button', () => {
-    renderPage();
-    expect(screen.getByText('dashboard.newWithdrawal')).toBeInTheDocument();
-  });
-
   it('renders activity feed header', () => {
     renderPage();
     expect(screen.getByText('dashboard.activityFeed')).toBeInTheDocument();

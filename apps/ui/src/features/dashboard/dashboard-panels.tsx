@@ -128,11 +128,14 @@ export function GasWalletList() {
     );
   }
 
-  // Per-chain lag thresholds: BNB ~3s/blk so 50 blk ≈ 2.5min; SOL ~0.4s/slot so 200 slots ≈ 1.5min.
+  // Per-chain lag thresholds. BNB ~3s/blk so 50 blocks ≈ 2.5 min real-world drift.
+  // SOL devnet ~0.4s/slot, but watcher poll cadence + RPC jitter makes 200 slots
+  // a hair-trigger that paints "degraded" during normal operation. 750 slots
+  // (~5 min) matches the operator intuition of "this needs attention now".
   const chainRows = health.chains.map((c) => {
     const chainId = c.id.toLowerCase().startsWith('sol') ? 'sol' : ('bnb' as const);
     const lag = c.lagBlocks ?? 0;
-    const lagThreshold = chainId === 'sol' ? 200 : 50;
+    const lagThreshold = chainId === 'sol' ? 750 : 50;
     const idle = Boolean(c.watcherIdle);
     const isError = c.status !== 'ok';
     const isLagWarn = !idle && !isError && lag > lagThreshold;

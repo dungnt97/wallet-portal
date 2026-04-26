@@ -222,4 +222,36 @@ describe('ConnectWalletModal', () => {
     render(<ConnectWalletModal open={true} onClose={vi.fn()} />);
     expect(screen.getByTestId('wallet-mark-phantom')).toBeInTheDocument();
   });
+
+  it('renders img element when Solana wallet has non-empty icon', () => {
+    mockSolWallets.push({ adapter: { name: 'Phantom', icon: 'data:image/png;base64,abc' } });
+    render(<ConnectWalletModal open={true} onClose={vi.fn()} />);
+    const img = document.querySelector('img[alt="Phantom"]') as HTMLImageElement;
+    expect(img).toBeInTheDocument();
+    expect(img.src).toContain('abc');
+  });
+
+  it('shows connected-evm phase after EVM connectAsync resolves', async () => {
+    mockConnectors.push({ name: 'MetaMask', uid: 'mm-1' });
+    mockConnectAsync.mockResolvedValue({
+      accounts: ['0xabcdef1234567890abcdef1234567890abcdef12'],
+    });
+    const user = userEvent.setup();
+    render(<ConnectWalletModal open={true} onClose={vi.fn()} />);
+    await user.click(screen.getByText('MetaMask').closest('button') as HTMLElement);
+    expect(await screen.findByText('wallet.connect.connected')).toBeInTheDocument();
+  });
+
+  it('shows shortened EVM address in connected-evm phase', async () => {
+    mockConnectors.push({ name: 'MetaMask', uid: 'mm-1' });
+    mockConnectAsync.mockResolvedValue({
+      accounts: ['0xabcdef1234567890abcdef1234567890abcdef12'],
+    });
+    const user = userEvent.setup();
+    render(<ConnectWalletModal open={true} onClose={vi.fn()} />);
+    await user.click(screen.getByText('MetaMask').closest('button') as HTMLElement);
+    // shortHash mock: ${h.slice(0,8)}…${h.slice(-6)}
+    await screen.findByText('wallet.connect.connected');
+    expect(document.querySelector('.wallet-verified-addr')).toBeInTheDocument();
+  });
 });

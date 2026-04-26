@@ -109,6 +109,7 @@ test.describe('Testnet: Reconciliation pre/post sweep', () => {
     }
     expect(sweepId, 'Could not determine sweep batch ID').toBeTruthy();
 
+    // biome-ignore lint/style/noNonNullAssertion: sweepId is asserted truthy by expect above
     await pollSweepById(page, tnEnv.adminApiUrl, sweepId!, 'confirmed', 180_000);
     console.log(`[recon] Sweep ${sweepId} confirmed`);
 
@@ -176,7 +177,7 @@ test.describe('Testnet: Reconciliation pre/post sweep', () => {
     const snapshots = await getLatestSnapshots(page, tnEnv.adminApiUrl, 'bnb', 5);
     const postFromApi = snapshots.find((s) => s.id === postSnapshot.id);
     expect(postFromApi).toBeDefined();
-    expect(BigInt(postFromApi!.drift.replace(/^-/, ''))).toBeLessThanOrEqual(1n);
-    console.log(`[recon] API confirmed: snapshot ${postSnapshot.id} drift=${postFromApi!.drift} ✓`);
+    expect(BigInt(postFromApi?.drift.replace(/^-/, ''))).toBeLessThanOrEqual(1n);
+    console.log(`[recon] API confirmed: snapshot ${postSnapshot.id} drift=${postFromApi?.drift} ✓`);
   });
 });

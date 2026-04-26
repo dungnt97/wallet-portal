@@ -198,7 +198,7 @@ describe('createWithdrawal service', () => {
     // Clean up environment vars
     process.env.SAFE_ADDRESS = '0xSafeTestAddress0000000000000000000000001';
     process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsTestPDA11111111111111111111111111111';
-    delete process.env.SLICE7_TIMELOCK_FASTFORWARD;
+    process.env.SLICE7_TIMELOCK_FASTFORWARD = undefined;
   });
 
   it('golden path — creates withdrawal + multisig op + emits socket event', async () => {
@@ -353,7 +353,7 @@ describe('createWithdrawal service', () => {
   });
 
   it('creates withdrawal with 48h time-lock for cold tier (non-fastforward)', async () => {
-    delete process.env.SLICE7_TIMELOCK_FASTFORWARD;
+    process.env.SLICE7_TIMELOCK_FASTFORWARD = undefined;
     const before = Date.now();
     const db = buildMockDb({
       user: makeUser(),
@@ -559,6 +559,7 @@ describe('createWithdrawal service', () => {
   });
 
   it('throws error when SAFE_ADDRESS env var not set for BNB withdrawal', async () => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.SAFE_ADDRESS;
     const db = buildMockDb({ user: makeUser() });
     const io = makeMockIo();
@@ -577,6 +578,7 @@ describe('createWithdrawal service', () => {
   });
 
   it('throws error when SQUADS_MULTISIG_ADDRESS env var not set for SOL withdrawal', async () => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.SQUADS_MULTISIG_ADDRESS;
     const db = buildMockDb({ user: makeUser() });
     const io = makeMockIo();
@@ -688,7 +690,7 @@ describe('createWithdrawal service', () => {
   });
 
   it('does not enqueue job when queue is undefined', async () => {
-    delete process.env.SLICE7_TIMELOCK_FASTFORWARD;
+    process.env.SLICE7_TIMELOCK_FASTFORWARD = undefined;
     const db = buildMockDb({
       user: makeUser(),
       withdrawalRow: {

@@ -47,11 +47,9 @@ function hasTwilioCreds(): boolean {
  * Throws on non-2xx response.
  */
 async function sendTwilioSms(to: string, body: string): Promise<void> {
-  // biome-ignore lint/style/noNonNullAssertion: guarded by hasTwilioCreds() check before call
+  // Guarded by hasTwilioCreds() check before call — these are always defined here
   const sid = process.env.TWILIO_ACCOUNT_SID as string;
-  // biome-ignore lint/style/noNonNullAssertion: guarded by hasTwilioCreds() check before call
   const token = process.env.TWILIO_AUTH_TOKEN as string;
-  // biome-ignore lint/style/noNonNullAssertion: guarded by hasTwilioCreds() check before call
   const from = process.env.TWILIO_FROM_NUMBER as string;
 
   const params = new URLSearchParams({ To: to, From: from, Body: body });

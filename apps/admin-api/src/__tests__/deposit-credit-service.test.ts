@@ -54,9 +54,11 @@ function buildMockDb(opts: {
   const makeInsertBuilder = (returnRows: unknown[] = [{ id: 'tx-uuid-0001' }]) => {
     // Builder that is also thenable (for plain .insert().values() awaits)
     const thenableValues = {
+      // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
       then: (resolve: (v: unknown) => void) => resolve(returnRows),
       returning: vi.fn().mockReturnValue({
         // returning() returns a builder with onConflictDoUpdate
+        // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
         then: (resolve: (v: unknown) => void) => resolve(returnRows),
         onConflictDoUpdate: vi.fn().mockResolvedValue(returnRows),
       }),

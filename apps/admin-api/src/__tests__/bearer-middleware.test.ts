@@ -7,7 +7,7 @@ const VALID_TOKEN = 'supersecretbearertoken1234';
 describe('requireBearer', () => {
   const makeCtx = () => {
     const state = { statusCode: null as number | null, body: null as unknown };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const reply: any = {
       code(n: number) {
         state.statusCode = n;
@@ -24,10 +24,10 @@ describe('requireBearer', () => {
   it('sends 401 MISSING_BEARER when Authorization header is absent', async () => {
     const { requireBearer } = await import('../auth/bearer.middleware.js');
     const handler = requireBearer(VALID_TOKEN);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = { headers: {} };
     const { reply, state } = makeCtx();
-    await (handler as unknown as Function).call(undefined, req, reply);
+    await (handler as unknown as (...args: unknown[]) => unknown).call(undefined, req, reply);
     expect(state.statusCode).toBe(401);
     expect((state.body as { code: string }).code).toBe('MISSING_BEARER');
   });
@@ -35,10 +35,10 @@ describe('requireBearer', () => {
   it('sends 401 MISSING_BEARER when header lacks Bearer prefix', async () => {
     const { requireBearer } = await import('../auth/bearer.middleware.js');
     const handler = requireBearer(VALID_TOKEN);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = { headers: { authorization: VALID_TOKEN } };
     const { reply, state } = makeCtx();
-    await (handler as unknown as Function).call(undefined, req, reply);
+    await (handler as unknown as (...args: unknown[]) => unknown).call(undefined, req, reply);
     expect(state.statusCode).toBe(401);
     expect((state.body as { code: string }).code).toBe('MISSING_BEARER');
   });
@@ -46,10 +46,10 @@ describe('requireBearer', () => {
   it('sends 401 INVALID_BEARER when token is wrong', async () => {
     const { requireBearer } = await import('../auth/bearer.middleware.js');
     const handler = requireBearer(VALID_TOKEN);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = { headers: { authorization: 'Bearer wrongtoken' } };
     const { reply, state } = makeCtx();
-    await (handler as unknown as Function).call(undefined, req, reply);
+    await (handler as unknown as (...args: unknown[]) => unknown).call(undefined, req, reply);
     expect(state.statusCode).toBe(401);
     expect((state.body as { code: string }).code).toBe('INVALID_BEARER');
   });
@@ -57,10 +57,14 @@ describe('requireBearer', () => {
   it('returns undefined (allow) when token is correct', async () => {
     const { requireBearer } = await import('../auth/bearer.middleware.js');
     const handler = requireBearer(VALID_TOKEN);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = { headers: { authorization: `Bearer ${VALID_TOKEN}` } };
     const { reply, state } = makeCtx();
-    const result = await (handler as unknown as Function).call(undefined, req, reply);
+    const result = await (handler as unknown as (...args: unknown[]) => unknown).call(
+      undefined,
+      req,
+      reply
+    );
     expect(result).toBeUndefined();
     expect(state.statusCode).toBeNull();
   });

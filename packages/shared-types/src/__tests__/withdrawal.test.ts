@@ -116,6 +116,7 @@ describe('Withdrawal', () => {
     for (const status of statuses) {
       const result = Withdrawal.safeParse({
         ...validWithdrawal,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         status: status as any,
       });
       expect(result.success).toBe(true);
@@ -126,6 +127,7 @@ describe('Withdrawal', () => {
     for (const chain of ['bnb', 'sol']) {
       const result = Withdrawal.safeParse({
         ...validWithdrawal,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         chain: chain as any,
       });
       expect(result.success).toBe(true);
@@ -136,6 +138,7 @@ describe('Withdrawal', () => {
     for (const token of ['USDT', 'USDC']) {
       const result = Withdrawal.safeParse({
         ...validWithdrawal,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         token: token as any,
       });
       expect(result.success).toBe(true);
@@ -146,6 +149,7 @@ describe('Withdrawal', () => {
     for (const tier of ['hot', 'cold']) {
       const result = Withdrawal.safeParse({
         ...validWithdrawal,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         sourceTier: tier as any,
       });
       expect(result.success).toBe(true);

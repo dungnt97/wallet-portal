@@ -20,13 +20,18 @@ describe('loadConfig', () => {
   beforeEach(() => {
     savedEnv = { ...process.env };
     // Clear relevant keys then set valid env
-    Object.keys(VALID_ENV).forEach((k) => delete process.env[k]);
+    // process.env[k] must be deleted (not set to undefined — coerces to string "undefined")
+    for (const k of Object.keys(VALID_ENV)) {
+      delete process.env[k];
+    }
     Object.assign(process.env, VALID_ENV);
   });
 
   afterEach(() => {
-    // Restore original env
-    Object.keys(VALID_ENV).forEach((k) => delete process.env[k]);
+    // Restore original env (process.env[k] must be deleted, not set to undefined)
+    for (const k of Object.keys(VALID_ENV)) {
+      delete process.env[k];
+    }
     Object.assign(process.env, savedEnv);
   });
 
@@ -47,10 +52,12 @@ describe('loadConfig', () => {
   });
 
   it('applies defaults for optional vars', () => {
-    // Must use delete (not =undefined) — process.env assignment always coerces to string 'undefined'
-    delete process.env['PORT'];
-    delete process.env['REDIS_URL'];
-    delete process.env['LOG_LEVEL'];
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
+    delete process.env.PORT;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
+    delete process.env.REDIS_URL;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
+    delete process.env.LOG_LEVEL;
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3001);
     expect(cfg.REDIS_URL).toBe('redis://localhost:6379');
@@ -58,7 +65,8 @@ describe('loadConfig', () => {
   });
 
   it('throws on missing DATABASE_URL', () => {
-    delete process.env['DATABASE_URL'];
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
+    delete process.env.DATABASE_URL;
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 

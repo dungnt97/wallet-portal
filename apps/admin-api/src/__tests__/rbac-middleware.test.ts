@@ -55,7 +55,7 @@ describe('PERMS matrix', () => {
 describe('requirePerm logic', () => {
   const makeCtx = () => {
     const state = { statusCode: null as number | null, body: null as unknown };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const reply: any = {
       code(n: number) {
         state.statusCode = n;
@@ -72,10 +72,10 @@ describe('requirePerm logic', () => {
   it('sends 401 when session has no staff', async () => {
     const { requirePerm } = await import('../auth/rbac.middleware.js');
     const handler = requirePerm('deposits.read');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = { session: {} };
     const { reply, state } = makeCtx();
-    await (handler as unknown as Function).call(undefined, req, reply);
+    await (handler as unknown as (...args: unknown[]) => unknown).call(undefined, req, reply);
     expect(state.statusCode).toBe(401);
     expect((state.body as { code: string }).code).toBe('UNAUTHENTICATED');
   });
@@ -83,12 +83,12 @@ describe('requirePerm logic', () => {
   it('sends 403 when role lacks permission', async () => {
     const { requirePerm } = await import('../auth/rbac.middleware.js');
     const handler = requirePerm('staff.manage');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = {
       session: { staff: { id: '1', email: 'v@x.com', name: 'V', role: 'viewer' } },
     };
     const { reply, state } = makeCtx();
-    await (handler as unknown as Function).call(undefined, req, reply);
+    await (handler as unknown as (...args: unknown[]) => unknown).call(undefined, req, reply);
     expect(state.statusCode).toBe(403);
     expect((state.body as { code: string }).code).toBe('FORBIDDEN');
   });
@@ -96,12 +96,16 @@ describe('requirePerm logic', () => {
   it('returns undefined (allow) when role has permission', async () => {
     const { requirePerm } = await import('../auth/rbac.middleware.js');
     const handler = requirePerm('deposits.read');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing
     const req: any = {
       session: { staff: { id: '1', email: 'a@x.com', name: 'A', role: 'viewer' } },
     };
     const { reply, state } = makeCtx();
-    const result = await (handler as unknown as Function).call(undefined, req, reply);
+    const result = await (handler as unknown as (...args: unknown[]) => unknown).call(
+      undefined,
+      req,
+      reply
+    );
     // No reply was sent — handler returned undefined to let Fastify proceed
     expect(result).toBeUndefined();
     expect(state.statusCode).toBeNull();

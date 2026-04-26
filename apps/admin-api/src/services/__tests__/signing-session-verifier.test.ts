@@ -23,7 +23,7 @@ function makeEvmSession(): SigningSessionEvm {
     kind: 'evm',
     safeAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
     chainId: 97,
-    safeTxHash: '0x' + 'ab'.repeat(32),
+    safeTxHash: `0x${'ab'.repeat(32)}`,
     domain: {
       name: 'Safe',
       version: '1.4.1',
@@ -33,7 +33,7 @@ function makeEvmSession(): SigningSessionEvm {
     message: {
       to: '0x1111111111111111111111111111111111111111',
       value: '0',
-      data: '0xa9059cbb' + '0'.repeat(56),
+      data: `0xa9059cbb${'0'.repeat(56)}`,
       operation: 0,
       safeTxGas: '0',
       baseGas: '0',
@@ -84,7 +84,7 @@ function pubkeyToBase58(bytes: Uint8Array): string {
   // leading zero bytes → '1'
   for (const b of bytes) {
     if (b !== 0) break;
-    result = '1' + result;
+    result = `1${result}`;
   }
   return result;
 }

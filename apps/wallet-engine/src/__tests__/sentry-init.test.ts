@@ -12,9 +12,11 @@ describe('sentry — initSentry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules(); // reset `initialised` module-level state
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.SENTRY_DSN;
   });
   afterEach(() => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.SENTRY_DSN;
     vi.resetModules();
   });
@@ -43,6 +45,7 @@ describe('sentry — initSentry', () => {
     expect(mockSentryInit).toHaveBeenCalledWith(
       expect.objectContaining({ environment: 'production' })
     );
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.NODE_ENV;
   });
 

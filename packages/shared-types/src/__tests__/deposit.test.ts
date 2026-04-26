@@ -124,6 +124,7 @@ describe('Deposit', () => {
     for (const status of statuses) {
       const result = Deposit.safeParse({
         ...validDeposit,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         status: status as any,
       });
       expect(result.success).toBe(true);

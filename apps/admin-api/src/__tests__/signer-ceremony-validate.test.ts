@@ -52,6 +52,7 @@ function buildSelectChain(rows: unknown[]) {
     from: () => chain,
     where: () => chain,
     returning: vi.fn().mockResolvedValue(rows),
+    // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
     then: (resolve: (v: unknown) => void) => resolve(rows),
   };
   return chain;

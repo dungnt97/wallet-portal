@@ -65,6 +65,7 @@ describe('StaffMember', () => {
     for (const role of roles) {
       const result = StaffMember.safeParse({
         ...validMember,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         role: role as any,
       });
       expect(result.success).toBe(true);
@@ -76,6 +77,7 @@ describe('StaffMember', () => {
     for (const status of statuses) {
       const result = StaffMember.safeParse({
         ...validMember,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         status: status as any,
       });
       expect(result.success).toBe(true);
@@ -149,6 +151,7 @@ describe('StaffSigningKey', () => {
     for (const type of types) {
       const result = StaffSigningKey.safeParse({
         ...validKey,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         walletType: type as any,
       });
       expect(result.success).toBe(true);
@@ -159,6 +162,7 @@ describe('StaffSigningKey', () => {
     for (const chain of ['bnb', 'sol']) {
       const result = StaffSigningKey.safeParse({
         ...validKey,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         chain: chain as any,
       });
       expect(result.success).toBe(true);
@@ -169,6 +173,7 @@ describe('StaffSigningKey', () => {
     for (const tier of ['hot', 'cold']) {
       const result = StaffSigningKey.safeParse({
         ...validKey,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         tier: tier as any,
       });
       expect(result.success).toBe(true);

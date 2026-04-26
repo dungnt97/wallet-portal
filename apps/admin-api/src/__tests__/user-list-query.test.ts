@@ -40,6 +40,7 @@ function buildMockDb(opts: { rows?: unknown[]; total?: number } = {}) {
       orderBy: () => chain,
       limit: () => chain,
       offset: () => (isCountQuery ? Promise.resolve([{ total }]) : Promise.resolve(rows)),
+      // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
       then: (resolve: (v: unknown) => void) => resolve(isCountQuery ? [{ total }] : rows),
     };
     return chain;

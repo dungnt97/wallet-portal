@@ -124,7 +124,6 @@ export function SequenceDiagram({ sequence }: Props) {
               />
               {m.label?.split('\n').map((line, li) => (
                 <text
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static list
                   key={li}
                   x={midX}
                   y={y - 6 - ((m.label?.split('\n').length ?? 1) - 1 - li) * 12}

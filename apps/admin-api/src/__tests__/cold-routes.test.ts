@@ -67,7 +67,8 @@ async function buildApp(
     return {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          // .then(cb) pattern used by cold.routes
+          // .then(cb) pattern used by cold.routes — drizzle mock requires .then for await chaining
+          // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
           then: (resolve: (r: typeof walletRows) => void) => {
             const hotRows = walletRows.filter((r) => r.tier === 'hot');
             // second select call inside then
@@ -76,8 +77,7 @@ async function buildApp(
                 where: vi.fn().mockResolvedValue(walletRows.filter((r) => r.tier === 'cold')),
               }),
             };
-            // biome-ignore lint/suspicious/noThenProperty: drizzle mock needs .then
-            return resolve(hotRows).then ? resolve(hotRows) : Promise.resolve(resolve(hotRows));
+            return resolve(hotRows) ?? Promise.resolve(resolve(hotRows));
           },
           // Also provide direct resolution for non-.then() usage
           orderBy: vi.fn().mockResolvedValue(rows),

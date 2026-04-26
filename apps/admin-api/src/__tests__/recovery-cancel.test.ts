@@ -83,7 +83,7 @@ describe('cancelTx', () => {
       body: string;
       actionId: string;
     }) => Promise<void>;
-    delete process.env['RECOVERY_ENABLED'];
+    process.env.RECOVERY_ENABLED = undefined;
     process.env.HOT_SAFE_ADDRESS_BNB = '0xHotSafe000000000000000000000000000000001';
     // Default fetch: wallet-engine cancel succeeds
     global.fetch = vi.fn().mockResolvedValue({

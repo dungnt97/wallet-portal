@@ -11,10 +11,10 @@ import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import {
   Contract,
   JsonRpcProvider,
-  Wallet,
-  parseUnits,
-  formatUnits,
   type TransactionReceipt,
+  Wallet,
+  formatUnits,
+  parseUnits,
 } from 'ethers';
 
 // Minimal ERC-20 ABI — only what the tests need
@@ -99,14 +99,12 @@ export async function mintBnbTestToken(
 ): Promise<string> {
   const contract = new Contract(tokenAddress, ERC20_ABI, wallet);
   const amount = parseUnits(amountHuman, decimals);
-  return withRetry(
-    async () => {
-      const tx = await (contract as any).mint(toAddress, amount);
-      console.log(`[bnb-mint] tx=${tx.hash} to=${toAddress} amount=${amountHuman}`);
-      return tx.hash as string;
-    },
-    `mintBnbTestToken(${tokenAddress} → ${toAddress})`
-  );
+  return withRetry(async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: ethers Contract dynamic method — no static type for mint
+    const tx = await (contract as any).mint(toAddress, amount);
+    console.log(`[bnb-mint] tx=${tx.hash} to=${toAddress} amount=${amountHuman}`);
+    return tx.hash as string;
+  }, `mintBnbTestToken(${tokenAddress} → ${toAddress})`);
 }
 
 /**
@@ -122,14 +120,12 @@ export async function transferBnbToken(
 ): Promise<string> {
   const contract = new Contract(tokenAddress, ERC20_ABI, wallet);
   const amount = parseUnits(amountHuman, decimals);
-  return withRetry(
-    async () => {
-      const tx = await (contract as any).transfer(toAddress, amount);
-      console.log(`[bnb-transfer] tx=${tx.hash} to=${toAddress} amount=${amountHuman}`);
-      return tx.hash as string;
-    },
-    `transferBnbToken(${tokenAddress} → ${toAddress})`
-  );
+  return withRetry(async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: ethers Contract dynamic method — no static type for transfer
+    const tx = await (contract as any).transfer(toAddress, amount);
+    console.log(`[bnb-transfer] tx=${tx.hash} to=${toAddress} amount=${amountHuman}`);
+    return tx.hash as string;
+  }, `transferBnbToken(${tokenAddress} → ${toAddress})`);
 }
 
 /**
@@ -161,9 +157,7 @@ export async function waitForBnbConfirmation(
       await sleep(3_000);
     }
   }
-  throw new Error(
-    `[waitForBnbConfirmation] Timeout after ${timeoutMs}ms waiting for tx=${txHash}`
-  );
+  throw new Error(`[waitForBnbConfirmation] Timeout after ${timeoutMs}ms waiting for tx=${txHash}`);
 }
 
 /** Read ERC-20 balance directly from chain — no caching. */
@@ -173,13 +167,11 @@ export async function getBnbTokenBalance(
   ownerAddress: string
 ): Promise<bigint> {
   const contract = new Contract(tokenAddress, ERC20_ABI, provider);
-  return withRetry(
-    async () => {
-      const bal = await (contract as any).balanceOf(ownerAddress);
-      return bal as bigint;
-    },
-    `getBnbTokenBalance(${tokenAddress}, ${ownerAddress})`
-  );
+  return withRetry(async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: ethers Contract dynamic method — no static type for balanceOf
+    const bal = await (contract as any).balanceOf(ownerAddress);
+    return bal as bigint;
+  }, `getBnbTokenBalance(${tokenAddress}, ${ownerAddress})`);
 }
 
 /** Format wei balance to human-readable string with given decimals. */
@@ -222,36 +214,33 @@ export async function transferSplToken(
   const mint = new PublicKey(mintAddress);
   const dest = new PublicKey(toAddress);
 
-  return withRetry(
-    async () => {
-      // Get or create source ATA
-      const sourceAta = await spl.getOrCreateAssociatedTokenAccount(
-        connection,
-        signerKeypair,
-        mint,
-        signerKeypair.publicKey
-      );
-      // Get or create destination ATA
-      const destAta = await spl.getOrCreateAssociatedTokenAccount(
-        connection,
-        signerKeypair,
-        mint,
-        dest
-      );
+  return withRetry(async () => {
+    // Get or create source ATA
+    const sourceAta = await spl.getOrCreateAssociatedTokenAccount(
+      connection,
+      signerKeypair,
+      mint,
+      signerKeypair.publicKey
+    );
+    // Get or create destination ATA
+    const destAta = await spl.getOrCreateAssociatedTokenAccount(
+      connection,
+      signerKeypair,
+      mint,
+      dest
+    );
 
-      const sig = await spl.transfer(
-        connection,
-        signerKeypair,
-        sourceAta.address,
-        destAta.address,
-        signerKeypair,
-        amountRaw
-      );
-      console.log(`[sol-transfer] sig=${sig} to=${toAddress} amount=${amountRaw}`);
-      return sig;
-    },
-    `transferSplToken(${mintAddress} → ${toAddress})`
-  );
+    const sig = await spl.transfer(
+      connection,
+      signerKeypair,
+      sourceAta.address,
+      destAta.address,
+      signerKeypair,
+      amountRaw
+    );
+    console.log(`[sol-transfer] sig=${sig} to=${toAddress} amount=${amountRaw}`);
+    return sig;
+  }, `transferSplToken(${mintAddress} → ${toAddress})`);
 }
 
 /**
@@ -291,27 +280,24 @@ export async function mintSplToken(
   const mint = new PublicKey(mintAddress);
   const dest = new PublicKey(toAddress);
 
-  return withRetry(
-    async () => {
-      const destAta = await spl.getOrCreateAssociatedTokenAccount(
-        connection,
-        mintAuthority,
-        mint,
-        dest
-      );
-      const sig = await spl.mintTo(
-        connection,
-        mintAuthority,
-        mint,
-        destAta.address,
-        mintAuthority,
-        amountRaw
-      );
-      console.log(`[sol-mint] sig=${sig} to=${toAddress} amount=${amountRaw}`);
-      return sig;
-    },
-    `mintSplToken(${mintAddress} → ${toAddress})`
-  );
+  return withRetry(async () => {
+    const destAta = await spl.getOrCreateAssociatedTokenAccount(
+      connection,
+      mintAuthority,
+      mint,
+      dest
+    );
+    const sig = await spl.mintTo(
+      connection,
+      mintAuthority,
+      mint,
+      destAta.address,
+      mintAuthority,
+      amountRaw
+    );
+    console.log(`[sol-mint] sig=${sig} to=${toAddress} amount=${amountRaw}`);
+    return sig;
+  }, `mintSplToken(${mintAddress} → ${toAddress})`);
 }
 
 /**
@@ -347,16 +333,13 @@ export async function getSplTokenBalance(
   const spl = await import('@solana/spl-token');
   const mint = new PublicKey(mintAddress);
   const owner = new PublicKey(ownerAddress);
-  return withRetry(
-    async () => {
-      const ata = spl.getAssociatedTokenAddressSync(mint, owner);
-      try {
-        const account = await spl.getAccount(connection, ata);
-        return account.amount;
-      } catch {
-        return 0n; // Account doesn't exist yet = 0 balance
-      }
-    },
-    `getSplTokenBalance(${mintAddress}, ${ownerAddress})`
-  );
+  return withRetry(async () => {
+    const ata = spl.getAssociatedTokenAddressSync(mint, owner);
+    try {
+      const account = await spl.getAccount(connection, ata);
+      return account.amount;
+    } catch {
+      return 0n; // Account doesn't exist yet = 0 balance
+    }
+  }, `getSplTokenBalance(${mintAddress}, ${ownerAddress})`);
 }

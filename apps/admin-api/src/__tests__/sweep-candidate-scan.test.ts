@@ -145,7 +145,7 @@ describe('scanSweepCandidates', () => {
 
     // net = 100 = SWEEP_MIN_AMOUNT_USD → should be included
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]!.creditedUsdt).toBe('100');
+    expect(candidates[0]?.creditedUsdt).toBe('100');
   });
 
   it('excludes candidate when net balance is zero after sweep deduction', async () => {
@@ -192,8 +192,8 @@ describe('scanSweepCandidates', () => {
     );
 
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]!.estimatedUsd).toBe(500);
-    expect(candidates[0]!.creditedUsdt).toBe('200');
-    expect(candidates[0]!.creditedUsdc).toBe('300');
+    expect(candidates[0]?.estimatedUsd).toBe(500);
+    expect(candidates[0]?.creditedUsdt).toBe('200');
+    expect(candidates[0]?.creditedUsdc).toBe('300');
   });
 });

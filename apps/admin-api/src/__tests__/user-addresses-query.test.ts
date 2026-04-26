@@ -117,7 +117,7 @@ describe('getUserAddresses service', () => {
       USER_ID
     );
 
-    expect(result[0]!.createdAt).toBe('2024-01-15T10:30:00.000Z');
+    expect(result[0]?.createdAt).toBe('2024-01-15T10:30:00.000Z');
   });
 
   it('cached=true when only USDT key exists (USDC null)', async () => {
@@ -130,7 +130,7 @@ describe('getUserAddresses service', () => {
       USER_ID
     );
 
-    expect(result[0]!.cached).toBe(true);
-    expect(result[0]!.balance).toMatchObject({ USDT: '50.00', USDC: null });
+    expect(result[0]?.cached).toBe(true);
+    expect(result[0]?.balance).toMatchObject({ USDT: '50.00', USDC: null });
   });
 });

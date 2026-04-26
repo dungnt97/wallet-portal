@@ -87,6 +87,7 @@ describe('LedgerEntry', () => {
     for (const currency of currencies) {
       const result = LedgerEntry.safeParse({
         ...validEntry,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         currency: currency as any,
       });
       expect(result.success).toBe(true);

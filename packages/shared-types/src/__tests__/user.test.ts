@@ -223,6 +223,7 @@ describe('UserAddress', () => {
     for (const chain of chains) {
       const result = UserAddress.safeParse({
         ...validAddress,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         chain: chain as any,
       });
       expect(result.success).toBe(true);
@@ -234,6 +235,7 @@ describe('UserAddress', () => {
     for (const tier of tiers) {
       const result = UserAddress.safeParse({
         ...validAddress,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         tier: tier as any,
       });
       expect(result.success).toBe(true);

@@ -19,16 +19,13 @@
 import { expect } from '@playwright/test';
 import { formatEther, parseUnits } from 'ethers';
 
-import { test, gotoApp } from '../fixtures/testnet-auth-fixture.js';
+import { pollDepositByTxHash, pollSweepById } from '../fixtures/testnet-api-poller.js';
+import { gotoApp, test } from '../fixtures/testnet-auth-fixture.js';
 import {
+  getBnbTokenBalance,
   mintBnbTestToken,
   waitForBnbConfirmation,
-  getBnbTokenBalance,
 } from '../fixtures/testnet-chain-client.js';
-import {
-  pollDepositByTxHash,
-  pollSweepById,
-} from '../fixtures/testnet-api-poller.js';
 
 const DEPOSIT_AMOUNT_HUMAN = '50';
 const TOKEN_DECIMALS = 18;
@@ -115,11 +112,11 @@ test.describe('Testnet: BNB sweep batch flow', () => {
 
     // Fallback: query API for newest sweep
     if (!sweepId) {
-      const resp = await page.context().request.get(
-        `${tnEnv.adminApiUrl}/sweeps?chain=bnb&status=pending&limit=1`
-      );
+      const resp = await page
+        .context()
+        .request.get(`${tnEnv.adminApiUrl}/sweeps?chain=bnb&status=pending&limit=1`);
       if (resp.ok()) {
-        const body = await resp.json() as { data: Array<{ id: string }> };
+        const body = (await resp.json()) as { data: Array<{ id: string }> };
         sweepId = body.data[0]?.id ?? null;
       }
     }
@@ -131,6 +128,7 @@ test.describe('Testnet: BNB sweep batch flow', () => {
     const sweep = await pollSweepById(
       page,
       tnEnv.adminApiUrl,
+      // biome-ignore lint/style/noNonNullAssertion: sweepId is set before this block — required by Playwright flow
       sweepId!,
       'confirmed',
       180_000 // 3 min
@@ -152,11 +150,11 @@ test.describe('Testnet: BNB sweep batch flow', () => {
     expect(gasBurnedBnb).toBeLessThan(MAX_GAS_BNB);
 
     // ── 7. Assert deposit status transitioned to 'swept' ─────────────────────
-    const updatedDeposit = await page.context().request.get(
-      `${tnEnv.adminApiUrl}/deposits/${deposit.id}`
-    );
+    const updatedDeposit = await page
+      .context()
+      .request.get(`${tnEnv.adminApiUrl}/deposits/${deposit.id}`);
     expect(updatedDeposit.ok()).toBe(true);
-    const depositBody = await updatedDeposit.json() as { status: string };
+    const depositBody = (await updatedDeposit.json()) as { status: string };
     expect(depositBody.status).toBe('swept');
     console.log(`[sweep-bnb] Deposit ${deposit.id} status: ${depositBody.status}`);
 
@@ -166,7 +164,7 @@ test.describe('Testnet: BNB sweep batch flow', () => {
 
     const confirmedRow = page
       .locator('[data-testid="sweep-batch-row"], tr, .batch-row')
-      .filter({ hasText: sweepId!.slice(0, 8) })
+      .filter({ hasText: sweepId?.slice(0, 8) })
       .first();
     await expect(confirmedRow).toBeVisible({ timeout: 15_000 });
 

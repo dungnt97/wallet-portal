@@ -83,6 +83,7 @@ describe('Wallet', () => {
     for (const purpose of purposes) {
       const result = Wallet.safeParse({
         ...validWallet,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         purpose: purpose as any,
       });
       expect(result.success).toBe(true);

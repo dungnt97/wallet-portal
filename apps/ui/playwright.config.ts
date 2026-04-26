@@ -58,6 +58,9 @@ export default defineConfig({
   ],
 
   // Start Vite dev server before tests run.
+  // HMR is disabled via VITE_HMR_DISABLE=true to prevent WebSocket EPIPE/ECONNRESET
+  // when Playwright disconnects between tests. The proxy config (/api → :3001) is
+  // needed at runtime so pnpm preview cannot be used (no proxy in preview mode).
   // In CI: always start fresh. Locally: reuse if already running.
   webServer: {
     command: 'pnpm dev',

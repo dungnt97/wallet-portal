@@ -241,6 +241,7 @@ async function buildApp(
 
   // RBAC middleware — set admin role for all endpoints
   app.addHook('preHandler', async (req, reply) => {
+    // biome-ignore lint/suspicious/noExplicitAny: test mock requires loose typing for session
     req.session = { staff: { id: STAFF_ID, role: 'admin' } } as any;
   });
 
@@ -295,7 +296,7 @@ async function buildApp(
   vi.mocked(executeWithdrawal).mockImplementation(
     opts.mockExecuteFn ??
       (async () => ({
-        jobId: 'job-' + Math.random().toString(36).slice(2),
+        jobId: `job-${Math.random().toString(36).slice(2)}`,
       }))
   );
 
@@ -303,8 +304,8 @@ async function buildApp(
   vi.mocked(queryWithdrawalsForExport).mockResolvedValue(withdrawalList);
 
   vi.mocked(streamWithdrawalCsv).mockImplementation((rows, chunk) => {
-    const csv =
-      'id,userId,amount\n' + rows.map((r: any) => `${r.id},${r.userId},${r.amount}`).join('\n');
+    // biome-ignore lint/suspicious/noExplicitAny: test mock — row shape is dynamic
+    const csv = `id,userId,amount\n${rows.map((r: any) => `${r.id},${r.userId},${r.amount}`).join('\n')}`;
     chunk(csv);
   });
 

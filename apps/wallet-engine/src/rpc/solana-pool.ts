@@ -24,6 +24,7 @@ export function makeSolanaPool(urls: string[]): SolanaPool {
   const connections = urls.map((url) => new Connection(url, DEFAULT_COMMITMENT));
 
   logger.info({ urls }, 'Solana RPC pool initialised');
+  // biome-ignore lint/style/noNonNullAssertion: array is guaranteed non-empty — urls.length > 0 checked above
   return { primary: connections[0]!, connections, urls };
 }
 

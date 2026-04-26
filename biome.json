@@ -107,6 +107,16 @@
           }
         }
       }
+    },
+    {
+      "include": ["apps/ui/src/**/__tests__/**/*.tsx", "apps/ui/src/**/__tests__/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
     }
   ]
 }

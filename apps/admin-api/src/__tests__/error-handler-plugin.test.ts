@@ -38,11 +38,11 @@ async function buildApp(nodeEnv?: string) {
         response: { 200: z.object({ count: z.number() }) },
       },
     },
-    async (_req, reply) =>
-      // biome-ignore lint/suspicious/noExplicitAny: deliberate wrong type for test
-      reply
-        .code(200)
-        .send({ count: 'not-a-number' } as any)
+    async (_req, reply) => {
+      // biome-ignore lint/suspicious/noExplicitAny: deliberate wrong type for test — validates serializer rejects bad shape
+      const wrongBody = { count: 'not-a-number' } as any;
+      return reply.code(200).send(wrongBody);
+    }
   );
 
   // Route that throws a generic 403 HTTP error

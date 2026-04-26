@@ -22,6 +22,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Disable HMR in Playwright smoke-E2E mode — avoids WebSocket EPIPE/ECONNRESET
+    // when Playwright disconnects between tests and Vite tries to push HMR updates.
+    hmr: process.env.VITE_TEST_MODE === 'true' ? false : undefined,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

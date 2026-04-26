@@ -35,14 +35,20 @@ describe('otel — NodeSDK bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.OTEL_SERVICE_NAME;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.NODE_ENV;
   });
 
   afterEach(() => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.OTEL_SERVICE_NAME;
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.NODE_ENV;
     vi.resetModules();
   });
@@ -61,6 +67,7 @@ describe('otel — NodeSDK bootstrap', () => {
   });
 
   it('defaults serviceName to wallet-engine', async () => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (not set to undefined — that coerces to string "undefined")
     delete process.env.OTEL_SERVICE_NAME;
     await import('../telemetry/otel.js');
     const ctorCall = MockNodeSDK.mock.calls[0]?.[0] as { serviceName: string };

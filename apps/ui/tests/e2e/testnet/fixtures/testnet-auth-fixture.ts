@@ -14,15 +14,11 @@
  */
 import { test as base, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import type { JsonRpcProvider, Wallet } from 'ethers';
 import type { Connection, Keypair } from '@solana/web3.js';
+import type { JsonRpcProvider, Wallet } from 'ethers';
 
-import { loadTestnetEnv, type TestnetEnv } from './testnet-env.js';
-import {
-  makeBnbClient,
-  makeSolConnection,
-  solKeypairFromBase64,
-} from './testnet-chain-client.js';
+import { makeBnbClient, makeSolConnection, solKeypairFromBase64 } from './testnet-chain-client.js';
+import { type TestnetEnv, loadTestnetEnv } from './testnet-env.js';
 
 // ── Auth helpers (inline to avoid circular import) ────────────────────────────
 
@@ -124,7 +120,7 @@ export const test = base.extend<TestnetFixtures>({
    * Load and validate all testnet env vars once per test worker.
    * Throws with a clear message if any required secret is absent.
    */
-  tnEnv: async ({}, use) => {
+  tnEnv: async (_fixtures, use) => {
     const env = loadTestnetEnv();
     await use(env);
   },

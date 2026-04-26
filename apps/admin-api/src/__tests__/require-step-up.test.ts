@@ -52,7 +52,7 @@ describe('requireStepUp middleware', () => {
   beforeEach(() => {
     // Ensure POLICY_DEV_MODE bypass is off — tests must exercise real enforcement logic
     savedDevMode = process.env.POLICY_DEV_MODE;
-    delete process.env.POLICY_DEV_MODE;
+    process.env.POLICY_DEV_MODE = undefined;
     handler = requireStepUp() as unknown as PlainHandler;
   });
 
@@ -61,7 +61,7 @@ describe('requireStepUp middleware', () => {
     if (savedDevMode !== undefined) {
       process.env.POLICY_DEV_MODE = savedDevMode;
     } else {
-      delete process.env.POLICY_DEV_MODE;
+      process.env.POLICY_DEV_MODE = undefined;
     }
   });
 

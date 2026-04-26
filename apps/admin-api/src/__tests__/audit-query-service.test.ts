@@ -58,6 +58,7 @@ function makeMockDb(rows: ReturnType<typeof makeDbRow>[] = []) {
         return {
           limit: limitMock,
           // Also make it thenable for export query case (when export doesn't call limit)
+          // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
           then: (cb: (val: unknown) => unknown) => Promise.resolve(rows).then(cb),
         };
       }),

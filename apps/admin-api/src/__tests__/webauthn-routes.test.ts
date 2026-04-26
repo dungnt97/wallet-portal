@@ -71,6 +71,7 @@ function makeSelectChain(rows: unknown[]) {
   const whereResult = {
     limit: vi.fn().mockResolvedValue(rows),
     // Make where() itself a thenable so `await db.select().from().where()` resolves
+    // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
     then: (
       resolve: (v: unknown[]) => unknown,
       reject?: (e: unknown) => unknown

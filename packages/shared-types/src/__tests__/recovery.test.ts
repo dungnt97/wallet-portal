@@ -125,6 +125,7 @@ describe('StuckTxItem', () => {
     for (const type of ['withdrawal', 'sweep']) {
       const result = StuckTxItem.safeParse({
         ...validItem,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         entityType: type as any,
       });
       expect(result.success).toBe(true);
@@ -135,6 +136,7 @@ describe('StuckTxItem', () => {
     for (const chain of ['bnb', 'sol']) {
       const result = StuckTxItem.safeParse({
         ...validItem,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         chain: chain as any,
       });
       expect(result.success).toBe(true);
@@ -367,6 +369,7 @@ describe('RecoveryAction', () => {
     for (const type of ['bump', 'cancel']) {
       const result = RecoveryAction.safeParse({
         ...validAction,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         actionType: type as any,
       });
       expect(result.success).toBe(true);
@@ -377,6 +380,7 @@ describe('RecoveryAction', () => {
     for (const type of ['withdrawal', 'sweep']) {
       const result = RecoveryAction.safeParse({
         ...validAction,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         entityType: type as any,
       });
       expect(result.success).toBe(true);
@@ -387,6 +391,7 @@ describe('RecoveryAction', () => {
     for (const status of ['pending', 'broadcast', 'confirmed', 'failed']) {
       const result = RecoveryAction.safeParse({
         ...validAction,
+        // biome-ignore lint/suspicious/noExplicitAny: passing string values through Zod safeParse to test enum acceptance
         status: status as any,
       });
       expect(result.success).toBe(true);

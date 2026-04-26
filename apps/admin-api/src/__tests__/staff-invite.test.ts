@@ -46,6 +46,7 @@ function makeInsertChain() {
   const values = vi.fn().mockReturnValue({
     returning,
     onConflictDoUpdate: onConflict,
+    // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
     then: (r: (v: unknown) => void) => r([]),
   });
   return vi.fn().mockReturnValue({ values });
@@ -109,6 +110,7 @@ describe('inviteStaff service', () => {
   });
 
   it('throws when SESSION_SECRET is missing', async () => {
+    // biome-ignore lint/performance/noDelete: process.env key must be deleted (= undefined coerces to string "undefined")
     delete process.env.SESSION_SECRET;
     const db = buildMockDb();
     await expect(
@@ -136,7 +138,7 @@ describe('verifyInviteToken service', () => {
       db as unknown as Parameters<typeof inviteStaff>[0],
       VALID_PARAMS
     );
-    const token = new URL(inviteLink).searchParams.get('token')!;
+    const token = new URL(inviteLink).searchParams.get('token') ?? '';
 
     // Simulate row with different stored token (already consumed)
     const dbConsumed = {

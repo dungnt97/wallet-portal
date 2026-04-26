@@ -23,14 +23,14 @@ function makePayload(
     if (overrides.hd !== undefined) {
       result.hd = overrides.hd;
     } else {
-      delete result.hd;
+      result.hd = undefined;
     }
   }
   if ('picture' in overrides) {
     if (overrides.picture !== undefined) {
       result.picture = overrides.picture;
     } else {
-      delete result.picture;
+      result.picture = undefined;
     }
   }
   return result;
@@ -56,7 +56,7 @@ describe('isAllowedWorkspaceDomain', () => {
   it('rejects missing hd claim when domain is required', () => {
     // Create payload without hd property
     const payload = makePayload();
-    delete payload.hd;
+    payload.hd = undefined;
     expect(isAllowedWorkspaceDomain(payload, 'company.com')).toBe(false);
   });
 
@@ -67,7 +67,7 @@ describe('isAllowedWorkspaceDomain', () => {
 
   it('allows no-hd payload when requiredDomain is empty', () => {
     const payload = makePayload();
-    delete payload.hd;
+    payload.hd = undefined;
     expect(isAllowedWorkspaceDomain(payload, '')).toBe(true);
   });
 });

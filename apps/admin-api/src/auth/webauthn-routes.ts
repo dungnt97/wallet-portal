@@ -47,6 +47,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       },
     },
     async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by requireAuth preHandler — staff is always defined here
       const staff = req.session.staff!;
 
       // Fetch existing credentials to exclude from new registration
@@ -98,6 +99,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       },
     },
     async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by requireAuth preHandler — staff is always defined here
       const staff = req.session.staff!;
       const challenge = req.session.webauthnChallenge;
       const expiresAt = req.session.webauthnChallengeExpiresAt ?? 0;
@@ -113,6 +115,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       (req.session as unknown as Record<string, unknown>).webauthnChallenge = undefined;
       (req.session as unknown as Record<string, unknown>).webauthnChallengeExpiresAt = undefined;
 
+      // biome-ignore lint/suspicious/noImplicitAnyLet: type inferred from @simplewebauthn/server — explicit annotation would require transitive import (TS2742)
       let verification;
       try {
         verification = await confirmRegistration(
@@ -166,6 +169,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       },
     },
     async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by requireAuth preHandler — staff is always defined here
       const staff = req.session.staff!;
 
       const creds = await app.db
@@ -200,6 +204,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       },
     },
     async (req, reply) => {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by requireAuth preHandler — staff is always defined here
       const staff = req.session.staff!;
       const challenge = req.session.webauthnChallenge;
       const expiresAt = req.session.webauthnChallengeExpiresAt ?? 0;
@@ -243,6 +248,7 @@ export const webauthnRoutes: FastifyPluginAsync<{ cfg: Config }> = async (app, o
       (req.session as unknown as Record<string, unknown>).webauthnChallenge = undefined;
       (req.session as unknown as Record<string, unknown>).webauthnChallengeExpiresAt = undefined;
 
+      // biome-ignore lint/suspicious/noImplicitAnyLet: type inferred from @simplewebauthn/server — explicit annotation would require transitive import (TS2742)
       let verification;
       try {
         verification = await confirmAuthentication(

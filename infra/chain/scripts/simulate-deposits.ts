@@ -70,8 +70,11 @@ async function simulateBnbDeposits(amountPerAddr: number) {
   console.log(`tUSDC: ${deployed.bnb.usdc}`);
   console.log(`Amount per address: ${amountPerAddr} each token`);
 
-  const usdt = new Contract(deployed.bnb.usdt, ERC20_ABI, wallet);
-  const usdc = new Contract(deployed.bnb.usdc, ERC20_ABI, wallet);
+  type MintContract = {
+    mint: (to: string, amount: bigint) => Promise<{ wait: () => Promise<unknown>; hash: string }>;
+  };
+  const usdt = new Contract(deployed.bnb.usdt, ERC20_ABI, wallet) as unknown as MintContract;
+  const usdc = new Contract(deployed.bnb.usdc, ERC20_ABI, wallet) as unknown as MintContract;
   const mintAmount = parseUnits(String(amountPerAddr), 18);
 
   const bal = await provider.getBalance(wallet.address);

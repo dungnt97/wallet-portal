@@ -230,6 +230,7 @@
     "gasHotLabel": "hot wallet",
     "gasLowWarn": "low — top up below {{threshold}} {{symbol}}",
     "gasProbeError": "probe failed",
+    "gasNoOperational": "No operational wallets configured. Set SAFE_ADDRESS / SQUADS_MULTISIG_ADDRESS in env.",
     "noActiveAlerts": "No active alerts",
     "today": "Today"
   },

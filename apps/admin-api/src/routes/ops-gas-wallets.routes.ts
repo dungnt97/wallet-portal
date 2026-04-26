@@ -29,6 +29,31 @@ function isValidChainAddress(chain: 'bnb' | 'sol', address: string): boolean {
   return chain === 'bnb' ? BNB_ADDR_RE.test(address) : SOL_ADDR_RE.test(address);
 }
 
+/**
+ * Known dev-seed placeholders that are NOT real operational wallets. These are
+ * shared/well-known addresses (burn sinks, system programs) that may carry
+ * unrelated funds — surfacing them as "BNB hot wallet" misleads operators into
+ * thinking the system holds those balances. Filter them out so the dashboard
+ * only shows wallets that have been intentionally configured via env vars.
+ */
+const DEV_PLACEHOLDER_ADDRESSES = new Set<string>([
+  // Historical placeholders shipped before address validation existed
+  '0xHOT0SAFE00000000000000000000000000000001'.toLowerCase(),
+  '0xCOLD0SAFE0000000000000000000000000000002'.toLowerCase(),
+  'HotSquadsAddressAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+  'ColdSquadsAddressBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  // Format-valid placeholders that resolve to shared burn/system addresses
+  '0x000000000000000000000000000000000000dead',
+  '0x000000000000000000000000000000000000beef',
+  '11111111111111111111111111111111',
+  'So11111111111111111111111111111111111111112',
+]);
+
+function isDevPlaceholder(chain: 'bnb' | 'sol', address: string): boolean {
+  const key = chain === 'bnb' ? address.toLowerCase() : address;
+  return DEV_PLACEHOLDER_ADDRESSES.has(key);
+}
+
 const GasWalletSchema = z.object({
   chain: z.enum(['bnb', 'sol']),
   address: z.string(),
@@ -105,13 +130,19 @@ const opsGasWalletsRoutes: FastifyPluginAsync = async (app) => {
       const bnbRpc = process.env.BNB_RPC_URL ?? 'https://bsc-testnet-rpc.publicnode.com';
       const solRpc = process.env.SOL_RPC_URL ?? 'https://api.devnet.solana.com';
 
-      const wallets = await app.db
+      const allWallets = await app.db
         .select({
           chain: schema.wallets.chain,
           address: schema.wallets.address,
         })
         .from(schema.wallets)
         .where(eq(schema.wallets.purpose, 'operational'));
+
+      // Drop dev seed placeholders so the dashboard never reports balances for
+      // shared burn/system addresses as if they belonged to this deployment.
+      const wallets = allWallets.filter(
+        (w) => !isDevPlaceholder(w.chain as 'bnb' | 'sol', w.address)
+      );
 
       const results = await Promise.all(
         wallets.map(async (w) => {

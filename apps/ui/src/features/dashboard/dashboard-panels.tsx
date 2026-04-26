@@ -205,6 +205,11 @@ export function GasWalletList() {
           </div>
         );
       })}
+      {wallets.length === 0 && (
+        <div className="gas-row" style={{ opacity: 0.7 }}>
+          <span className="text-muted text-xs">{t('dashboard.gasNoOperational')}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -230,6 +230,7 @@
     "gasHotLabel": "ví hot",
     "gasLowWarn": "thấp — cần nạp khi dưới {{threshold}} {{symbol}}",
     "gasProbeError": "không lấy được số dư",
+    "gasNoOperational": "Chưa cấu hình ví operational. Cần set SAFE_ADDRESS / SQUADS_MULTISIG_ADDRESS trong env.",
     "noActiveAlerts": "Không có cảnh báo nào",
     "today": "Hôm nay"
   },

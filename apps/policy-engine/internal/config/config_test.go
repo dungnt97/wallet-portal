@@ -10,7 +10,7 @@ func TestLoad_WithAllRequiredEnvVars(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	t.Setenv("SVC_BEARER_TOKEN", "test_token_123")
 	// CI sets POLICY_DEV_MODE=true at workflow level; unset for default-value assertion
-	os.Unsetenv("POLICY_DEV_MODE")
+	_ = os.Unsetenv("POLICY_DEV_MODE")
 
 	cfg, err := Load()
 	if err != nil {
@@ -37,7 +37,7 @@ func TestLoad_WithAllRequiredEnvVars(t *testing.T) {
 func TestLoad_MissingDatabaseURL(t *testing.T) {
 	// Unset DATABASE_URL and ensure error is returned
 	t.Setenv("SVC_BEARER_TOKEN", "test_token")
-	os.Unsetenv("DATABASE_URL")
+	_ = os.Unsetenv("DATABASE_URL")
 
 	cfg, err := Load()
 	if err == nil {
@@ -48,7 +48,7 @@ func TestLoad_MissingDatabaseURL(t *testing.T) {
 func TestLoad_MissingSvcBearerToken(t *testing.T) {
 	// Unset SVC_BEARER_TOKEN and ensure error is returned
 	t.Setenv("DATABASE_URL", "postgres://localhost/db")
-	os.Unsetenv("SVC_BEARER_TOKEN")
+	_ = os.Unsetenv("SVC_BEARER_TOKEN")
 
 	cfg, err := Load()
 	if err == nil {

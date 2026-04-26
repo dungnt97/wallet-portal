@@ -440,3 +440,58 @@ describe('adminNotifQueryKeys', () => {
     expect(adminNotifQueryKeys.routing()).toBeDefined();
   });
 });
+
+describe('useMultisigSyncStatus', () => {
+  it('fetches from /multisig/sync-status', async () => {
+    const { api } = await import('../client');
+    const mockStatus = {
+      bnb: { status: 'synced', lastSyncAt: '2024-01-01T00:00:00.000Z', nonce: 42 },
+      sol: { status: 'synced', lastSyncAt: '2024-01-01T00:00:00.000Z' },
+    };
+    vi.mocked(api.get).mockResolvedValue(mockStatus);
+    const { wrapper } = makeWrapper();
+    const { useMultisigSyncStatus } = await import('../queries');
+    const { result } = renderHook(() => useMultisigSyncStatus(), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(vi.mocked(api.get)).toHaveBeenCalledWith(expect.stringContaining('sync-status'));
+  });
+
+  it('falls back to error status when api.get rejects', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockRejectedValue(new Error('Network error'));
+    const { wrapper } = makeWrapper();
+    const { useMultisigSyncStatus } = await import('../queries');
+    const { result } = renderHook(() => useMultisigSyncStatus(), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(result.current.data?.bnb.status).toBe('error');
+    expect(result.current.data?.sol.status).toBe('error');
+  });
+});
+
+describe('useRefreshMultisigSync', () => {
+  it('posts to /multisig/sync-refresh', async () => {
+    const { api } = await import('../client');
+    const mockStatus = {
+      bnb: { status: 'synced', lastSyncAt: '2024-01-01T00:00:00.000Z' },
+      sol: { status: 'synced', lastSyncAt: '2024-01-01T00:00:00.000Z' },
+    };
+    vi.mocked(api.post).mockResolvedValue(mockStatus);
+    const { wrapper } = makeWrapper();
+    const { useRefreshMultisigSync } = await import('../queries');
+    const { result } = renderHook(() => useRefreshMultisigSync(), { wrapper });
+    result.current.mutate();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalledWith(expect.stringContaining('sync-refresh'));
+  });
+
+  it('falls back to error status when api.post rejects', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockRejectedValue(new Error('Unreachable'));
+    const { wrapper } = makeWrapper();
+    const { useRefreshMultisigSync } = await import('../queries');
+    const { result } = renderHook(() => useRefreshMultisigSync(), { wrapper });
+    result.current.mutate();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.bnb.status).toBe('error');
+  });
+});

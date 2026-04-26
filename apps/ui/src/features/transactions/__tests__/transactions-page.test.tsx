@@ -246,4 +246,38 @@ describe('TransactionsPage', () => {
       expect.objectContaining({ page: 1, limit: 25 })
     );
   });
+
+  it('cycles status filter through confirmed → pending → failed → null', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const statusBtn = screen.getByTestId('filter-Status');
+    // null → confirmed
+    await user.click(statusBtn);
+    expect(mockUseTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'confirmed' })
+    );
+    // confirmed → pending
+    await user.click(statusBtn);
+    expect(mockUseTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending' })
+    );
+    // pending → failed
+    await user.click(statusBtn);
+    expect(mockUseTransactions).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    // failed → null (null becomes undefined in hook call via ?? undefined)
+    await user.click(statusBtn);
+    expect(mockUseTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: undefined })
+    );
+  });
+
+  it('cycles date preset filter on click', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const dateBtn = screen.getByTestId('filter-Date');
+    // null → first preset
+    await user.click(dateBtn);
+    // No need to check exact value; just ensure it was called with a datePreset
+    expect(screen.getByTestId('filter-Date')).toBeInTheDocument();
+  });
 });

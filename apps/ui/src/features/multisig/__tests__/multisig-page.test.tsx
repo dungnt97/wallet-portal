@@ -135,17 +135,29 @@ vi.mock('../multisig-sheet', () => ({
   MultisigSheet: ({
     op,
     onClose,
+    onApprove,
+    onReject,
+    onExecute,
   }: {
     op: unknown;
     onClose: () => void;
-    onApprove: unknown;
-    onReject: unknown;
-    onExecute: unknown;
+    onApprove: (o: unknown) => void;
+    onReject: (o: unknown) => void;
+    onExecute: (o: unknown) => void;
   }) =>
     op ? (
       <div data-testid="multisig-sheet">
         <button type="button" onClick={onClose}>
           close-sheet
+        </button>
+        <button type="button" onClick={() => onApprove(op)}>
+          approve-op
+        </button>
+        <button type="button" onClick={() => onReject(op)}>
+          reject-op
+        </button>
+        <button type="button" onClick={() => onExecute(op)}>
+          execute-op
         </button>
       </div>
     ) : null,
@@ -183,12 +195,22 @@ function renderPage(ops: unknown[] = []) {
   mockUseMultisigOps.mockReturnValue({ data: { data: ops } });
   mockUseMultisigSyncStatus.mockReturnValue({ data: null });
   mockUseRefreshMultisigSync.mockReturnValue({
+    mutate: vi.fn(),
     mutateAsync: vi.fn().mockResolvedValue({}),
     isPending: false,
   });
-  mockUseApproveMultisigOp.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}) });
-  mockUseRejectMultisigOp.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}) });
-  mockUseExecuteMultisigOp.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}) });
+  mockUseApproveMultisigOp.mockReturnValue({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue({}),
+  });
+  mockUseRejectMultisigOp.mockReturnValue({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue({}),
+  });
+  mockUseExecuteMultisigOp.mockReturnValue({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue({}),
+  });
   mockUseColdBalances.mockReturnValue({ data: [] });
   mockUseWallets.mockReturnValue({ data: { data: [] } });
   mockUseStaffList.mockReturnValue({ data: { data: [] } });
@@ -266,5 +288,69 @@ describe('MultisigPage', () => {
     renderPage();
     await user.click(screen.getByText('switch-to-failed'));
     expect(screen.getByText(/0 ops \(tab: failed\)/)).toBeInTheDocument();
+  });
+
+  it('calls approve mutation when approve-op clicked in sheet', async () => {
+    const mutate = vi.fn();
+    mockUseApproveMultisigOp.mockReturnValue({ mutate, mutateAsync: vi.fn() });
+    mockUseRejectMultisigOp.mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
+    mockUseExecuteMultisigOp.mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
+    mockUseRefreshMultisigSync.mockReturnValue({ mutate: vi.fn(), isPending: false });
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', id: 'a1', role: 'admin' } });
+    mockUseMultisigOps.mockReturnValue({
+      data: { data: [{ id: 'op1', chain: 'bnb', status: 'pending', signers: [] }] },
+    });
+    mockUseMultisigSyncStatus.mockReturnValue({ data: null });
+    mockUseColdBalances.mockReturnValue({ data: [] });
+    mockUseWallets.mockReturnValue({ data: { data: [] } });
+    mockUseStaffList.mockReturnValue({ data: { data: [] } });
+    const user = userEvent.setup();
+    render(<MultisigPage />);
+    await user.click(screen.getByText('select-op'));
+    await user.click(screen.getByText('approve-op'));
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it('calls reject mutation when reject-op clicked in sheet', async () => {
+    const rejectMutate = vi.fn();
+    mockUseApproveMultisigOp.mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
+    mockUseRejectMultisigOp.mockReturnValue({ mutate: rejectMutate, mutateAsync: vi.fn() });
+    mockUseExecuteMultisigOp.mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
+    mockUseRefreshMultisigSync.mockReturnValue({ mutate: vi.fn(), isPending: false });
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', id: 'a1', role: 'admin' } });
+    mockUseMultisigOps.mockReturnValue({
+      data: { data: [{ id: 'op1', chain: 'bnb', status: 'pending', signers: [] }] },
+    });
+    mockUseMultisigSyncStatus.mockReturnValue({ data: null });
+    mockUseColdBalances.mockReturnValue({ data: [] });
+    mockUseWallets.mockReturnValue({ data: { data: [] } });
+    mockUseStaffList.mockReturnValue({ data: { data: [] } });
+    const user = userEvent.setup();
+    render(<MultisigPage />);
+    await user.click(screen.getByText('select-op'));
+    await user.click(screen.getByText('reject-op'));
+    expect(rejectMutate).toHaveBeenCalled();
+  });
+
+  it('renders sync status dots when syncStatus provided', () => {
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', role: 'admin' } });
+    mockUseMultisigOps.mockReturnValue({ data: { data: [] } });
+    mockUseMultisigSyncStatus.mockReturnValue({
+      data: {
+        bnb: { status: 'synced', lastSyncAt: '2024-01-01T00:00:00Z' },
+        sol: { status: 'synced', lastSyncAt: '2024-01-01T00:01:00Z' },
+      },
+    });
+    mockUseRefreshMultisigSync.mockReturnValue({ mutate: vi.fn(), isPending: false });
+    mockUseApproveMultisigOp.mockReturnValue({ mutate: vi.fn() });
+    mockUseRejectMultisigOp.mockReturnValue({ mutate: vi.fn() });
+    mockUseExecuteMultisigOp.mockReturnValue({ mutate: vi.fn() });
+    mockUseColdBalances.mockReturnValue({ data: [] });
+    mockUseWallets.mockReturnValue({ data: { data: [] } });
+    mockUseStaffList.mockReturnValue({ data: { data: [] } });
+    render(<MultisigPage />);
+    // LiveDot renders in actions area (syncStatus provided → LiveTimeAgo also renders)
+    expect(screen.getAllByTestId('live-dot').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('live-time-ago')).toBeInTheDocument();
   });
 });

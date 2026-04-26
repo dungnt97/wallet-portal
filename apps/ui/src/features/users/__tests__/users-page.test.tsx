@@ -1,7 +1,7 @@
 // Smoke tests for features/users/users-page.tsx — staff + end-user tabs, invite/add modals.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ vi.mock('@/auth/use-auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-const mockUseTweaksStore = vi.fn(() => false);
+const mockUseTweaksStore = vi.fn((_selector?: unknown) => false);
 vi.mock('@/stores/tweaks-store', () => ({
   useTweaksStore: (selector: (s: { showRiskFlags: boolean }) => boolean) =>
     mockUseTweaksStore(selector),

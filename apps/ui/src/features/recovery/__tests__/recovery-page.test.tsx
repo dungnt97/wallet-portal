@@ -1,7 +1,7 @@
 // Smoke tests for features/recovery/recovery-page.tsx — stuck tx list with bump/cancel actions.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 

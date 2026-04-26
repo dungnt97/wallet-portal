@@ -1,7 +1,7 @@
 // Smoke tests for features/sweep/sweep-page.tsx — chain toggle, loading state, confirm modal.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 

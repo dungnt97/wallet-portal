@@ -61,28 +61,44 @@ import { ColdChainSection } from '../cold-chain-section';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const hotMeta = {
-  id: 'wm1',
   chain: 'bnb' as const,
   tier: 'hot' as const,
   address: '0xHotAddress',
+  multisigAddr: null,
   bandFloorUsd: 50_000,
   bandCeilingUsd: 200_000,
-  label: 'Hot BNB',
+  signerLabel: null,
+  geographicLabel: null,
 };
 
 const coldMeta = {
-  id: 'wm2',
   chain: 'bnb' as const,
   tier: 'cold' as const,
   address: '0xColdAddress',
-  bandFloorUsd: 0,
-  bandCeilingUsd: 0,
-  label: 'Cold BNB',
+  multisigAddr: '0xColdMultisig',
+  bandFloorUsd: null,
+  bandCeilingUsd: null,
+  signerLabel: 'Gnosis Safe · 3/5',
+  geographicLabel: 'Zurich',
 };
 
 const bnbBalances = [
-  { chain: 'bnb', tier: 'hot', token: 'USDT', balance: '100000000000000000000000' }, // 100k USDT (18 dec)
-  { chain: 'bnb', tier: 'cold', token: 'USDT', balance: '500000000000000000000000' }, // 500k USDT
+  {
+    chain: 'bnb' as const,
+    tier: 'hot' as const,
+    address: '0xHotAddress',
+    token: 'USDT' as const,
+    balance: '100000000000000000000000',
+    lastCheckedAt: new Date().toISOString(),
+  },
+  {
+    chain: 'bnb' as const,
+    tier: 'cold' as const,
+    address: '0xColdAddress',
+    token: 'USDT' as const,
+    balance: '500000000000000000000000',
+    lastCheckedAt: new Date().toISOString(),
+  },
 ];
 
 function renderSection({

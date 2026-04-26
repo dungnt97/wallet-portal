@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
 import { PublicKey } from '@solana/web3.js';
+import { describe, expect, it } from 'vitest';
 import {
+  type SquadsVersionedTxSet,
   buildAddMemberTx,
+  buildConfigTransactionExecuteTx,
+  buildProposalApproveTx,
   buildRemoveMemberTx,
   buildRotateMembersTx,
-  buildProposalApproveTx,
-  buildConfigTransactionExecuteTx,
-  type SquadsVersionedTxSet,
 } from '../services/signer-ceremony-solana.js';
 
 // Test fixture keys (valid Solana base58, but not real keys)

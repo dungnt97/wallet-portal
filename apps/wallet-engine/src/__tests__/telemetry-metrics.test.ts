@@ -1,14 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  registry,
-  httpRequestsTotal,
-  httpRequestDurationSeconds,
-  depositsDetectedTotal,
   depositConfirmJobsTotal,
-  rpcProbeTotal,
-  rpcProbeFailuresTotal,
-  watcherBlockLag,
   depositConfirmationDurationSeconds,
+  depositsDetectedTotal,
+  httpRequestDurationSeconds,
+  httpRequestsTotal,
+  registry,
+  rpcProbeFailuresTotal,
+  rpcProbeTotal,
+  watcherBlockLag,
 } from '../telemetry/metrics.js';
 
 describe('telemetry-metrics', () => {
@@ -75,7 +75,10 @@ describe('telemetry-metrics', () => {
 
     it('should observe request durations', () => {
       expect(() =>
-        httpRequestDurationSeconds.observe({ method: 'GET', route: '/api', status_code: '200' }, 0.05)
+        httpRequestDurationSeconds.observe(
+          { method: 'GET', route: '/api', status_code: '200' },
+          0.05
+        )
       ).not.toThrow();
     });
 
@@ -93,7 +96,10 @@ describe('telemetry-metrics', () => {
 
     it('should track different endpoints', () => {
       expect(() => {
-        httpRequestDurationSeconds.observe({ method: 'GET', route: '/health', status_code: '200' }, 0.001);
+        httpRequestDurationSeconds.observe(
+          { method: 'GET', route: '/health', status_code: '200' },
+          0.001
+        );
         httpRequestDurationSeconds.observe(
           { method: 'POST', route: '/deposit-sync', status_code: '201' },
           0.05
@@ -103,8 +109,14 @@ describe('telemetry-metrics', () => {
 
     it('should handle extreme latencies', () => {
       expect(() => {
-        httpRequestDurationSeconds.observe({ method: 'GET', route: '/api', status_code: '200' }, 0.0001);
-        httpRequestDurationSeconds.observe({ method: 'GET', route: '/api', status_code: '200' }, 10);
+        httpRequestDurationSeconds.observe(
+          { method: 'GET', route: '/api', status_code: '200' },
+          0.0001
+        );
+        httpRequestDurationSeconds.observe(
+          { method: 'GET', route: '/api', status_code: '200' },
+          10
+        );
       }).not.toThrow();
     });
   });
@@ -124,9 +136,7 @@ describe('telemetry-metrics', () => {
     });
 
     it('should support incrementing by value', () => {
-      expect(() =>
-        depositsDetectedTotal.inc({ chain: 'bnb', token: 'USDT' }, 10)
-      ).not.toThrow();
+      expect(() => depositsDetectedTotal.inc({ chain: 'bnb', token: 'USDT' }, 10)).not.toThrow();
     });
   });
 
@@ -166,9 +176,7 @@ describe('telemetry-metrics', () => {
     });
 
     it('should support bulk probe increments', () => {
-      expect(() =>
-        rpcProbeTotal.inc({ chain: 'bnb' }, 100)
-      ).not.toThrow();
+      expect(() => rpcProbeTotal.inc({ chain: 'bnb' }, 100)).not.toThrow();
     });
   });
 
@@ -186,9 +194,7 @@ describe('telemetry-metrics', () => {
     });
 
     it('should track multiple failures', () => {
-      expect(() =>
-        rpcProbeFailuresTotal.inc({ chain: 'bnb' }, 5)
-      ).not.toThrow();
+      expect(() => rpcProbeFailuresTotal.inc({ chain: 'bnb' }, 5)).not.toThrow();
     });
   });
 
@@ -276,7 +282,10 @@ describe('telemetry-metrics', () => {
         rpcProbeTotal.inc({ chain: 'bnb' });
 
         // Request completed
-        httpRequestDurationSeconds.observe({ method: 'POST', route: '/deposit-sync', status_code: '202' }, 0.05);
+        httpRequestDurationSeconds.observe(
+          { method: 'POST', route: '/deposit-sync', status_code: '202' },
+          0.05
+        );
       }).not.toThrow();
     });
 

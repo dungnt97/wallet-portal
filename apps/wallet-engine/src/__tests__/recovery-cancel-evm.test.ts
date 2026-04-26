@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FallbackProvider, Transaction } from 'ethers';
-import { cancelEvmTx, type CancelEvmParams, type CancelEvmResult } from '../services/recovery-cancel-evm.js';
+import { type FallbackProvider, Transaction } from 'ethers';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type CancelEvmParams,
+  type CancelEvmResult,
+  cancelEvmTx,
+} from '../services/recovery-cancel-evm.js';
 
 const GWEI = 1_000_000_000n;
 
@@ -88,9 +92,7 @@ describe('recovery-cancel-evm', () => {
 
       const params = createTestParams();
 
-      await expect(cancelEvmTx(params, mockProvider)).rejects.toThrow(
-        /FATAL: HD_MASTER_XPUB_BNB/
-      );
+      await expect(cancelEvmTx(params, mockProvider)).rejects.toThrow(/FATAL: HD_MASTER_XPUB_BNB/);
     });
 
     it('should fetch original tx fee data', async () => {

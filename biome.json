@@ -36,6 +36,7 @@
   "files": {
     "ignore": [
       "**/dist/**",
+      "**/coverage/**",
       "apps/policy-engine/**",
       ".claude/**",
       ".opencode/**",

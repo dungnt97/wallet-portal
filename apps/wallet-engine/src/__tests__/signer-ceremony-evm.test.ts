@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  SENTINEL_OWNER,
+  type SafeTxData,
   buildAddOwnerTx,
   buildRemoveOwnerTx,
   buildRotateTx,
-  SENTINEL_OWNER,
-  type SafeTxData,
 } from '../services/signer-ceremony-evm.js';
 
 const SAFE_ADDR = '0x1234567890123456789012345678901234567890';

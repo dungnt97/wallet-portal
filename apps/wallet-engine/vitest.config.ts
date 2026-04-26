@@ -15,6 +15,7 @@ export default defineConfig({
         'src/__tests__/',
         '**/*.test.ts',
         '**/*.fixtures.ts',
+        'scripts/**',
       ],
       lines: 95,
       branches: 85,

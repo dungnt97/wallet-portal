@@ -1,3 +1,4 @@
+import type { JsonRpcProvider } from 'ethers';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type BnbPool, destroyBnbPool, makeBnbPool } from '../rpc/bnb-pool.js';
 import {
@@ -41,8 +42,8 @@ describe('rpc-pool-variants', () => {
         const pool = makeBnbPool(urls);
 
         const configs = pool.provider.providerConfigs;
-        expect(configs[0].priority).toBe(1);
-        expect(configs[1].priority).toBe(2);
+        expect(configs[0]!.priority).toBe(1);
+        expect(configs[1]!.priority).toBe(2);
       });
 
       it('should assign weight 2 to first provider, weight 1 to others', () => {
@@ -50,9 +51,9 @@ describe('rpc-pool-variants', () => {
         const pool = makeBnbPool(urls);
 
         const configs = pool.provider.providerConfigs;
-        expect(configs[0].weight).toBe(2);
-        expect(configs[1].weight).toBe(1);
-        expect(configs[2].weight).toBe(1);
+        expect(configs[0]!.weight).toBe(2);
+        expect(configs[1]!.weight).toBe(1);
+        expect(configs[2]!.weight).toBe(1);
       });
 
       it('should use quorum of 1', () => {
@@ -68,7 +69,8 @@ describe('rpc-pool-variants', () => {
 
         // Single provider should not be wrapped in FallbackProvider
         expect(pool.provider).toBeDefined();
-        expect(typeof pool.provider.send).toBe('function');
+        // Cast through unknown: single-URL case is actually JsonRpcProvider despite union type
+        expect(typeof (pool.provider as unknown as JsonRpcProvider).send).toBe('function');
       });
 
       it('should wrap multiple URLs in FallbackProvider', () => {

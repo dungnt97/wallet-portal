@@ -38,11 +38,11 @@ vi.mock('@/components/overlays', () => ({
     footer?: React.ReactNode;
   }) =>
     open ? (
-      <div data-testid="test-modal" role="dialog">
+      <dialog data-testid="test-modal">
         <h2>{title}</h2>
         {children}
         <div data-testid="modal-footer">{footer}</div>
-      </div>
+      </dialog>
     ) : null,
 }));
 
@@ -220,6 +220,42 @@ describe('NotifsPage', () => {
   it('shows channel names in table', () => {
     renderPage([makeChannel('c1')]);
     expect(screen.getByText('Channel c1')).toBeInTheDocument();
+  });
+
+  it('renders routing matrix rows when rules provided', () => {
+    const rules = [
+      {
+        id: 'r1',
+        eventType: 'withdrawal.created',
+        severity: 'critical',
+        channelKind: 'email',
+        enabled: true,
+      },
+    ];
+    renderPage([], rules);
+    expect(screen.getByText('withdrawal.created')).toBeInTheDocument();
+    expect(screen.getByText('critical')).toBeInTheDocument();
+  });
+
+  it('renders channel row with edit button', () => {
+    renderPage([makeChannel('c1')]);
+    expect(screen.getByTitle('notifs.editChannel')).toBeInTheDocument();
+  });
+
+  it('opens edit channel modal when edit button clicked', async () => {
+    const user = userEvent.setup();
+    renderPage([makeChannel('c1')]);
+    await user.click(screen.getByTitle('notifs.editChannel'));
+    // ChannelFormModal renders with open=true when editChannel is set
+    expect(screen.getByTestId('channel-form-modal')).toBeInTheDocument();
+  });
+
+  it('renders delete and test buttons for channels', () => {
+    renderPage([makeChannel('c1')]);
+    expect(screen.getByTitle('notifs.deleteChannel')).toBeInTheDocument();
+    // The per-row send test button (title attr) should be present
+    const zapBtns = screen.getAllByTitle('notifs.sendTest');
+    expect(zapBtns.length).toBeGreaterThan(0);
   });
 
   it('toast error when send test confirmed with no active channels', async () => {

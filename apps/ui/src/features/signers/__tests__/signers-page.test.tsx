@@ -125,30 +125,57 @@ vi.mock('../ceremony-progress', () => ({
 }));
 
 vi.mock('../add-signer-modal', () => ({
-  AddSignerModal: ({ onClose }: { onClose: () => void; onSuccess: () => void }) => (
+  AddSignerModal: ({
+    onClose,
+    onSuccess,
+  }: {
+    onClose: () => void;
+    onSuccess: (id: string) => void;
+  }) => (
     <div data-testid="add-signer-modal">
       <button type="button" onClick={onClose}>
         close-add
+      </button>
+      <button type="button" onClick={() => onSuccess('ceremony-123')}>
+        trigger-success
       </button>
     </div>
   ),
 }));
 
 vi.mock('../remove-signer-modal', () => ({
-  RemoveSignerModal: ({ onClose }: { onClose: () => void; onSuccess: () => void }) => (
+  RemoveSignerModal: ({
+    onClose,
+    onSuccess,
+  }: {
+    onClose: () => void;
+    onSuccess: (id: string) => void;
+  }) => (
     <div data-testid="remove-signer-modal">
       <button type="button" onClick={onClose}>
         close-remove
+      </button>
+      <button type="button" onClick={() => onSuccess('ceremony-456')}>
+        trigger-success
       </button>
     </div>
   ),
 }));
 
 vi.mock('../rotate-signers-modal', () => ({
-  RotateSignersModal: ({ onClose }: { onClose: () => void; onSuccess: () => void }) => (
+  RotateSignersModal: ({
+    onClose,
+    onSuccess,
+  }: {
+    onClose: () => void;
+    onSuccess: (id: string) => void;
+  }) => (
     <div data-testid="rotate-signers-modal">
       <button type="button" onClick={onClose}>
         close-rotate
+      </button>
+      <button type="button" onClick={() => onSuccess('ceremony-789')}>
+        trigger-success
       </button>
     </div>
   ),
@@ -259,5 +286,48 @@ describe('SignersPage', () => {
     renderPage();
     expect(screen.getByTestId('block-ticker-bnb')).toBeInTheDocument();
     expect(screen.getByTestId('block-ticker-sol')).toBeInTheDocument();
+  });
+
+  it('shows ceremony banner after add success and switches to active tab', async () => {
+    const user = userEvent.setup();
+    renderPage('admin');
+    // Open add modal
+    await user.click(screen.getAllByText('signers.add.title')[0].closest('button') as HTMLElement);
+    // Trigger onSuccess
+    await user.click(screen.getByText('trigger-success'));
+    // Banner should show the ceremony id
+    expect(screen.getByText('ceremony-123')).toBeInTheDocument();
+    // Tab should have switched to active ceremonies
+    expect(screen.getByText('signers.ceremony.noneActive')).toBeInTheDocument();
+  });
+
+  it('dismisses ceremony banner when close button clicked', async () => {
+    const user = userEvent.setup();
+    renderPage('admin');
+    await user.click(screen.getAllByText('signers.add.title')[0].closest('button') as HTMLElement);
+    await user.click(screen.getByText('trigger-success'));
+    expect(screen.getByText('ceremony-123')).toBeInTheDocument();
+    // The banner has a close button (icon only — find via role)
+    const closeBtns = screen.getAllByRole('button');
+    // The dismiss button is inside the banner — click the one after the ceremony id text
+    const bannerClose = closeBtns.find(
+      (btn) => btn.closest('.alert') !== null && !btn.textContent?.includes('signers')
+    );
+    if (bannerClose) await user.click(bannerClose);
+    expect(screen.queryByText('ceremony-123')).not.toBeInTheDocument();
+  });
+
+  it('hides admin buttons for non-admin role', () => {
+    renderPage('operator');
+    expect(screen.queryByText('signers.add.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('signers.remove.title')).not.toBeInTheDocument();
+  });
+
+  it('switches to history tab', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByText('signers.ceremony.historyTabLabel'));
+    // History section renders (empty state for empty data)
+    expect(screen.getByText('common.empty')).toBeInTheDocument();
   });
 });

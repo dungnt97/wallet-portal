@@ -1,5 +1,5 @@
 // Smoke tests for features/audit/audit-page.tsx — renders filters, tabs, table, and export.
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -314,5 +314,20 @@ describe('AuditPage', () => {
     renderPage();
     expect(screen.getByLabelText('audit.filters.fromPrompt')).toBeInTheDocument();
     expect(screen.getByLabelText('audit.filters.toPrompt')).toBeInTheDocument();
+  });
+
+  it('sets from filter when hidden date input fires change event', () => {
+    renderPage();
+    const fromInput = screen.getByLabelText('audit.filters.fromPrompt') as HTMLInputElement;
+    fireEvent.change(fromInput, { target: { value: '2024-01-15' } });
+    // Filter chip should become active (active=!!from)
+    expect(screen.getByTestId('clear-audit.filters.from')).toBeInTheDocument();
+  });
+
+  it('sets to filter when hidden date input fires change event', () => {
+    renderPage();
+    const toInput = screen.getByLabelText('audit.filters.toPrompt') as HTMLInputElement;
+    fireEvent.change(toInput, { target: { value: '2024-02-20' } });
+    expect(screen.getByTestId('clear-audit.filters.to')).toBeInTheDocument();
   });
 });

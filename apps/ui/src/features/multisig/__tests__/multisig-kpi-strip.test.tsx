@@ -92,12 +92,7 @@ describe('MultisigKpiStrip', () => {
 
   it('displays treasurer count', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={0}
-        treasurerCount={5}
-        onlineTreasurerCount={3}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={0} treasurerCount={5} onlineTreasurerCount={3} />
     );
 
     expect(screen.getByTestId('kpi-treasurers')).toHaveTextContent('5');
@@ -119,12 +114,7 @@ describe('MultisigKpiStrip', () => {
 
   it('displays online treasurer count', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={0}
-        treasurerCount={5}
-        onlineTreasurerCount={3}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={0} treasurerCount={5} onlineTreasurerCount={3} />
     );
 
     // KPI should render with value
@@ -133,12 +123,7 @@ describe('MultisigKpiStrip', () => {
 
   it('shows failed count', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={2}
-        treasurerCount={5}
-        onlineTreasurerCount={3}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={2} treasurerCount={5} onlineTreasurerCount={3} />
     );
 
     expect(screen.getByTestId('kpi-rejected')).toHaveTextContent('2');
@@ -172,12 +157,7 @@ describe('MultisigKpiStrip', () => {
 
   it('handles empty operations list', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={0}
-        treasurerCount={5}
-        onlineTreasurerCount={3}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={0} treasurerCount={5} onlineTreasurerCount={3} />
     );
 
     // Should render all KPIs even with empty list
@@ -207,12 +187,7 @@ describe('MultisigKpiStrip', () => {
 
   it('handles zero failed count', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={0}
-        treasurerCount={5}
-        onlineTreasurerCount={3}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={0} treasurerCount={5} onlineTreasurerCount={3} />
     );
 
     expect(screen.getByTestId('kpi-rejected')).toHaveTextContent('0');
@@ -220,12 +195,7 @@ describe('MultisigKpiStrip', () => {
 
   it('handles zero online treasurers', () => {
     render(
-      <MultisigKpiStrip
-        ops={[]}
-        failedCount={0}
-        treasurerCount={5}
-        onlineTreasurerCount={0}
-      />
+      <MultisigKpiStrip ops={[]} failedCount={0} treasurerCount={5} onlineTreasurerCount={0} />
     );
 
     expect(screen.getByTestId('kpi-treasurers')).toBeInTheDocument();

@@ -16,14 +16,14 @@
 import { expect } from '@playwright/test';
 import { parseUnits } from 'ethers';
 
-import { test, gotoApp } from '../fixtures/testnet-auth-fixture.js';
+import { pollDepositByTxHash } from '../fixtures/testnet-api-poller.js';
+import { gotoApp, test } from '../fixtures/testnet-auth-fixture.js';
 import {
+  formatTokenAmount,
+  getBnbTokenBalance,
   mintBnbTestToken,
   waitForBnbConfirmation,
-  getBnbTokenBalance,
-  formatTokenAmount,
 } from '../fixtures/testnet-chain-client.js';
-import { pollDepositByTxHash } from '../fixtures/testnet-api-poller.js';
 import { isValidBnbAddress } from '../fixtures/testnet-env.js';
 
 // Amount to deposit per test run — small enough to be cheap, big enough to be meaningful
@@ -51,8 +51,9 @@ test.describe('Testnet: BNB deposit detection flow', () => {
     await expect(addressLocator).toBeVisible({ timeout: 15_000 });
     const userAddress = (await addressLocator.textContent())?.trim() ?? '';
 
-    expect(isValidBnbAddress(userAddress), `Expected valid BNB address, got: ${userAddress}`)
-      .toBe(true);
+    expect(isValidBnbAddress(userAddress), `Expected valid BNB address, got: ${userAddress}`).toBe(
+      true
+    );
     console.log(`[deposit-bnb] User deposit address: ${userAddress}`);
 
     // ── 3. Record pre-deposit on-chain balance ────────────────────────────────
@@ -80,7 +81,7 @@ test.describe('Testnet: BNB deposit detection flow', () => {
     const receipt = await waitForBnbConfirmation(
       bnbClient.provider,
       txHash,
-      3,   // 3 blocks ≈ 9s on Chapel
+      3, // 3 blocks ≈ 9s on Chapel
       90_000
     );
     console.log(
@@ -96,14 +97,14 @@ test.describe('Testnet: BNB deposit detection flow', () => {
       txHash,
       'credited',
       120_000, // 2 min
-      5_000    // start polling 5s after tx confirm
+      5_000 // start polling 5s after tx confirm
     );
 
     expect(deposit.txHash).toBe(txHash);
     expect(deposit.chain).toMatch(/bnb/i);
     expect(deposit.token).toMatch(/usdt/i);
     // Amount may be stored as string "100.000000000000000000" or "100"
-    expect(parseFloat(deposit.amount)).toBeCloseTo(100, 0);
+    expect(Number.parseFloat(deposit.amount)).toBeCloseTo(100, 0);
 
     // ── 7. Assert UI table shows the credited deposit ─────────────────────────
     await page.reload();

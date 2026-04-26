@@ -363,9 +363,7 @@ export function WalletSignPopup({
             <div className="wallet-popup-body">
               <div className="wallet-popup-title">{t('signing.signatureRequest')}</div>
               <div className="wallet-popup-sub">
-                {op.chain === 'sol'
-                  ? t('signing.signatureSubSol')
-                  : t('signing.signatureSubEvm')}
+                {op.chain === 'sol' ? t('signing.signatureSubSol') : t('signing.signatureSubEvm')}
               </div>
 
               <div className="wallet-popup-data">

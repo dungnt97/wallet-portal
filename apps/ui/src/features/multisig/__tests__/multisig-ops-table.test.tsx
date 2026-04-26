@@ -7,7 +7,9 @@ import type { MultisigOpDisplay } from '../multisig-types';
 
 vi.mock('@/components/custody', () => ({
   ChainPill: ({ chain }: { chain: string }) => <div data-testid={`chain-${chain}`}>{chain}</div>,
-  StatusBadge: ({ status }: { status: string }) => <div data-testid={`status-${status}`}>{status}</div>,
+  StatusBadge: ({ status }: { status: string }) => (
+    <div data-testid={`status-${status}`}>{status}</div>
+  ),
   Tabs: ({ tabs, value, onChange }: any) => (
     <div data-testid="tabs">
       {tabs.map((t: any) => (

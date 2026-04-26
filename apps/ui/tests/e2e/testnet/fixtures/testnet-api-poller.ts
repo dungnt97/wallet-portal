@@ -164,11 +164,9 @@ export async function pollDepositById(
   let delay = 3_000;
 
   while (Date.now() < deadline) {
-    const deposit = await apiGet<DepositRecord>(
-      page,
-      adminApiUrl,
-      `/deposits/${depositId}`
-    ).catch(() => null);
+    const deposit = await apiGet<DepositRecord>(page, adminApiUrl, `/deposits/${depositId}`).catch(
+      () => null
+    );
 
     if (deposit) {
       if (deposit.status === expectedStatus) {
@@ -263,11 +261,9 @@ export async function pollSweepById(
   let delay = 3_000;
 
   while (Date.now() < deadline) {
-    const record = await apiGet<SweepBatchRecord>(
-      page,
-      adminApiUrl,
-      `/sweeps/${sweepId}`
-    ).catch(() => null);
+    const record = await apiGet<SweepBatchRecord>(page, adminApiUrl, `/sweeps/${sweepId}`).catch(
+      () => null
+    );
 
     if (record) {
       if (record.status === expectedStatus) {
@@ -305,9 +301,7 @@ export async function createReconciliationSnapshot(
     '/reconciliation/snapshots',
     { chain }
   );
-  console.log(
-    `[recon] Created snapshot id=${snapshot.id} chain=${chain} drift=${snapshot.drift}`
-  );
+  console.log(`[recon] Created snapshot id=${snapshot.id} chain=${chain} drift=${snapshot.drift}`);
   return snapshot;
 }
 

@@ -94,7 +94,9 @@ function BalanceCard({ group, canRebalance, onRebalance }: CardProps) {
             style={{ justifyContent: 'space-between', padding: '3px 0' }}
           >
             <span className="text-xs text-muted">{e.token}</span>
-            <span className="text-xs text-mono fw-500">${fmtUSD(Number(e.balance) / (group.chain === 'bnb' ? 1e18 : 1e6))}</span>
+            <span className="text-xs text-mono fw-500">
+              ${fmtUSD(Number(e.balance) / (group.chain === 'bnb' ? 1e18 : 1e6))}
+            </span>
           </div>
         ))}
       </div>

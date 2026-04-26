@@ -41,9 +41,7 @@ export function DriftTimelineChart({ snapshots, width = 600, height = 120 }: Pro
   if (points.length < 2) {
     return (
       <div className="card pro-card" style={{ padding: 20, textAlign: 'center' }}>
-        <p className="text-muted text-xs">
-          {t('recon.notEnoughSnapshots')}
-        </p>
+        <p className="text-muted text-xs">{t('recon.notEnoughSnapshots')}</p>
       </div>
     );
   }

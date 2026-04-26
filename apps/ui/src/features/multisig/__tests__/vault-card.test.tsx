@@ -9,7 +9,8 @@ vi.mock('@/components/custody', () => ({
 
 vi.mock('@/lib/format', () => ({
   fmtCompact: (v: number) => `$${(v / 1000).toFixed(1)}K`,
-  shortHash: (addr: string, start: number, end: number) => `${addr.slice(0, start)}...${addr.slice(-end)}`,
+  shortHash: (addr: string, start: number, end: number) =>
+    `${addr.slice(0, start)}...${addr.slice(-end)}`,
 }));
 
 describe('VaultCard', () => {

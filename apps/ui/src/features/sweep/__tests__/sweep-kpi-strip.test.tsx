@@ -13,7 +13,9 @@ vi.mock('@/components/custody', () => ({
       ))}
     </div>
   ),
-  StatusBadge: ({ status }: { status: string }) => <div data-testid={`status-${status}`}>{status}</div>,
+  StatusBadge: ({ status }: { status: string }) => (
+    <div data-testid={`status-${status}`}>{status}</div>
+  ),
 }));
 
 vi.mock('@/icons', () => ({

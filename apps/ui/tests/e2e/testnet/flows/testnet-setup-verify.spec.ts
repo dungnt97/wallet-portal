@@ -12,16 +12,20 @@
  *   7. Admin-API health endpoint responds 200
  */
 import { expect } from '@playwright/test';
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { JsonRpcProvider, formatEther } from 'ethers';
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { test } from '../fixtures/testnet-auth-fixture.js';
-import { makeBnbClient, makeSolConnection, solKeypairFromBase64 } from '../fixtures/testnet-chain-client.js';
+import {
+  makeBnbClient,
+  makeSolConnection,
+  solKeypairFromBase64,
+} from '../fixtures/testnet-chain-client.js';
 
 // Minimum balances required before tests can run
 const MIN_DEPLOYER_BNB = 0.01; // tBNB — covers many mint() calls (cheap)
-const MIN_SAFE_BNB = 0.001;    // tBNB — Safe needs gas for sweep execution
-const MIN_DEPLOYER_SOL = 0.1;  // SOL — covers SPL transfers + rent
+const MIN_SAFE_BNB = 0.001; // tBNB — Safe needs gas for sweep execution
+const MIN_DEPLOYER_SOL = 0.1; // SOL — covers SPL transfers + rent
 
 test.describe('Testnet infrastructure verification', () => {
   test.setTimeout(60_000);
@@ -51,9 +55,7 @@ test.describe('Testnet infrastructure verification', () => {
     const code = await provider.getCode(tnEnv.usdtBnbAddress);
     // '0x' means no contract at that address
     expect(code.length).toBeGreaterThan(2);
-    console.log(
-      `[setup] tUSDT (${tnEnv.usdtBnbAddress}) bytecode length: ${code.length}`
-    );
+    console.log(`[setup] tUSDT (${tnEnv.usdtBnbAddress}) bytecode length: ${code.length}`);
   });
 
   test('Deployer BNB wallet has enough gas funds', async ({ tnEnv, bnbClient }) => {
@@ -80,9 +82,9 @@ test.describe('Testnet infrastructure verification', () => {
     const pda = new PublicKey(tnEnv.squadsMultisigPdaDevnet);
     const accountInfo = await connection.getAccountInfo(pda);
     expect(accountInfo).not.toBeNull();
-    expect(accountInfo!.data.length).toBeGreaterThan(0);
+    expect(accountInfo?.data.length).toBeGreaterThan(0);
     console.log(
-      `[setup] Squads PDA (${tnEnv.squadsMultisigPdaDevnet}) exists, data=${accountInfo!.data.length}b`
+      `[setup] Squads PDA (${tnEnv.squadsMultisigPdaDevnet}) exists, data=${accountInfo?.data.length}b`
     );
   });
 
@@ -105,9 +107,9 @@ test.describe('Testnet infrastructure verification', () => {
 
   test('UI is reachable and renders app shell', async ({ page, tnEnv }) => {
     await page.goto('/app/dashboard');
-    await expect(
-      page.locator('[data-testid="app-layout"], nav, .sidebar, aside')
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-testid="app-layout"], nav, .sidebar, aside')).toBeVisible({
+      timeout: 20_000,
+    });
     console.log(`[setup] UI shell rendered at ${tnEnv.uiBaseUrl}/app/dashboard`);
   });
 });

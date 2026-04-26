@@ -85,7 +85,9 @@ export function SweepAddressTable({
   return (
     <div className="table-wrap">
       <div className="table-toolbar">
-        <span className="text-sm fw-500">{t('sweep.addressesWithBalance', { n: rows.length })}</span>
+        <span className="text-sm fw-500">
+          {t('sweep.addressesWithBalance', { n: rows.length })}
+        </span>
         <Filter label={t('sweep.fMinBalance')} value="500" />
         <Filter label={t('sweep.fLastDeposit')} />
         <div className="spacer" />

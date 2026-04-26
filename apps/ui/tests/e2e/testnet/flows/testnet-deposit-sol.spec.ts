@@ -16,14 +16,14 @@
  */
 import { expect } from '@playwright/test';
 
-import { test, gotoApp } from '../fixtures/testnet-auth-fixture.js';
+import { pollDepositByTxHash } from '../fixtures/testnet-api-poller.js';
+import { gotoApp, test } from '../fixtures/testnet-auth-fixture.js';
 import {
+  airdropSolIfNeeded,
+  getSplTokenBalance,
   mintSplToken,
   waitForSolConfirmation,
-  getSplTokenBalance,
-  airdropSolIfNeeded,
 } from '../fixtures/testnet-chain-client.js';
-import { pollDepositByTxHash } from '../fixtures/testnet-api-poller.js';
 import { isValidSolAddress } from '../fixtures/testnet-env.js';
 
 // 50 tUSDC with 6 decimals
@@ -93,13 +93,11 @@ test.describe('Testnet: Solana deposit detection flow', () => {
       DEPOSIT_AMOUNT_RAW
     );
     console.log(`[deposit-sol] Mint tx signature: ${txSig}`);
-    console.log(
-      `[deposit-sol] Explorer: https://explorer.solana.com/tx/${txSig}?cluster=devnet`
-    );
+    console.log(`[deposit-sol] Explorer: https://explorer.solana.com/tx/${txSig}?cluster=devnet`);
 
     // ── 7. Wait for Devnet confirmation ───────────────────────────────────────
     await waitForSolConfirmation(solClient.connection, txSig, 30_000);
-    console.log(`[deposit-sol] Transaction confirmed on Devnet`);
+    console.log('[deposit-sol] Transaction confirmed on Devnet');
 
     // ── 8. Poll admin-API until deposit reaches 'credited' ────────────────────
     // Solana watcher polls every ~2s; confirm depth 32 slots ≈ 8s total
@@ -108,14 +106,17 @@ test.describe('Testnet: Solana deposit detection flow', () => {
       tnEnv.adminApiUrl,
       txSig,
       'credited',
-      90_000,  // 90s timeout
-      3_000    // start polling 3s after confirmation
+      90_000, // 90s timeout
+      3_000 // start polling 3s after confirmation
     );
 
     expect(deposit.txHash).toBe(txSig);
     expect(deposit.chain).toMatch(/sol/i);
     expect(deposit.token).toMatch(/usdc/i);
-    expect(parseFloat(deposit.amount)).toBeCloseTo(parseFloat(DEPOSIT_AMOUNT_HUMAN), 0);
+    expect(Number.parseFloat(deposit.amount)).toBeCloseTo(
+      Number.parseFloat(DEPOSIT_AMOUNT_HUMAN),
+      0
+    );
 
     // ── 9. Assert UI table shows the credited deposit ─────────────────────────
     await page.reload();

@@ -39,7 +39,9 @@ export function MultisigOpsTable({
           ]}
         />
         <div className="spacer" />
-        <span className="text-xs text-muted text-mono">{t('multisig.opsCount', { count: list.length })}</span>
+        <span className="text-xs text-muted text-mono">
+          {t('multisig.opsCount', { count: list.length })}
+        </span>
       </div>
       <table className="table table-tight">
         <thead>

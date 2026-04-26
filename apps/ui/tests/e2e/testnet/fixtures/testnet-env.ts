@@ -21,8 +21,7 @@ function requireEnv(key: string): string {
   const val = process.env[key];
   if (!val || val.trim() === '') {
     throw new Error(
-      `[testnet-env] Required env var '${key}' is missing. ` +
-        `Ensure .env.testnet is loaded or GitHub secret is set.`
+      `[testnet-env] Required env var '${key}' is missing. Ensure .env.testnet is loaded or GitHub secret is set.`
     );
   }
   return val.trim();
@@ -52,10 +51,7 @@ export interface TestnetEnv {
 /** Load and validate all testnet env vars. Throws clearly on missing values. */
 export function loadTestnetEnv(): TestnetEnv {
   return {
-    bnbRpc: optionalEnv(
-      'BNB_TESTNET_RPC',
-      'https://data-seed-prebsc-1-s1.bnbchain.org:8545'
-    ),
+    bnbRpc: optionalEnv('BNB_TESTNET_RPC', 'https://data-seed-prebsc-1-s1.bnbchain.org:8545'),
     solRpc: optionalEnv('SOL_DEVNET_RPC', 'https://api.devnet.solana.com'),
     deployerPrivKeyBnb: requireEnv('DEPLOYER_PRIVATE_KEY_BNB'),
     deployerKeypairSolBase64: requireEnv('DEPLOYER_KEYPAIR_SOL_BASE64'),

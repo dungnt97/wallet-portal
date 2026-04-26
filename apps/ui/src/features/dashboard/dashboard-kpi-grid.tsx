@@ -123,7 +123,9 @@ export function DashboardKpiGrid({ onNavigate }: Props) {
           </div>
           <span className="text-xs text-muted text-mono">{metrics?.pendingWithdrawals ?? 0}</span>
         </div>
-        <div className="kpi-value-sm">{t('dashboard.kpiTxns', { n: metrics?.pendingWithdrawals ?? 0 })}</div>
+        <div className="kpi-value-sm">
+          {t('dashboard.kpiTxns', { n: metrics?.pendingWithdrawals ?? 0 })}
+        </div>
         <div className="kpi-foot text-xs text-muted">{t('dashboard.kpiAwaitingProcessing')}</div>
       </div>
 

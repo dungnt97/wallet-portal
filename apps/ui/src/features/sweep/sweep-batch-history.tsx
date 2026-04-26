@@ -21,7 +21,9 @@ export function SweepBatchHistory({ batches }: Props) {
         <h3 className="card-title">{t('sweep.recentBatches')}</h3>
         <span className="text-xs text-muted">{t('sweep.recentBatchesSub')}</span>
         <div className="spacer" />
-        <span className="text-xs text-muted text-mono">{t('sweep.batchesCount', { n: batches.length })}</span>
+        <span className="text-xs text-muted text-mono">
+          {t('sweep.batchesCount', { n: batches.length })}
+        </span>
       </div>
       <table className="table table-tight">
         <thead>

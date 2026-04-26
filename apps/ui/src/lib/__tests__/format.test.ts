@@ -1,5 +1,5 @@
 // Unit tests for format utilities
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fmtCompact, fmtDateTime, fmtUSD, shortHash, timeAgo } from '../format';
 
 describe('fmtUSD', () => {
@@ -16,7 +16,7 @@ describe('fmtUSD', () => {
   });
 
   it('formats small numbers', () => {
-    expect(fmtUSD(0.50)).toBe('0.50');
+    expect(fmtUSD(0.5)).toBe('0.50');
   });
 
   it('formats zero', () => {

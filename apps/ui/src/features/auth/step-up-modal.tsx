@@ -65,16 +65,12 @@ export function StepUpModal({ onSuccess, onCancel }: Props) {
             <div className="text-[14px] font-semibold text-[var(--text)]">
               {t('auth.stepUpTitle')}
             </div>
-            <div className="text-[12px] text-[var(--text-muted)]">
-              {t('auth.stepUpDesc')}
-            </div>
+            <div className="text-[12px] text-[var(--text-muted)]">{t('auth.stepUpDesc')}</div>
           </div>
         </div>
 
         {/* Body */}
-        <p className="text-[13px] text-[var(--text-muted)]">
-          {t('auth.stepUpBody')}
-        </p>
+        <p className="text-[13px] text-[var(--text-muted)]">{t('auth.stepUpBody')}</p>
 
         {errorMsg && (
           <div className="text-[12px] text-[var(--err-text)] bg-[var(--err-soft)] px-3 py-2 rounded-md">

@@ -40,7 +40,9 @@ export function ExecuteTxModal({ open, op, broadcast, onClose }: Props) {
             <div className="modal-title">
               {confirmed ? t('signing.txConfirmed') : t('signing.broadcasting')}
             </div>
-            <div className="modal-subtitle">{op.id} · {t('signing.thresholdMet')}</div>
+            <div className="modal-subtitle">
+              {op.id} · {t('signing.thresholdMet')}
+            </div>
           </div>
           {confirmed && (
             <button className="modal-close" onClick={onClose} aria-label="Close">

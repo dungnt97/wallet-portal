@@ -46,7 +46,12 @@ export function GasMonitor({ chain }: Props) {
   const pctOfMax = max !== min ? ((current - min!) / (max! - min!)) * 100 : 50;
   const state: 'low' | 'normal' | 'high' =
     pctOfMax < 30 ? 'low' : pctOfMax < 65 ? 'normal' : 'high';
-  const stateKey = state === 'low' ? 'sweep.gasFavourable' : state === 'normal' ? 'sweep.gasNormal' : 'sweep.gasElevated';
+  const stateKey =
+    state === 'low'
+      ? 'sweep.gasFavourable'
+      : state === 'normal'
+        ? 'sweep.gasNormal'
+        : 'sweep.gasElevated';
   const recommendedTier = state === 'high' ? 'Fast' : 'Standard';
   const fmt = (v: number) => (chain === 'bnb' ? v.toFixed(1) : v.toFixed(6));
 
@@ -162,7 +167,9 @@ export function GasMonitor({ chain }: Props) {
           >
             <div className="gas-tier-head">
               <span className="gas-tier-name">{t(TIER_KEY[tier.name] ?? tier.name)}</span>
-              {tier.name === recommendedTier && <span className="gas-tier-badge">{t('sweep.tierRecommended')}</span>}
+              {tier.name === recommendedTier && (
+                <span className="gas-tier-badge">{t('sweep.tierRecommended')}</span>
+              )}
             </div>
             <div className="gas-tier-price">
               {fmt(tier.gwei)} <span className="gas-tier-unit">{unit}</span>

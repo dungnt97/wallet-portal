@@ -1,16 +1,18 @@
+import * as queries from '@/api/queries';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 /* biome-ignore lint/suspicious/noExplicitAny: mocking utilities require any types */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import * as queries from '@/api/queries';
 import { DashboardChart, HoldingsList } from '../dashboard-chart';
 
 vi.mock('@/api/queries');
 vi.mock('../../_shared/charts', () => ({
   AreaChart: ({ data, label }: { data: number[]; label: string }) => (
-    <div data-testid="area-chart">{label}: {data.length} points</div>
+    <div data-testid="area-chart">
+      {label}: {data.length} points
+    </div>
   ),
   Sparkline: ({ data }: { data: number[] }) => <div data-testid="sparkline">{data.length}</div>,
 }));
@@ -18,7 +20,11 @@ vi.mock('@/components/custody', () => ({
   Segmented: ({ options, value, onChange }: any) => (
     <div data-testid="segmented">
       {options.map((opt: any) => (
-        <button key={opt.value} onClick={() => onChange(opt.value)} data-testid={`seg-${opt.value}`}>
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          data-testid={`seg-${opt.value}`}
+        >
           {opt.label}
         </button>
       ))}
@@ -34,9 +40,7 @@ const wrap = (ui: React.ReactElement) => {
   });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        {ui}
-      </MemoryRouter>
+      <MemoryRouter>{ui}</MemoryRouter>
     </QueryClientProvider>
   );
 };

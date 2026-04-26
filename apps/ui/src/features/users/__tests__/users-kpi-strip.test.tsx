@@ -1,9 +1,9 @@
+import type { StaffMemberRow } from '@/api/queries';
+import type { UserRecord } from '@/api/users';
 /* biome-ignore lint/suspicious/noExplicitAny: mocking utilities require any types */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { UsersKpiStrip } from '../users-kpi-strip';
-import type { UserRecord } from '@/api/users';
-import type { StaffMemberRow } from '@/api/queries';
 
 vi.mock('@/components/custody', () => ({
   KpiStrip: ({ items }: any) => (

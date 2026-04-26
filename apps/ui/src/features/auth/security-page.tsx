@@ -49,9 +49,7 @@ export function SecurityPage() {
     <div className="p-6 max-w-2xl space-y-6">
       <div>
         <h1 className="text-[18px] font-semibold text-[var(--text)]">{t('auth.securityKeys')}</h1>
-        <p className="text-[13px] text-[var(--text-muted)] mt-1">
-          {t('auth.securityKeysDesc')}
-        </p>
+        <p className="text-[13px] text-[var(--text-muted)] mt-1">{t('auth.securityKeysDesc')}</p>
       </div>
 
       <div className="border border-[var(--line)] rounded-xl p-5 space-y-4 bg-[var(--bg-elev)]">

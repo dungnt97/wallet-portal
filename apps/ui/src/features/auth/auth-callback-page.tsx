@@ -38,9 +38,7 @@ export function AuthCallbackPage() {
       })
       .catch((err) => {
         const msg =
-          err instanceof ApiError
-            ? `Auth error ${err.status}`
-            : t('auth.sessionValidationFailed');
+          err instanceof ApiError ? `Auth error ${err.status}` : t('auth.sessionValidationFailed');
         setErrorMsg(msg);
         setStatus('error');
         setTimeout(() => navigate('/login', { replace: true }), 3000);

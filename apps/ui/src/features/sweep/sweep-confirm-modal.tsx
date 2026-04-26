@@ -44,7 +44,8 @@ export function SweepConfirmModal({
           <button className="btn btn-accent" onClick={onConfirm} disabled={executing}>
             {executing ? (
               <>
-                {t('sweep.executing')} <I.Refresh size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                {t('sweep.executing')}{' '}
+                <I.Refresh size={12} style={{ animation: 'spin 1s linear infinite' }} />
               </>
             ) : (
               <>{t('sweep.signBroadcast', { n: addressesCount })}</>
@@ -54,7 +55,11 @@ export function SweepConfirmModal({
       }
     >
       <p className="text-sm text-muted" style={{ marginTop: 0 }}>
-        {t('sweep.confirmBody', { amt: `$${fmtUSD(total)}`, n: addressesCount, chain: CHAINS[chain].name })}
+        {t('sweep.confirmBody', {
+          amt: `$${fmtUSD(total)}`,
+          n: addressesCount,
+          chain: CHAINS[chain].name,
+        })}
       </p>
       <div
         className="card"

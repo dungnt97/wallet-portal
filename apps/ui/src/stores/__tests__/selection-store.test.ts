@@ -10,26 +10,26 @@ beforeEach(() => {
 describe('selection store — setSelected', () => {
   it('sets a row id for a table', () => {
     useSelectionStore.getState().setSelected('deposits', 'row-1');
-    expect(useSelectionStore.getState().selected['deposits']).toBe('row-1');
+    expect(useSelectionStore.getState().selected.deposits).toBe('row-1');
   });
 
   it('overwrites an existing selection for the same table', () => {
     useSelectionStore.getState().setSelected('deposits', 'row-1');
     useSelectionStore.getState().setSelected('deposits', 'row-2');
-    expect(useSelectionStore.getState().selected['deposits']).toBe('row-2');
+    expect(useSelectionStore.getState().selected.deposits).toBe('row-2');
   });
 
   it('tracks selections for multiple tables independently', () => {
     useSelectionStore.getState().setSelected('deposits', 'dep-1');
     useSelectionStore.getState().setSelected('withdrawals', 'wd-1');
-    expect(useSelectionStore.getState().selected['deposits']).toBe('dep-1');
-    expect(useSelectionStore.getState().selected['withdrawals']).toBe('wd-1');
+    expect(useSelectionStore.getState().selected.deposits).toBe('dep-1');
+    expect(useSelectionStore.getState().selected.withdrawals).toBe('wd-1');
   });
 
   it('accepts null to deselect a row', () => {
     useSelectionStore.getState().setSelected('deposits', 'row-1');
     useSelectionStore.getState().setSelected('deposits', null);
-    expect(useSelectionStore.getState().selected['deposits']).toBeNull();
+    expect(useSelectionStore.getState().selected.deposits).toBeNull();
   });
 });
 
@@ -37,14 +37,14 @@ describe('selection store — clearSelected', () => {
   it('sets selected row to null for the given table', () => {
     useSelectionStore.getState().setSelected('deposits', 'row-1');
     useSelectionStore.getState().clearSelected('deposits');
-    expect(useSelectionStore.getState().selected['deposits']).toBeNull();
+    expect(useSelectionStore.getState().selected.deposits).toBeNull();
   });
 
   it('does not affect other tables', () => {
     useSelectionStore.getState().setSelected('deposits', 'row-1');
     useSelectionStore.getState().setSelected('withdrawals', 'wd-1');
     useSelectionStore.getState().clearSelected('deposits');
-    expect(useSelectionStore.getState().selected['withdrawals']).toBe('wd-1');
+    expect(useSelectionStore.getState().selected.withdrawals).toBe('wd-1');
   });
 });
 

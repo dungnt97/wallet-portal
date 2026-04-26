@@ -53,9 +53,7 @@ export function SnapshotList({ snapshots, selectedId, onSelect }: Props) {
       <div className="pro-card-header">
         <h3 className="card-title">{t('recon.snapshots')}</h3>
         <div className="spacer" />
-        <span className="text-xs text-muted">
-          {t('recon.entries', { n: snapshots.length })}
-        </span>
+        <span className="text-xs text-muted">{t('recon.entries', { n: snapshots.length })}</span>
       </div>
       <table className="table table-tight">
         <thead>

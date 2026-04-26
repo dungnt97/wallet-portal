@@ -221,12 +221,7 @@ describe('DriftDrilldown — filtering', () => {
 
 describe('DriftDrilldown — drift display', () => {
   it('displays drift information in table', () => {
-    render(
-      <DriftDrilldown
-        snapshot={makeSnapshot()}
-        drifts={[makeDrift()]}
-      />
-    );
+    render(<DriftDrilldown snapshot={makeSnapshot()} drifts={[makeDrift()]} />);
 
     // Drift values should be in the table
     const tableBody = screen.getByRole('table').querySelector('tbody');
@@ -234,4 +229,3 @@ describe('DriftDrilldown — drift display', () => {
     expect(tableBody?.textContent).toMatch(/\$/); // Should contain $ for USD amounts
   });
 });
-

@@ -1,9 +1,9 @@
+import * as queries from '@/api/queries';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 /* biome-ignore lint/suspicious/noExplicitAny: mocking utilities require any types */
 import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import * as queries from '@/api/queries';
 import { DashboardKpiGrid } from '../dashboard-kpi-grid';
 
 // Mock the queries module
@@ -23,9 +23,7 @@ const wrap = (ui: React.ReactElement) => {
   });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        {ui}
-      </MemoryRouter>
+      <MemoryRouter>{ui}</MemoryRouter>
     </QueryClientProvider>
   );
 };

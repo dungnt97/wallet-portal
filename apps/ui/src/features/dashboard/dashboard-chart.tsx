@@ -241,7 +241,10 @@ export function HoldingsList() {
             </div>
             <div className="holdings-cell-val">
               <div className="text-mono fw-600">${fmtUSD(r.bal)}</div>
-              <div className="text-xs text-muted">{r.pct}{t('dashboard.holdingsPctOfAum')}</div>
+              <div className="text-xs text-muted">
+                {r.pct}
+                {t('dashboard.holdingsPctOfAum')}
+              </div>
             </div>
             {r.series.length >= 2 ? (
               <Sparkline data={r.series} width={60} height={20} stroke={r.color} />

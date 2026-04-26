@@ -1,8 +1,8 @@
 // Unit tests for deposits hooks: useDeposits
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
-import React, { ReactNode } from 'react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import React, { type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock API
 vi.mock('@/api/client', () => ({
@@ -12,7 +12,7 @@ vi.mock('@/api/client', () => ({
 }));
 
 import { api } from '@/api/client';
-import { useDeposits, type DepositsResponse, type Deposit } from '../use-deposits';
+import { type Deposit, type DepositsResponse, useDeposits } from '../use-deposits';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -40,10 +40,7 @@ function createQueryClient() {
   });
 }
 
-function renderWithProvider<T>(
-  hook: () => T,
-  queryClient: QueryClient = createQueryClient()
-) {
+function renderWithProvider<T>(hook: () => T, queryClient: QueryClient = createQueryClient()) {
   return renderHook(hook, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

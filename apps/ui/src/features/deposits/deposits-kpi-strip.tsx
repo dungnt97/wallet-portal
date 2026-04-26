@@ -43,7 +43,9 @@ export function DepositsKpiStrip({ deposits }: Props) {
           value: `$${fmtCompact(pendingVal)}`,
           foot: (
             <>
-              <span className="text-xs text-muted text-mono">{pending.length} {t('deposits.txs')}</span>
+              <span className="text-xs text-muted text-mono">
+                {pending.length} {t('deposits.txs')}
+              </span>
               <Sparkline data={depPoints} width={56} height={14} stroke="var(--warn)" />
             </>
           ),

@@ -82,7 +82,9 @@ export function MultisigKpiStrip({
           foot: (
             <>
               <span className="text-xs text-muted">
-                {onlineTreasurerCount === null ? '…' : `${onlineTreasurerCount} ${t('multisig.online')}`}
+                {onlineTreasurerCount === null
+                  ? '…'
+                  : `${onlineTreasurerCount} ${t('multisig.online')}`}
               </span>
               <span
                 className={`badge-tight ${
@@ -90,7 +92,11 @@ export function MultisigKpiStrip({
                 }`}
               >
                 <span className="dot" />
-                {onlineTreasurerCount === null ? '…' : onlineTreasurerCount > 0 ? t('multisig.active') : t('multisig.idle')}
+                {onlineTreasurerCount === null
+                  ? '…'
+                  : onlineTreasurerCount > 0
+                    ? t('multisig.active')
+                    : t('multisig.idle')}
               </span>
             </>
           ),

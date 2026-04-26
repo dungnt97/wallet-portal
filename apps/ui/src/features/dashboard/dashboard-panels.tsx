@@ -374,20 +374,19 @@ export function AlertsList() {
 
   const notifs = data?.data ?? [];
 
-  // Hide critical/warning alerts older than 1h from the priority view — stale degradations
-  // routinely linger as unread when ops don't acknowledge them; the dedicated /notifs page
-  // still surfaces the full history.
+  // "Active alerts" = needs attention now. Show only unread rows from the last hour,
+  // sorted critical/warning first. The dedicated /notifs page surfaces full history.
   const PRIORITY_FRESHNESS_MS = 60 * 60 * 1000;
   const cutoff = Date.now() - PRIORITY_FRESHNESS_MS;
-  const critical = notifs
+  const severityRank: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+  const fresh = notifs
     .filter((n) => {
-      if (n.severity !== 'critical' && n.severity !== 'warning') return false;
       if (n.readAt) return false;
       const ts = new Date(n.createdAt).getTime();
       return Number.isFinite(ts) && ts >= cutoff;
     })
-    .slice(0, 5);
-  const displayed = critical.length > 0 ? critical : notifs.slice(0, 5);
+    .sort((a, b) => (severityRank[a.severity] ?? 9) - (severityRank[b.severity] ?? 9));
+  const displayed = fresh.slice(0, 5);
 
   if (displayed.length === 0) {
     return (

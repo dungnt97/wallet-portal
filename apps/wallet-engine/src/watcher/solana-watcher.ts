@@ -18,6 +18,15 @@ const logger = pino({ name: 'solana-watcher' });
 
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 const MAX_BACKOFF_MS = 60_000;
+/**
+ * Solana devnet produces ~2.5 slots/sec; the watcher processes 5 slots per 2s
+ * tick — break-even with zero margin. If the watcher falls behind (e.g. wallet-
+ * engine offline overnight) it can never catch up, and slots more than ~1000
+ * behind are likely already pruned from the public RPC. At startup, skip-ahead
+ * to (tip - SAFETY_BUFFER) when lag exceeds the threshold.
+ */
+const MAX_STARTUP_CATCHUP_SLOTS = 500;
+const STARTUP_SAFETY_BUFFER_SLOTS = 64;
 
 export interface SolanaWatcherOptions {
   pollIntervalMs?: number;
@@ -46,6 +55,26 @@ export class SolanaWatcher {
     if (saved !== null) {
       this.lastProcessedSlot = saved;
       logger.info({ lastSlot: this.lastProcessedSlot }, 'Solana watcher resumed from checkpoint');
+      // Skip-ahead guard: throughput barely matches chain rate, so a stale
+      // checkpoint will never catch up; old slots are pruned by public RPC anyway.
+      try {
+        const tip = await this.connection.getSlot();
+        const lag = tip - saved;
+        if (lag > MAX_STARTUP_CATCHUP_SLOTS) {
+          const skipTo = Math.max(0, tip - STARTUP_SAFETY_BUFFER_SLOTS);
+          logger.warn(
+            { savedCheckpoint: saved, tip, lag, skipTo },
+            'Solana checkpoint too stale for catch-up — skipping ahead near tip'
+          );
+          this.lastProcessedSlot = skipTo;
+          await this.checkpoint.save('sol', skipTo);
+        }
+      } catch (err) {
+        logger.warn(
+          { err },
+          'Solana watcher could not probe tip on startup — proceeding from saved checkpoint'
+        );
+      }
     } else {
       try {
         const tip = await this.connection.getSlot();

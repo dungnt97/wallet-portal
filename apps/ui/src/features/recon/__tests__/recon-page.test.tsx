@@ -36,10 +36,10 @@ vi.mock('@/components/overlays', () => ({
     children: React.ReactNode;
   }) =>
     open ? (
-      <div data-testid="trigger-modal" role="dialog">
+      <dialog data-testid="trigger-modal">
         <h2>{title}</h2>
         {children}
-      </div>
+      </dialog>
     ) : null,
 }));
 
@@ -215,5 +215,31 @@ describe('ReconPage', () => {
     ]);
     await user.click(screen.getByText('select-snapshot'));
     expect(screen.getByTestId('drift-drilldown')).toBeInTheDocument();
+  });
+
+  it('shows loading state when snapshots are loading', () => {
+    mockUseSnapshotList.mockReturnValue({ data: undefined, isLoading: true });
+    mockUseSnapshotDetail.mockReturnValue({ data: null, isLoading: false });
+    mockUseTriggerSnapshot.mockReturnValue({ mutate: vi.fn(), isPending: false });
+    render(<ReconPage />);
+    expect(screen.getByText('Loading snapshots…')).toBeInTheDocument();
+  });
+
+  it('shows drift loading state when detail is loading after selecting snapshot', async () => {
+    const user = userEvent.setup();
+    mockUseSnapshotList.mockReturnValue({
+      data: {
+        data: [
+          { id: 'snap-1', status: 'completed', driftPct: 0, createdAt: new Date().toISOString() },
+        ],
+      },
+      isLoading: false,
+    });
+    // Detail always loading
+    mockUseSnapshotDetail.mockReturnValue({ data: null, isLoading: true });
+    mockUseTriggerSnapshot.mockReturnValue({ mutate: vi.fn(), isPending: false });
+    render(<ReconPage />);
+    await user.click(screen.getByText('select-snapshot'));
+    expect(screen.getByText('Loading drift details…')).toBeInTheDocument();
   });
 });

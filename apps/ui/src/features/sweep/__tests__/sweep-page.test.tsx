@@ -106,14 +106,32 @@ vi.mock('../gas-monitor', () => ({
 vi.mock('../sweep-address-table', () => ({
   SweepAddressTable: ({
     rows,
+    onToggle,
+    onToggleAll,
+    selectAboveThreshold,
   }: {
-    rows: unknown[];
+    rows: Array<{ id: string }>;
     chain: string;
     selected: string[];
-    onToggle: unknown;
-    onToggleAll: unknown;
-    selectAboveThreshold: unknown;
-  }) => <div data-testid="sweep-address-table">{rows.length} rows</div>,
+    onToggle: (id: string) => void;
+    onToggleAll: (on: boolean) => void;
+    selectAboveThreshold: () => void;
+  }) => (
+    <div data-testid="sweep-address-table">
+      {rows.length} rows
+      {rows.length > 0 && (
+        <button type="button" onClick={() => onToggle(String(rows[0]?.id ?? ''))}>
+          toggle-first
+        </button>
+      )}
+      <button type="button" onClick={() => onToggleAll(true)}>
+        toggle-all
+      </button>
+      <button type="button" onClick={selectAboveThreshold}>
+        select-above
+      </button>
+    </div>
+  ),
   SweepCart: ({
     selected,
     onExecute,
@@ -271,6 +289,73 @@ describe('SweepPage', () => {
     await user.click(screen.getByText('confirm-sweep'));
     await screen.findByTestId('page-frame');
     expect(mutateAsync).toHaveBeenCalled();
+  });
+
+  it('toggles address selection when row toggle clicked', async () => {
+    const user = userEvent.setup();
+    mockUseSweepCandidates.mockReturnValue({
+      data: {
+        data: [
+          {
+            userAddressId: 'a1',
+            userId: 'u1',
+            chain: 'bnb',
+            address: '0xABC',
+            creditedUsdt: '1000',
+            creditedUsdc: '0',
+          },
+        ],
+      },
+      isLoading: false,
+    });
+    render(<SweepPage />);
+    await user.click(screen.getByText('toggle-first'));
+    // Cart shows 1 selected after toggle
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+  });
+
+  it('selects above threshold addresses', async () => {
+    const user = userEvent.setup();
+    mockUseSweepCandidates.mockReturnValue({
+      data: {
+        data: [
+          {
+            userAddressId: 'a1',
+            userId: 'u1',
+            chain: 'bnb',
+            address: '0xABC',
+            creditedUsdt: '1000',
+            creditedUsdc: '0',
+          },
+          {
+            userAddressId: 'a2',
+            userId: 'u2',
+            chain: 'bnb',
+            address: '0xDEF',
+            creditedUsdt: '100',
+            creditedUsdc: '0',
+          }, // below 500
+        ],
+      },
+      isLoading: false,
+    });
+    render(<SweepPage />);
+    await user.click(screen.getByText('select-above'));
+    // Only a1 is above 500 threshold
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+  });
+
+  it('shows error toast when trigger fails', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error('network fail'));
+    mockUseSweepTrigger.mockReturnValue({ mutateAsync, isPending: false });
+    mockUseSweepCandidates.mockReturnValue({ data: { data: [] }, isLoading: false });
+    const user = userEvent.setup();
+    render(<SweepPage />);
+    await user.click(screen.getByText('execute-sweep'));
+    await user.click(screen.getByText('confirm-sweep'));
+    // Wait for async rejection
+    await screen.findByTestId('page-frame');
+    expect(mockToast).toHaveBeenCalledWith('sweep.error.generic', 'error');
   });
 
   it('shows BNB policy alert text by default', () => {

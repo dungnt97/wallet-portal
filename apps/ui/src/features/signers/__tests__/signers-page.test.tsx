@@ -361,6 +361,27 @@ describe('SignersPage', () => {
                 type: 'add',
                 createdAt: new Date().toISOString(),
               },
+              {
+                id: 'c2',
+                status: 'failed',
+                chain: 'bnb',
+                type: 'remove',
+                createdAt: new Date().toISOString(),
+              },
+              {
+                id: 'c3',
+                status: 'cancelled',
+                chain: 'bnb',
+                type: 'rotate',
+                createdAt: new Date().toISOString(),
+              },
+              {
+                id: 'c4',
+                status: 'partial',
+                chain: 'bnb',
+                type: 'add',
+                createdAt: new Date().toISOString(),
+              },
             ],
             total: 1,
           },
@@ -371,6 +392,36 @@ describe('SignersPage', () => {
     });
     render(<SignersPage />);
     await user.click(screen.getByText('signers.ceremony.historyTabLabel'));
-    expect(screen.getByTestId('ceremony-progress')).toBeInTheDocument();
+    expect(screen.getAllByTestId('ceremony-progress').length).toBeGreaterThan(0);
+  });
+
+  it('shows pagination when history has more rows', async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', role: 'admin' } });
+    mockUseStaff.mockReturnValue({ data: [], isPending: false });
+    mockUseCeremonies.mockImplementation((params: { page?: number }) => {
+      if (params?.page !== undefined) {
+        return {
+          data: {
+            data: [
+              {
+                id: 'c1',
+                status: 'confirmed',
+                chain: 'bnb',
+                type: 'add',
+                createdAt: new Date().toISOString(),
+              },
+            ],
+            total: 100, // hasMore = true (1*10 < 100)
+          },
+          isPending: false,
+        };
+      }
+      return { data: { data: [] }, isPending: false };
+    });
+    render(<SignersPage />);
+    await user.click(screen.getByText('signers.ceremony.historyTabLabel'));
+    // Pagination buttons should appear
+    expect(screen.getByText('common.next')).toBeInTheDocument();
   });
 });

@@ -927,3 +927,42 @@ describe('useRebalance', () => {
     expect(vi.mocked(api.post)).toHaveBeenCalled();
   });
 });
+
+describe('useApproveWithdrawal', () => {
+  it('posts to /withdrawals/:id/approve', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({
+      op: { collectedSigs: 1, requiredSigs: 2 },
+      thresholdMet: false,
+    });
+    const { wrapper, qc } = makeWrapper();
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries');
+    const { useApproveWithdrawal } = await import('../queries');
+    const { result } = renderHook(() => useApproveWithdrawal('wd-1'), { wrapper });
+    result.current.mutate({
+      signature: '0xsig',
+      signerAddress: '0xaddr',
+      signedAt: new Date().toISOString(),
+      multisigOpId: 'op-1',
+      chain: 'bnb',
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalled();
+  });
+});
+
+describe('useExecuteWithdrawal', () => {
+  it('posts to /withdrawals/:id/execute', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ jobId: 'job-1', status: 'queued' });
+    const { wrapper, qc } = makeWrapper();
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries');
+    const { useExecuteWithdrawal } = await import('../queries');
+    const { result } = renderHook(() => useExecuteWithdrawal('wd-2'), { wrapper });
+    result.current.mutate(undefined);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalled();
+  });
+});

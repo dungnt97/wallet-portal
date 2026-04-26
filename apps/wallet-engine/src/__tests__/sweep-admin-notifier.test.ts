@@ -26,9 +26,9 @@ describe('sweep-admin-notifier — callSweepBroadcasted', () => {
     await callSweepBroadcasted(opts, 'sweep-1', '0xmyTxHash');
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
-    expect(calls[0]![0]).toContain('/internal/sweeps/sweep-1/broadcasted');
-    expect(calls[0]![1].method).toBe('POST');
-    const body = JSON.parse(calls[0]![1].body as string) as { txHash: string };
+    expect(calls[0]?.[0]).toContain('/internal/sweeps/sweep-1/broadcasted');
+    expect(calls[0]?.[1].method).toBe('POST');
+    const body = JSON.parse(calls[0]?.[1].body as string) as { txHash: string };
     expect(body.txHash).toBe('0xmyTxHash');
   });
 
@@ -38,7 +38,7 @@ describe('sweep-admin-notifier — callSweepBroadcasted', () => {
     await callSweepBroadcasted(opts, 'sweep-1', '0xhash');
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
-    expect((calls[0]![1].headers as Record<string, string>)['Authorization']).toBe(
+    expect((calls[0]?.[1].headers as Record<string, string>).Authorization).toBe(
       'Bearer svc-token-abc12345'
     );
   });
@@ -54,7 +54,7 @@ describe('sweep-admin-notifier — callSweepBroadcasted', () => {
     const { callSweepBroadcasted } = await import('../queue/workers/sweep-admin-notifier.js');
     await callSweepBroadcasted(opts, 'sweep/with-slash', '0xhash');
     const calls = vi.mocked(fetch).mock.calls as [string][];
-    expect(calls[0]![0]).toContain('sweep%2Fwith-slash');
+    expect(calls[0]?.[0]).toContain('sweep%2Fwith-slash');
   });
 });
 
@@ -72,8 +72,8 @@ describe('sweep-admin-notifier — callSweepConfirmed', () => {
     await callSweepConfirmed(opts, 'sweep-2');
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
-    expect(calls[0]![0]).toContain('/internal/sweeps/sweep-2/confirmed');
-    expect(calls[0]![1].method).toBe('POST');
+    expect(calls[0]?.[0]).toContain('/internal/sweeps/sweep-2/confirmed');
+    expect(calls[0]?.[1].method).toBe('POST');
   });
 
   it('throws on non-2xx response', async () => {

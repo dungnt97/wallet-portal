@@ -36,7 +36,7 @@ describe('deposit-confirm queue — makeDepositConfirmQueue', () => {
   it('creates Queue with exponential backoff config', async () => {
     const { makeDepositConfirmQueue } = await import('../queue/deposit-confirm.js');
     makeDepositConfirmQueue({} as never);
-    const opts = MockQueue.mock.calls[0]![1] as {
+    const opts = MockQueue.mock.calls[0]?.[1] as {
       defaultJobOptions: { backoff: { type: string } };
     };
     expect(opts.defaultJobOptions.backoff.type).toBe('exponential');
@@ -76,7 +76,7 @@ describe('deposit-confirm queue — enqueueDepositConfirm', () => {
       detectedAtBlock: 200,
     };
     await enqueueDepositConfirm(mockQueueInstance as never, data);
-    const callArgs = mockAdd.mock.calls[0]![2] as { jobId: string };
+    const callArgs = mockAdd.mock.calls[0]?.[2] as { jobId: string };
     expect(callArgs.jobId).toBe('deposit-solTxHash123');
   });
 });
@@ -100,7 +100,7 @@ describe('sweep-execute queue — makeSweepExecuteQueue', () => {
   it('creates Queue with 3 attempts', async () => {
     const { makeSweepExecuteQueue } = await import('../queue/sweep-execute.js');
     makeSweepExecuteQueue({} as never);
-    const opts = MockQueue.mock.calls[0]![1] as { defaultJobOptions: { attempts: number } };
+    const opts = MockQueue.mock.calls[0]?.[1] as { defaultJobOptions: { attempts: number } };
     expect(opts.defaultJobOptions.attempts).toBe(3);
   });
 });
@@ -126,7 +126,7 @@ describe('sweep-execute queue — enqueueSweepExecute', () => {
       destinationHotSafe: '0xHot',
     };
     await enqueueSweepExecute(mockQueueInstance as never, data);
-    const callArgs = mockAdd.mock.calls[0]![2] as { jobId: string };
+    const callArgs = mockAdd.mock.calls[0]?.[2] as { jobId: string };
     expect(callArgs.jobId).toBe('sweep_execute_sweep-abc');
   });
 });
@@ -168,7 +168,7 @@ describe('withdrawal-execute queue — enqueueWithdrawalExecute', () => {
       sourceTier: 'hot' as const,
     };
     await enqueueWithdrawalExecute(mockQueueInstance as never, data);
-    const callArgs = mockAdd.mock.calls[0]![2] as { jobId: string };
+    const callArgs = mockAdd.mock.calls[0]?.[2] as { jobId: string };
     expect(callArgs.jobId).toBe('withdrawal_execute:wd-xyz');
   });
 });
@@ -202,7 +202,7 @@ describe('signer-ceremony-broadcast queue — enqueueSignerCeremony', () => {
     const { enqueueSignerCeremony } = await import('../queue/signer-ceremony-broadcast.js');
     const data = { ceremonyId: 'cer-1', chain: 'sol' as const };
     await enqueueSignerCeremony(mockQueueInstance as never, data);
-    const callArgs = mockAdd.mock.calls[0]![2] as { jobId: string };
+    const callArgs = mockAdd.mock.calls[0]?.[2] as { jobId: string };
     expect(callArgs.jobId).toBe('ceremony:cer-1:sol');
   });
 });

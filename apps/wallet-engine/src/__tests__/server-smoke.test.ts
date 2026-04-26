@@ -312,7 +312,7 @@ describe('server health routes', () => {
 
 describe('server — makeLogger environment handling', () => {
   afterEach(() => {
-    delete process.env.NODE_ENV;
+    process.env.NODE_ENV = undefined;
   });
 
   it('development mode: uses pino-pretty transport', () => {

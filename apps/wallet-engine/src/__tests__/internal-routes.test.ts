@@ -181,7 +181,7 @@ describe('internal-derive — /internal/users/:userId/derive-addresses', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json() as { addresses: typeof mockAddresses };
     expect(body.addresses).toHaveLength(2);
-    expect(body.addresses[0]!.chain).toBe('bnb');
+    expect(body.addresses[0]?.chain).toBe('bnb');
     await app.close();
   });
 

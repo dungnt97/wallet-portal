@@ -56,14 +56,14 @@ describe('otel — NodeSDK bootstrap', () => {
   it('uses OTEL_SERVICE_NAME env var when set', async () => {
     process.env.OTEL_SERVICE_NAME = 'my-custom-service';
     await import('../telemetry/otel.js');
-    const ctorCall = MockNodeSDK.mock.calls[0]![0] as { serviceName: string };
+    const ctorCall = MockNodeSDK.mock.calls[0]?.[0] as { serviceName: string };
     expect(ctorCall.serviceName).toBe('my-custom-service');
   });
 
   it('defaults serviceName to wallet-engine', async () => {
     delete process.env.OTEL_SERVICE_NAME;
     await import('../telemetry/otel.js');
-    const ctorCall = MockNodeSDK.mock.calls[0]![0] as { serviceName: string };
+    const ctorCall = MockNodeSDK.mock.calls[0]?.[0] as { serviceName: string };
     expect(ctorCall.serviceName).toBe('wallet-engine');
   });
 

@@ -81,9 +81,9 @@ describe('sweep-policy-check — checkSweepPolicy', () => {
     await checkSweepPolicy('https://policy.test', 'token123', sweepData);
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
-    expect(calls[0]![0]).toBe('https://policy.test/v1/check');
-    expect(calls[0]![1].method).toBe('POST');
-    const body = JSON.parse(calls[0]![1].body as string) as {
+    expect(calls[0]?.[0]).toBe('https://policy.test/v1/check');
+    expect(calls[0]?.[1].method).toBe('POST');
+    const body = JSON.parse(calls[0]?.[1].body as string) as {
       operation_type: string;
       chain: string;
       amount: string;
@@ -106,7 +106,7 @@ describe('sweep-policy-check — checkSweepPolicy', () => {
     await checkSweepPolicy('https://policy.test', 'my-bearer-token', sweepData);
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
-    expect((calls[0]![1].headers as Record<string, string>)['Authorization']).toBe(
+    expect((calls[0]?.[1].headers as Record<string, string>).Authorization).toBe(
       'Bearer my-bearer-token'
     );
   });

@@ -375,4 +375,112 @@ describe('AuditPage', () => {
     render(<AuditPage />);
     expect(screen.getByTestId('audit-actions-table')).toBeInTheDocument();
   });
+
+  it('CSV export — triggers download on successful fetch response', async () => {
+    const user = userEvent.setup();
+    // Mock global fetch for the export handler
+    const mockBlob = new Blob(['id,action\nr1,approve'], { type: 'text/csv' });
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      blob: vi.fn().mockResolvedValue(mockBlob),
+      json: vi.fn(),
+      headers: { get: vi.fn().mockReturnValue('attachment; filename="audit-export.csv"') },
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(mockResponse as unknown as Response);
+
+    // Mock URL.createObjectURL / revokeObjectURL
+    const createObjectURL = vi.fn().mockReturnValue('blob:http://test/1');
+    const revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = createObjectURL;
+    globalThis.URL.revokeObjectURL = revokeObjectURL;
+
+    mockUseAuditLogs.mockReturnValue({ data: DEFAULT_DATA, isLoading: false });
+    mockUseAuditVerify.mockReturnValue({ data: undefined });
+    render(<AuditPage />);
+
+    await user.click(screen.getByText('audit.export.btn'));
+    // Should have called fetch with the export URL
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/audit-logs/export.csv'),
+      expect.objectContaining({ credentials: 'include' })
+    );
+    // Should show success toast
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.stringContaining('audit.export.success'),
+      'success'
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  it('CSV export — shows error toast when fetch throws', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'));
+
+    mockUseAuditLogs.mockReturnValue({ data: DEFAULT_DATA, isLoading: false });
+    mockUseAuditVerify.mockReturnValue({ data: undefined });
+    render(<AuditPage />);
+
+    await user.click(screen.getByText('audit.export.btn'));
+    await screen.findByTestId('page-frame');
+    expect(mockToast).toHaveBeenCalledWith('common.error', 'error');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('CSV export — shows tooManyRows toast when status is 429', async () => {
+    const user = userEvent.setup();
+    const mockResponse = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      json: vi.fn().mockResolvedValue({ found: 15000 }),
+      headers: { get: vi.fn().mockReturnValue(null) },
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(mockResponse as unknown as Response);
+
+    // Set total = 100 (under cap) so the per-row cap check doesn't trigger
+    mockUseAuditLogs.mockReturnValue({ data: { data: [], total: 100 }, isLoading: false });
+    mockUseAuditVerify.mockReturnValue({ data: undefined });
+    render(<AuditPage />);
+
+    await user.click(screen.getByText('audit.export.btn'));
+    await screen.findByTestId('page-frame');
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.stringContaining('audit.export.tooManyRows'),
+      'error'
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  it('CSV export — shows generic error toast when server returns non-ok non-429 status', async () => {
+    const user = userEvent.setup();
+    const mockResponse = {
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: vi.fn(),
+      headers: { get: vi.fn().mockReturnValue(null) },
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(mockResponse as unknown as Response);
+
+    mockUseAuditLogs.mockReturnValue({ data: { data: [], total: 100 }, isLoading: false });
+    mockUseAuditVerify.mockReturnValue({ data: undefined });
+    render(<AuditPage />);
+
+    await user.click(screen.getByText('audit.export.btn'));
+    await screen.findByTestId('page-frame');
+    expect(mockToast).toHaveBeenCalledWith('common.error', 'error');
+
+    fetchSpy.mockRestore();
+  });
 });

@@ -2,10 +2,12 @@
 // Returns per-component status: db, redis, policyEngine, chains, queues, workers.
 // All probes run in parallel with a 2s timeout each.
 // Requires authenticated staff (any role) — no step-up needed for reads.
+import { and, eq, isNull, lt, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireAuth } from '../auth/rbac.middleware.js';
+import * as schema from '../db/schema/index.js';
 import {
   checkDegradationTransition,
   probeChain,
@@ -27,6 +29,7 @@ const ChainSchema = z.object({
   latestBlock: z.number().nullable(),
   checkpointBlock: z.number().nullable(),
   lagBlocks: z.number().nullable(),
+  watcherIdle: z.boolean().optional(),
   status: ProbeStatusSchema,
   error: z.string().optional(),
 });
@@ -214,6 +217,40 @@ const opsHealthRoutes: FastifyPluginAsync = async (app) => {
             app.emailQueue,
             app.slackQueue
           ).catch((err) => app.log.error({ err }, 'notifyStaff failed'));
+        }
+      }
+
+      // Auto-resolve: when every component is healthy, mark stale (>1h) unread
+      // health.degraded rows as read so the dashboard "Active alerts" panel doesn't
+      // show yesterday's blip indefinitely.
+      const everythingOk =
+        dbProbe.status === 'ok' &&
+        redisProbe.status === 'ok' &&
+        policyProbe.status === 'ok' &&
+        chainResults.every((c) => c.status === 'ok') &&
+        queueResults.every((q) => q.status === 'ok') &&
+        workerResults.every((w) => w.status === 'ok');
+
+      if (everythingOk) {
+        try {
+          const staleCutoff = new Date(Date.now() - 60 * 60 * 1000);
+          const promise = app.db
+            .update(schema.notifications)
+            .set({ readAt: sql`now()` })
+            .where(
+              and(
+                eq(schema.notifications.eventType, 'health.degraded'),
+                isNull(schema.notifications.readAt),
+                lt(schema.notifications.createdAt, staleCutoff)
+              )
+            );
+          if (promise && typeof (promise as { catch?: unknown }).catch === 'function') {
+            (promise as Promise<unknown>).catch((err) =>
+              app.log.error({ err }, 'auto-resolve health.degraded failed')
+            );
+          }
+        } catch (err) {
+          app.log.error({ err }, 'auto-resolve health.degraded threw');
         }
       }
 

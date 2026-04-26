@@ -124,37 +124,56 @@ export function GasWalletList() {
     );
   }
 
+  // Per-chain lag thresholds: BNB ~3s/blk so 50 blk ≈ 2.5min; SOL ~0.4s/slot so 200 slots ≈ 1.5min.
   const chainRows = health.chains.map((c) => {
     const chainId = c.id.toLowerCase().startsWith('sol') ? 'sol' : ('bnb' as const);
     const lag = c.lagBlocks ?? 0;
-    const isWarn = c.status !== 'ok' || lag > 5;
+    const lagThreshold = chainId === 'sol' ? 200 : 50;
+    const idle = Boolean(c.watcherIdle);
+    const isError = c.status !== 'ok';
+    // Real chain lag only counts when watcher is actively advancing checkpoints
+    const isLagWarn = !idle && !isError && lag > lagThreshold;
     return {
       chain: chainId as 'bnb' | 'sol',
       name: `${c.id.toUpperCase()} RPC`,
       lag,
       status: c.status,
-      isWarn,
+      idle,
+      isError,
+      isLagWarn,
+      checkpointBlock: c.checkpointBlock,
     };
   });
 
   return (
     <div className="gas-list">
-      {chainRows.map((g) => (
-        <div key={g.name} className="gas-row">
-          <ChainPill chain={g.chain} />
-          <div className="gas-info">
-            <div className="gas-name">{g.name}</div>
-            <div className="gas-meta text-xs text-muted text-mono">
-              {t('dashboard.gasLagStatus', { lag: g.lag, status: g.status })}
+      {chainRows.map((g) => {
+        const cls = g.isError ? 'text-err' : g.idle || g.isLagWarn ? 'text-warn' : 'text-ok';
+        const label = g.isError
+          ? t('dashboard.gasDegraded')
+          : g.idle
+            ? t('dashboard.gasWatcherIdle')
+            : g.isLagWarn
+              ? t('dashboard.gasDegraded')
+              : t('dashboard.gasHealthy');
+        const meta = g.idle
+          ? t('dashboard.gasIdleStatus', {
+              block: g.checkpointBlock?.toLocaleString() ?? '—',
+            })
+          : t('dashboard.gasLagStatus', { lag: g.lag, status: g.status });
+        return (
+          <div key={g.name} className="gas-row">
+            <ChainPill chain={g.chain} />
+            <div className="gas-info">
+              <div className="gas-name">{g.name}</div>
+              <div className="gas-meta text-xs text-muted text-mono">{meta}</div>
+            </div>
+            <div className="gas-bal">
+              <span className={`text-mono fw-600 text-xs ${cls}`}>{label}</span>
             </div>
           </div>
-          <div className="gas-bal">
-            <span className={`text-mono fw-600 text-xs ${g.isWarn ? 'text-err' : 'text-ok'}`}>
-              {g.isWarn ? t('dashboard.gasDegraded') : t('dashboard.gasHealthy')}
-            </span>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       <div className="gas-row" style={{ opacity: 0.55, fontSize: 11 }}>
         <span className="text-muted text-xs">{t('dashboard.gasNativeHint')}</span>
       </div>
@@ -355,9 +374,18 @@ export function AlertsList() {
 
   const notifs = data?.data ?? [];
 
-  // Show critical/warning unread first, fall back to most recent 5
+  // Hide critical/warning alerts older than 1h from the priority view — stale degradations
+  // routinely linger as unread when ops don't acknowledge them; the dedicated /notifs page
+  // still surfaces the full history.
+  const PRIORITY_FRESHNESS_MS = 60 * 60 * 1000;
+  const cutoff = Date.now() - PRIORITY_FRESHNESS_MS;
   const critical = notifs
-    .filter((n) => (n.severity === 'critical' || n.severity === 'warning') && !n.readAt)
+    .filter((n) => {
+      if (n.severity !== 'critical' && n.severity !== 'warning') return false;
+      if (n.readAt) return false;
+      const ts = new Date(n.createdAt).getTime();
+      return Number.isFinite(ts) && ts >= cutoff;
+    })
     .slice(0, 5);
   const displayed = critical.length > 0 ? critical : notifs.slice(0, 5);
 

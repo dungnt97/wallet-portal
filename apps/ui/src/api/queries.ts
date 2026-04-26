@@ -146,6 +146,8 @@ export interface ChainHealth {
   latestBlock: number | null;
   checkpointBlock: number | null;
   lagBlocks: number | null;
+  /** True when watcher checkpoint hasn't been updated recently — lagBlocks is stale, not real chain lag. */
+  watcherIdle?: boolean;
   status: ProbeStatus;
   error?: string;
 }

@@ -46,6 +46,12 @@ export interface ChainProbeResult {
   latestBlock: number | null;
   checkpointBlock: number | null;
   lagBlocks: number | null;
+  /**
+   * `watcherIdle` indicates the wallet-engine block-watcher has not advanced
+   * `watcher_checkpoints.updated_at` recently. When true, `lagBlocks` is the
+   * stale diff and should not be treated as real chain lag — the watcher is off.
+   */
+  watcherIdle?: boolean;
   status: ProbeStatus;
   error?: string;
 }
@@ -113,10 +119,15 @@ export interface ChainProbeConfig {
   getLatestBlock: () => Promise<number>;
 }
 
+// Watcher is considered idle when its checkpoint row hasn't been updated in this window.
+// Beyond this, the lag diff reflects "watcher off", not actual chain lag.
+const WATCHER_IDLE_THRESHOLD_MS = 5 * 60 * 1000;
+
 export async function probeChain(db: Db, cfg: ChainProbeConfig): Promise<ChainProbeResult> {
   const chain = cfg.id as 'bnb' | 'sol';
   let latestBlock: number | null = null;
   let checkpointBlock: number | null = null;
+  let watcherIdle = false;
 
   try {
     latestBlock = await withTimeout(cfg.getLatestBlock(), PROBE_TIMEOUT_MS);
@@ -137,6 +148,10 @@ export async function probeChain(db: Db, cfg: ChainProbeConfig): Promise<ChainPr
       where: eq(schema.watcherCheckpoints.chain, chain),
     });
     checkpointBlock = checkpoint?.lastBlock ?? null;
+    if (checkpoint?.updatedAt) {
+      const ageMs = Date.now() - new Date(checkpoint.updatedAt).getTime();
+      watcherIdle = ageMs > WATCHER_IDLE_THRESHOLD_MS;
+    }
   } catch {
     // non-fatal — checkpoint may not exist yet
   }
@@ -150,6 +165,7 @@ export async function probeChain(db: Db, cfg: ChainProbeConfig): Promise<ChainPr
     latestBlock,
     checkpointBlock,
     lagBlocks,
+    watcherIdle,
     status: 'ok',
   };
 }

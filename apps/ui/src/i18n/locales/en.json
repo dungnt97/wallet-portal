@@ -223,8 +223,10 @@
     "slaRealTime": "real-time",
     "slaTargetLabel": "target {{val}}",
     "gasLagStatus": "lag {{lag}} blk · status {{status}}",
+    "gasIdleStatus": "watcher idle · checkpoint {{block}}",
     "gasDegraded": "degraded",
     "gasHealthy": "healthy",
+    "gasWatcherIdle": "watcher idle",
     "gasNativeHint": "Native gas balances (BNB/SOL) available once /ops/gas-wallets endpoint is added.",
     "noActiveAlerts": "No active alerts",
     "today": "Today"

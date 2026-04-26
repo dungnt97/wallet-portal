@@ -223,8 +223,10 @@
     "slaRealTime": "thực tế",
     "slaTargetLabel": "mục tiêu {{val}}",
     "gasLagStatus": "lag {{lag}} blk · trạng thái {{status}}",
+    "gasIdleStatus": "watcher tạm dừng · checkpoint {{block}}",
     "gasDegraded": "suy giảm",
     "gasHealthy": "bình thường",
+    "gasWatcherIdle": "watcher idle",
     "gasNativeHint": "Số dư gas gốc (BNB/SOL) sẽ hiển thị khi endpoint /ops/gas-wallets được thêm.",
     "noActiveAlerts": "Không có cảnh báo nào",
     "today": "Hôm nay"

@@ -1,15 +1,16 @@
-/* biome-ignore lint/suspicious/noExplicitAny: mocking utilities require any types */
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import * as queries from '@/api/queries';
-import { DepositsKpiStrip } from '../deposits-kpi-strip';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FixDeposit } from '../deposit-types';
+import { DepositsKpiStrip } from '../deposits-kpi-strip';
+
+type KpiItem = { key: string; value: unknown };
 
 vi.mock('@/api/queries');
 vi.mock('@/components/custody', () => ({
-  KpiStrip: ({ items }: any) => (
+  KpiStrip: ({ items }: { items: KpiItem[] }) => (
     <div data-testid="kpi-strip">
-      {items.map((item: any) => (
+      {items.map((item) => (
         <div key={item.key} data-testid={`kpi-${item.key}`}>
           {item.value}
         </div>
@@ -57,7 +58,7 @@ describe('DepositsKpiStrip', () => {
     vi.mocked(queries.useDashboardHistory).mockReturnValue({
       data: { points: [] },
       isLoading: false,
-    } as any);
+    } as ReturnType<typeof queries.useDashboardHistory>);
   });
 
   it('renders KPI strip with all items', () => {
@@ -78,10 +79,7 @@ describe('DepositsKpiStrip', () => {
   });
 
   it('calculates pending value', () => {
-    const deposits: FixDeposit[] = [
-      mockDeposit,
-      { ...mockDeposit, id: 'dep-002', amount: 3000 },
-    ];
+    const deposits: FixDeposit[] = [mockDeposit, { ...mockDeposit, id: 'dep-002', amount: 3000 }];
 
     render(<DepositsKpiStrip deposits={deposits} />);
 

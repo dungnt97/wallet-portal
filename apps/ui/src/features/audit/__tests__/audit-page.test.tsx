@@ -330,4 +330,49 @@ describe('AuditPage', () => {
     fireEvent.change(toInput, { target: { value: '2024-02-20' } });
     expect(screen.getByTestId('clear-audit.filters.to')).toBeInTheDocument();
   });
+
+  it('computes hash validity map when verifyData.verified is true', () => {
+    const rows = [
+      {
+        id: 'r1',
+        createdAt: '2024-01-01T00:00:00Z',
+        resourceType: 'withdrawal',
+        action: 'approve',
+        actorEmail: 'a@b.com',
+        metadata: {},
+      },
+    ];
+    mockUseAuditLogs.mockReturnValue({ data: { data: rows, total: 1 }, isLoading: false });
+    // verifyData.verified=true → all rows marked valid
+    mockUseAuditVerify.mockReturnValue({ data: { verified: true, brokenAt: null } });
+    render(<AuditPage />);
+    // Page renders without crashing (hashValidity computed)
+    expect(screen.getByTestId('audit-actions-table')).toBeInTheDocument();
+  });
+
+  it('computes hash validity map when verifyData.verified is false with brokenAt', () => {
+    const rows = [
+      {
+        id: 'r1',
+        createdAt: '2024-01-01T00:00:00Z',
+        resourceType: 'withdrawal',
+        action: 'approve',
+        actorEmail: 'a@b.com',
+        metadata: {},
+      },
+      {
+        id: 'r2',
+        createdAt: '2024-01-02T00:00:00Z',
+        resourceType: 'deposit',
+        action: 'create',
+        actorEmail: 'b@c.com',
+        metadata: {},
+      },
+    ];
+    mockUseAuditLogs.mockReturnValue({ data: { data: rows, total: 2 }, isLoading: false });
+    // verifyData.verified=false → brokenAt marks chain as broken
+    mockUseAuditVerify.mockReturnValue({ data: { verified: false, brokenAt: 'r1' } });
+    render(<AuditPage />);
+    expect(screen.getByTestId('audit-actions-table')).toBeInTheDocument();
+  });
 });

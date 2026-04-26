@@ -1232,6 +1232,7 @@
     "securityKeys": "Khoá bảo mật",
     "securityKeysDesc": "Đăng ký khoá bảo mật phần cứng hoặc passkey để bật WebAuthn step-up cho các thao tác ghi.",
     "addSecurityKey": "Thêm khoá bảo mật mới",
+    "addSecurityKeyBtn": "Thêm khoá bảo mật",
     "fido2Hint": "Hỗ trợ khoá phần cứng FIDO2 (YubiKey, v.v.) và platform passkey.",
     "deviceName": "Tên thiết bị (tuỳ chọn)",
     "deviceNamePlaceholder": "VD: YubiKey 5C, MacBook Touch ID",

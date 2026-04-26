@@ -1232,6 +1232,7 @@
     "securityKeys": "Security keys",
     "securityKeysDesc": "Register a hardware security key or passkey to enable WebAuthn step-up for write operations.",
     "addSecurityKey": "Add a new security key",
+    "addSecurityKeyBtn": "Add security key",
     "fido2Hint": "Works with FIDO2 hardware keys (YubiKey, etc.) and platform passkeys.",
     "deviceName": "Device name (optional)",
     "deviceNamePlaceholder": "e.g. YubiKey 5C, MacBook Touch ID",

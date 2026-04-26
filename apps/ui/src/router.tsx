@@ -43,6 +43,7 @@ export const router = createBrowserRouter([
           { path: 'deposits', element: <DepositsPage /> },
           { path: 'sweep', element: <SweepPage /> },
           { path: 'withdrawals', element: <WithdrawalsPage /> },
+          { path: 'withdrawals/:id', element: <Navigate to="/app/withdrawals" replace /> },
           { path: 'cold', element: <ColdPage /> },
           { path: 'multisig', element: <MultisigPage /> },
           { path: 'recovery', element: <RecoveryPage /> },

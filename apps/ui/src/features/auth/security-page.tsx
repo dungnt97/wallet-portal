@@ -121,7 +121,7 @@ export function SecurityPage() {
             ) : (
               <>
                 <ShieldCheck size={14} />
-                {t('auth.addSecurityKey')}
+                {t('auth.addSecurityKeyBtn')}
               </>
             )}
           </button>

@@ -1,5 +1,5 @@
 import { AuthContext } from '@/auth/auth-provider';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginPage } from '../login-page';
 
@@ -246,5 +246,119 @@ describe('LoginPage — demo accounts panel', () => {
     renderLogin();
     const kenji = screen.getByText('Kenji Mori').closest('button');
     expect(kenji).toBeInTheDocument();
+  });
+});
+
+// ── 2FA WebAuthn step ─────────────────────────────────────────────────────────
+
+describe('LoginPage — 2FA WebAuthn step', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function goToWebAuthn() {
+    renderLogin();
+    const googleBtn = document.querySelector('.login-google') as HTMLButtonElement;
+    fireEvent.click(googleBtn);
+  }
+
+  it('shows webauthn panel after Google SSO click (dev-mode)', () => {
+    goToWebAuthn();
+    expect(document.querySelector('.login-webauthn')).toBeInTheDocument();
+  });
+
+  it('shows idle state button text "login.useSecurityKey"', () => {
+    goToWebAuthn();
+    // waState starts as 'idle' — button reads login.useSecurityKey
+    const btn = document.querySelector('.login-webauthn button.btn') as HTMLButtonElement;
+    expect(btn?.textContent).toBe('login.useSecurityKey');
+  });
+
+  it('shows "login.useAuthApp" link to switch to TOTP', () => {
+    goToWebAuthn();
+    expect(screen.getByText('login.useAuthApp')).toBeInTheDocument();
+  });
+
+  it('switches to TOTP form when "use auth app" link clicked', () => {
+    goToWebAuthn();
+    const link = screen.getByText('login.useAuthApp');
+    fireEvent.click(link);
+    expect(document.querySelector('.login-totp')).toBeInTheDocument();
+  });
+
+  it('shows phishingResistant text in webauthn panel', () => {
+    goToWebAuthn();
+    expect(screen.getByText(/phishingResistant/)).toBeInTheDocument();
+  });
+});
+
+// ── 2FA / TOTP step ───────────────────────────────────────────────────────────
+
+describe('LoginPage — 2FA TOTP step', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /** Navigate to credentials step, submit valid creds, then wait for 2fa/totp step. */
+  async function goToTotp() {
+    vi.useFakeTimers();
+    renderLogin();
+
+    // Go to credentials step
+    const nextBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.querySelector('[data-testid="icon-arrow-right"]'));
+    fireEvent.click(nextBtn!);
+
+    // Submit credentials for mira@treasury.io (default) with valid password
+    const pwdInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+    fireEvent.change(pwdInput, { target: { value: 'password123' } });
+    const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+    fireEvent.click(submitBtn);
+
+    // Advance fake timer 300ms to trigger the step transition
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+
+    vi.useRealTimers();
+  }
+
+  it('shows TOTP form after credentials submit with valid email+password', async () => {
+    await goToTotp();
+    expect(document.querySelector('.login-totp')).toBeInTheDocument();
+  });
+
+  it('shows six-digit code input in TOTP form', async () => {
+    await goToTotp();
+    expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();
+  });
+
+  it('disables submit when OTP is shorter than 6 digits', async () => {
+    await goToTotp();
+    const otpInput = screen.getByPlaceholderText('000000');
+    fireEvent.change(otpInput, { target: { value: '12345' } });
+    const submitBtn = document.querySelector(
+      '.login-totp button[type="submit"]'
+    ) as HTMLButtonElement;
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it('filters non-numeric characters from OTP input', async () => {
+    await goToTotp();
+    const otpInput = screen.getByPlaceholderText('000000') as HTMLInputElement;
+    fireEvent.change(otpInput, { target: { value: '12a3b4' } });
+    expect(otpInput.value).toBe('1234');
+  });
+
+  it('shows error when submitting TOTP with less than 6 digits', async () => {
+    await goToTotp();
+    const otpInput = screen.getByPlaceholderText('000000');
+    fireEvent.change(otpInput, { target: { value: '123' } });
+    const form = document.querySelector('.login-totp') as HTMLFormElement;
+    fireEvent.submit(form);
+    expect(document.querySelector('.login-err')).toBeInTheDocument();
+  });
+
+  it('shows totp tip text in TOTP form', async () => {
+    await goToTotp();
+    // login.totpTip key rendered as-is in mocked i18next (fallback identity)
+    expect(screen.getByText('login.totpTip')).toBeInTheDocument();
   });
 });

@@ -11,7 +11,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      exclude: ['src/db/**', 'src/server.ts'],
+      exclude: [
+        'src/db/**',
+        'src/server.ts',
+        // Entry-point composition files — not unit-testable; covered by integration tests
+        'src/app.ts',
+        'src/index.ts',
+        'src/routes/index.ts',
+        'drizzle.config.ts',
+      ],
     },
   },
 });

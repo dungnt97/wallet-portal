@@ -188,4 +188,52 @@ describe('NotifPrefsModal', () => {
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
+
+  it('shows phone number input when SMS is enabled', () => {
+    vi.mocked(useNotificationPrefs).mockReturnValue({
+      data: { ...DEFAULT_PREFS, sms: true },
+      isLoading: false,
+    } as ReturnType<typeof useNotificationPrefs>);
+
+    render(
+      <Wrapper>
+        <NotifPrefsModal open={true} onClose={vi.fn()} />
+      </Wrapper>
+    );
+
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+  });
+
+  it('does not show phone input when SMS is disabled', () => {
+    vi.mocked(useNotificationPrefs).mockReturnValue({
+      data: { ...DEFAULT_PREFS, sms: false },
+      isLoading: false,
+    } as ReturnType<typeof useNotificationPrefs>);
+
+    render(
+      <Wrapper>
+        <NotifPrefsModal open={true} onClose={vi.fn()} />
+      </Wrapper>
+    );
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('shows error message when patch mutation has error', () => {
+    vi.mocked(usePatchNotificationPrefs).mockReturnValue({
+      mutate: mockPatch,
+      isPending: false,
+      isError: true,
+    } as unknown as ReturnType<typeof usePatchNotificationPrefs>);
+
+    render(
+      <Wrapper>
+        <NotifPrefsModal open={true} onClose={vi.fn()} />
+      </Wrapper>
+    );
+
+    // isError=true shows error text (common.error = "Something went wrong")
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  });
 });

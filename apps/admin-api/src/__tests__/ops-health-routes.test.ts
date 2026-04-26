@@ -98,7 +98,9 @@ async function buildApp(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('GET /ops/health', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 with all probes ok', async () => {
     const app = await buildApp();
@@ -116,7 +118,7 @@ describe('GET /ops/health', () => {
 
   it('returns error status for degraded db', async () => {
     const app = await buildApp({
-      probes: { db: { status: 'error' as const, error: 'connection refused' } },
+      probes: { db: { status: 'error' as const, error: 'connection refused' } as never },
     });
     const res = await app.inject({ method: 'GET', url: '/ops/health' });
     expect(res.statusCode).toBe(200);
@@ -127,7 +129,7 @@ describe('GET /ops/health', () => {
 
   it('still returns 200 when policy engine probe fails (graceful degradation)', async () => {
     const app = await buildApp({
-      probes: { policyEngine: { status: 'error' as const, error: 'timeout' } },
+      probes: { policyEngine: { status: 'error' as const, error: 'timeout' } as never },
     });
     const res = await app.inject({ method: 'GET', url: '/ops/health' });
     expect(res.statusCode).toBe(200);
@@ -169,7 +171,7 @@ describe('GET /ops/health', () => {
   it('fires degradation notifications on fresh ok→error transitions', async () => {
     const { notifyStaff } = await import('../services/notify-staff.service.js');
     const app = await buildApp({
-      probes: { db: { status: 'error' as const, error: 'down' } },
+      probes: { db: { status: 'error' as const, error: 'down' } as never },
       degradationTransitions: true,
     });
     const res = await app.inject({ method: 'GET', url: '/ops/health' });

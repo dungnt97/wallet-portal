@@ -41,7 +41,9 @@ async function buildApp(
 // ── Tests ────────────────────────────────────────────────────────────��────────
 
 describe('GET /health/live', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 ok', async () => {
     const app = await buildApp();
@@ -53,7 +55,9 @@ describe('GET /health/live', () => {
 });
 
 describe('GET /health/ready', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 when db and redis are healthy', async () => {
     const app = await buildApp();

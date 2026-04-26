@@ -19,7 +19,9 @@ describe('withdrawalCsvHeader', () => {
 });
 
 describe('countWithdrawalsForExport', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns count from db query (no filters)', async () => {
     const db = {
@@ -68,7 +70,9 @@ describe('countWithdrawalsForExport', () => {
 });
 
 describe('queryWithdrawalsForExport', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns mapped rows with approvedCount from multisig ops', async () => {
     const withdrawalRows = [
@@ -115,10 +119,10 @@ describe('queryWithdrawalsForExport', () => {
     const { queryWithdrawalsForExport } = await import('../services/withdrawal-csv.service.js');
     const rows = await queryWithdrawalsForExport(db, {});
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe('wd-001');
-    expect(rows[0].approvedCount).toBe(2);
-    expect(rows[0].broadcastAt).toBe('2026-01-15T10:05:00.000Z');
-    expect(rows[0].confirmedAt).toBeNull();
+    expect(rows[0]!.id).toBe('wd-001');
+    expect(rows[0]!.approvedCount).toBe(2);
+    expect(rows[0]!.broadcastAt).toBe('2026-01-15T10:05:00.000Z');
+    expect(rows[0]!.confirmedAt).toBeNull();
   });
 
   it('returns 0 approvedCount when no multisigOpId', async () => {
@@ -153,9 +157,9 @@ describe('queryWithdrawalsForExport', () => {
 
     const { queryWithdrawalsForExport } = await import('../services/withdrawal-csv.service.js');
     const rows = await queryWithdrawalsForExport(db, {});
-    expect(rows[0].approvedCount).toBe(0);
-    expect(rows[0].txHash).toBeNull();
-    expect(rows[0].initiatedByEmail).toBeNull();
+    expect(rows[0]!.approvedCount).toBe(0);
+    expect(rows[0]!.txHash).toBeNull();
+    expect(rows[0]!.initiatedByEmail).toBeNull();
   });
 
   it('returns empty array when no withdrawals match', async () => {
@@ -253,7 +257,9 @@ describe('depositCsvHeader', () => {
 });
 
 describe('countDepositsForExport', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns count with no filters', async () => {
     const db = {
@@ -288,7 +294,9 @@ describe('countDepositsForExport', () => {
 });
 
 describe('queryDepositsForExport', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns mapped deposit rows with user email', async () => {
     const depositRows = [
@@ -320,11 +328,11 @@ describe('queryDepositsForExport', () => {
     const { queryDepositsForExport } = await import('../services/deposit-csv.service.js');
     const rows = await queryDepositsForExport(db, {});
     expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe('dep-001');
-    expect(rows[0].userEmail).toBe('user@example.com');
-    expect(rows[0].confirmations).toBe(12);
-    expect(rows[0].blockNumber).toBe(0); // not stored in table
-    expect(rows[0].createdAt).toBe('2026-01-15T10:00:00.000Z');
+    expect(rows[0]!.id).toBe('dep-001');
+    expect(rows[0]!.userEmail).toBe('user@example.com');
+    expect(rows[0]!.confirmations).toBe(12);
+    expect(rows[0]!.blockNumber).toBe(0); // not stored in table
+    expect(rows[0]!.createdAt).toBe('2026-01-15T10:00:00.000Z');
   });
 
   it('returns null userEmail when no join match', async () => {
@@ -356,8 +364,8 @@ describe('queryDepositsForExport', () => {
 
     const { queryDepositsForExport } = await import('../services/deposit-csv.service.js');
     const rows = await queryDepositsForExport(db, {});
-    expect(rows[0].userEmail).toBeNull();
-    expect(rows[0].txHash).toBeNull();
+    expect(rows[0]!.userEmail).toBeNull();
+    expect(rows[0]!.txHash).toBeNull();
   });
 
   it('returns empty array when no deposits match', async () => {

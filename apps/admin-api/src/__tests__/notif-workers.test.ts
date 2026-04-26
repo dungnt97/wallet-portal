@@ -64,7 +64,9 @@ function makeDb(overrides: Record<string, unknown> = {}) {
 // ── Tests: createSlackWorker ──────────────────────────────────────────────────
 
 describe('createSlackWorker', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates a BullMQ worker on the slack queue', async () => {
     const { Worker } = await import('bullmq');
@@ -116,7 +118,7 @@ describe('createSlackWorker', () => {
       'job-001',
       expect.stringContaining('<webhook>')
     );
-    expect(consoleSpy.mock.calls[0][2]).not.toContain('secret');
+    expect(consoleSpy.mock.calls[0]![2]).not.toContain('secret');
     consoleSpy.mockRestore();
   });
 });
@@ -124,7 +126,9 @@ describe('createSlackWorker', () => {
 // ── Tests: createEmailImmediateWorker ─────────────────────────────────────────
 
 describe('createEmailImmediateWorker', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates a BullMQ worker on the email-immediate queue', async () => {
     const { Worker } = await import('bullmq');
@@ -155,7 +159,7 @@ describe('createEmailImmediateWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'noreply@example.com' },
       REDIS_OPTS
-    ) as { processor: (job: unknown) => Promise<void> };
+    ) as unknown as { processor: (job: unknown) => Promise<void> };
 
     const jobData = {
       staffId: STAFF_ID,
@@ -187,7 +191,7 @@ describe('createEmailImmediateWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'x@y.com' },
       REDIS_OPTS
-    ) as { processor: (job: unknown) => Promise<void> };
+    ) as unknown as { processor: (job: unknown) => Promise<void> };
 
     await worker.processor(
       makeJob({
@@ -223,7 +227,7 @@ describe('createEmailImmediateWorker', () => {
       db as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'x@y.com' },
       REDIS_OPTS
-    ) as { processor: (job: unknown) => Promise<void> };
+    ) as unknown as { processor: (job: unknown) => Promise<void> };
 
     await worker.processor(
       makeJob({
@@ -244,7 +248,9 @@ describe('createEmailImmediateWorker', () => {
 // ── Tests: createEmailDigestWorker ────────────────────────────────────────────
 
 describe('createEmailDigestWorker', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates a BullMQ worker on the digest queue with concurrency=1', async () => {
     const { Worker } = await import('bullmq');
@@ -272,7 +278,7 @@ describe('createEmailDigestWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'x@y.com' },
       REDIS_OPTS
-    ) as { processor: () => Promise<void> };
+    ) as unknown as { processor: () => Promise<void> };
 
     await worker.processor();
 
@@ -309,7 +315,7 @@ describe('createEmailDigestWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'noreply@example.com' },
       REDIS_OPTS
-    ) as { processor: () => Promise<void> };
+    ) as unknown as { processor: () => Promise<void> };
 
     await worker.processor();
 
@@ -349,7 +355,7 @@ describe('createEmailDigestWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'x@y.com' },
       REDIS_OPTS
-    ) as { processor: () => Promise<void> };
+    ) as unknown as { processor: () => Promise<void> };
 
     await worker.processor();
 
@@ -408,7 +414,7 @@ describe('createEmailDigestWorker', () => {
       makeDb() as never,
       { host: 'smtp.example.com', port: 587, user: '', pass: '', from: 'x@y.com' },
       REDIS_OPTS
-    ) as { processor: () => Promise<void> };
+    ) as unknown as { processor: () => Promise<void> };
 
     // Should not throw — continues despite first group failure
     await expect(worker.processor()).resolves.not.toThrow();
@@ -453,7 +459,7 @@ describe('createPgBackupWorker', () => {
       }),
     });
 
-    const worker = createPgBackupWorker({ update: mockUpdate } as never, REDIS_OPTS) as {
+    const worker = createPgBackupWorker({ update: mockUpdate } as never, REDIS_OPTS) as unknown as {
       processor: (job: unknown) => Promise<void>;
     };
     const job = makeJob({ backupId: 'backup-001', triggeredBy: STAFF_ID });
@@ -487,7 +493,7 @@ describe('createPgBackupWorker', () => {
       }),
     });
 
-    const worker = createPgBackupWorker({ update: mockUpdate } as never, REDIS_OPTS) as {
+    const worker = createPgBackupWorker({ update: mockUpdate } as never, REDIS_OPTS) as unknown as {
       processor: (job: unknown) => Promise<void>;
     };
     const job = makeJob({ backupId: 'backup-001', triggeredBy: STAFF_ID });

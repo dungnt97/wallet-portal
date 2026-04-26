@@ -168,16 +168,16 @@ async function buildApp(
   const { updateRiskTier } = await import('../services/user-risk.service.js');
 
   vi.mocked(listUsers).mockImplementation(
-    opts.listUsersFn ??
+    (opts.listUsersFn ??
       (async () => ({
         data: [makeUser()],
         total: 1,
         page: 1,
-      }))
+      }))) as typeof listUsers
   );
 
   vi.mocked(createUser).mockImplementation(
-    opts.createUserFn ??
+    (opts.createUserFn ??
       (async () => ({
         user: makeUser(),
         addresses: [
@@ -188,19 +188,20 @@ async function buildApp(
             derivationIndex: 0,
           },
         ],
-      }))
+      }))) as typeof createUser
   );
 
   vi.mocked(updateUserKyc).mockImplementation(
-    opts.updateKycFn ?? (async () => ({ user: makeUser({ kycTier: 'enhanced' }) }))
+    (opts.updateKycFn ??
+      (async () => ({ user: makeUser({ kycTier: 'enhanced' }) }))) as typeof updateUserKyc
   );
 
   vi.mocked(getUserBalance).mockImplementation(
-    opts.getBalanceFn ?? (async () => ({ USDT: '100.00', USDC: '0.00' }))
+    (opts.getBalanceFn ?? (async () => ({ USDT: '100.00', USDC: '0.00' }))) as typeof getUserBalance
   );
 
   vi.mocked(getUserAddresses).mockImplementation(
-    opts.getAddressesFn ??
+    (opts.getAddressesFn ??
       (async () => [
         {
           id: '00000000-0000-0000-0000-000000000010',
@@ -214,11 +215,11 @@ async function buildApp(
           balance: { USDT: '0', USDC: '0' },
           cached: false,
         },
-      ])
+      ])) as typeof getUserAddresses
   );
 
   vi.mocked(retryDeriveUserAddresses).mockImplementation(
-    opts.retryDeriveFn ??
+    (opts.retryDeriveFn ??
       (async () => ({
         addresses: [
           {
@@ -229,18 +230,18 @@ async function buildApp(
           },
         ],
         alreadyComplete: false,
-      }))
+      }))) as typeof retryDeriveUserAddresses
   );
 
   vi.mocked(updateRiskTier).mockImplementation(
-    opts.updateRiskFn ??
+    (opts.updateRiskFn ??
       (async () => ({
         userId: USER_ID,
         riskTier: 'high' as const,
         riskReason: 'suspicious activity',
         riskUpdatedAt: new Date().toISOString(),
         riskUpdatedBy: STAFF_ID,
-      }))
+      }))) as typeof updateRiskTier
   );
 
   const { default: usersRoutes } = await import('../routes/users.routes.js');
@@ -252,7 +253,9 @@ async function buildApp(
 // ── Tests: GET /users ─────────────────────────────────────────────────────────
 
 describe('GET /users', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated list of users', async () => {
     const app = await buildApp();
@@ -291,7 +294,9 @@ describe('GET /users', () => {
 // ── Tests: GET /users/:id ─────────────────────────────────────────────────────
 
 describe('GET /users/:id', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns user with address count', async () => {
     const app = await buildApp({ addrRows: [{ id: 'addr-1' }, { id: 'addr-2' }] });
@@ -323,7 +328,9 @@ describe('GET /users/:id', () => {
 // ── Tests: POST /users ────────────────────────────────────────────────────────
 
 describe('POST /users', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates user and returns 201', async () => {
     const app = await buildApp();
@@ -391,7 +398,9 @@ describe('POST /users', () => {
 // ── Tests: PATCH /users/:id/kyc ───────────────────────────────────────────────
 
 describe('PATCH /users/:id/kyc', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('updates KYC tier', async () => {
     const app = await buildApp();
@@ -442,7 +451,9 @@ describe('PATCH /users/:id/kyc', () => {
 // ── Tests: GET /users/:id/balance ─────────────────────────────────────────────
 
 describe('GET /users/:id/balance', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns user balance', async () => {
     const app = await buildApp();
@@ -465,7 +476,9 @@ describe('GET /users/:id/balance', () => {
 // ── Tests: GET /users/:id/addresses ──────────────────────────────────────────
 
 describe('GET /users/:id/addresses', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns user addresses', async () => {
     const app = await buildApp();
@@ -487,7 +500,9 @@ describe('GET /users/:id/addresses', () => {
 // ── Tests: POST /users/:id/derive-addresses ───────────────────────────────────
 
 describe('POST /users/:id/derive-addresses', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('retries derivation successfully', async () => {
     const app = await buildApp();
@@ -536,7 +551,9 @@ describe('POST /users/:id/derive-addresses', () => {
 // ── Tests: PATCH /users/:id/risk ─────────────────────────────────────────────
 
 describe('PATCH /users/:id/risk', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('updates risk tier with step-up session', async () => {
     const app = await buildApp({ steppedUp: true });

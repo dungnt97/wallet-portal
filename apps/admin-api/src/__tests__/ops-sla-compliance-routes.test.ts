@@ -148,7 +148,9 @@ async function buildApp(
 // ── Tests: GET /ops/sla-summary ───────────────────────────────────────────────
 
 describe('GET /ops/sla-summary', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns SLA metrics with median latencies', async () => {
     const app = await buildApp();
@@ -190,7 +192,9 @@ describe('GET /ops/sla-summary', () => {
 // ── Tests: GET /ops/compliance-summary ───────────────────────────────────────
 
 describe('GET /ops/compliance-summary', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns KYC and risk tier distributions', async () => {
     const app = await buildApp();

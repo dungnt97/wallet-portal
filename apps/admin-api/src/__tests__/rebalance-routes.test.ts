@@ -101,12 +101,12 @@ async function buildApp(
 
   const { createRebalance } = await import('../services/rebalance-create.service.js');
   vi.mocked(createRebalance).mockImplementation(
-    opts.createRebalanceFn ??
+    (opts.createRebalanceFn ??
       (async () => ({
         withdrawal: { id: WD_ID, status: 'pending' },
         multisigOp: { id: MULTISIG_OP_ID },
         destinationAddr: '0xColdVault',
-      }))
+      }))) as typeof createRebalance
   );
 
   const { default: rebalanceRoutes } = await import('../routes/rebalance.routes.js');
@@ -118,7 +118,9 @@ async function buildApp(
 // ── Tests: GET /rebalance/history ─────────────────────────────────────────────
 
 describe('GET /rebalance/history', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated rebalance history', async () => {
     const app = await buildApp();
@@ -186,7 +188,9 @@ describe('GET /rebalance/history', () => {
 // ── Tests: POST /rebalance ────────────────────────────────────────────────────
 
 describe('POST /rebalance', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('initiates hot→cold rebalance and returns 201', async () => {
     const app = await buildApp();
@@ -207,9 +211,7 @@ describe('POST /rebalance', () => {
     const { PolicyRejectedError } = await import('../services/rebalance-create.service.js');
     const app = await buildApp({
       createRebalanceFn: async () => {
-        throw new PolicyRejectedError('policy rejected', [
-          { rule: 'max_amount', message: 'too large' },
-        ]);
+        throw new PolicyRejectedError([{ rule: 'max_amount', message: 'too large' }]);
       },
     });
     const res = await app.inject({

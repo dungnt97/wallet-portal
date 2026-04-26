@@ -239,10 +239,7 @@ describe('audit-query service', () => {
     ];
     const db = makeMockDb(rows);
 
-    const result = await queryAuditLogsForExport(db, {
-      page: 1,
-      limit: 10,
-    });
+    const result = await queryAuditLogsForExport(db, {});
 
     expect(result).toHaveLength(2);
   });
@@ -272,10 +269,7 @@ describe('audit-query service', () => {
     });
     const db = makeMockDb([row]);
 
-    const result = await queryAuditLogsForExport(db, {
-      page: 1,
-      limit: 10,
-    });
+    const result = await queryAuditLogsForExport(db, {});
 
     expect(result[0]?.ipAddr).toBe('192.168.1.100');
     expect(result[0]?.ua).toBe('Chrome/91');
@@ -288,10 +282,7 @@ describe('audit-query service', () => {
     const rows = [makeDbRow(AUDIT_ID), makeDbRow(AUDIT_ID_2)];
     const db = makeMockDb(rows);
 
-    const result = await countAuditLogs(db, {
-      page: 1,
-      limit: 10,
-    });
+    const result = await countAuditLogs(db, {});
 
     expect(result).toBe(2);
   });
@@ -299,10 +290,7 @@ describe('audit-query service', () => {
   it('countAuditLogs returns 0 for no matches', async () => {
     const db = makeMockDb([]);
 
-    const result = await countAuditLogs(db, {
-      page: 1,
-      limit: 10,
-    });
+    const result = await countAuditLogs(db, {});
 
     expect(result).toBe(0);
   });

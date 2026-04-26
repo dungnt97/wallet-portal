@@ -63,21 +63,27 @@ async function buildApp(
 
   if (opts.getFeeDataFn) {
     const { JsonRpcProvider } = await import('ethers');
-    vi.mocked(JsonRpcProvider).mockImplementation(() => ({
-      getFeeData: opts.getFeeDataFn as () => Promise<{
-        gasPrice: bigint | null;
-        maxFeePerGas: bigint | null;
-      }>,
-    }));
+    vi.mocked(JsonRpcProvider).mockImplementation(
+      () =>
+        ({
+          getFeeData: opts.getFeeDataFn as () => Promise<{
+            gasPrice: bigint | null;
+            maxFeePerGas: bigint | null;
+          }>,
+        }) as never
+    );
   }
 
   if (opts.solFeesFn) {
     const { Connection } = await import('@solana/web3.js');
-    vi.mocked(Connection).mockImplementation(() => ({
-      getRecentPrioritizationFees: opts.solFeesFn as () => Promise<
-        Array<{ prioritizationFee: number; slot: number }>
-      >,
-    }));
+    vi.mocked(Connection).mockImplementation(
+      () =>
+        ({
+          getRecentPrioritizationFees: opts.solFeesFn as () => Promise<
+            Array<{ prioritizationFee: number; slot: number }>
+          >,
+        }) as never
+    );
   }
 
   const { default: chainRoutes } = await import('../routes/chain.routes.js');
@@ -94,7 +100,9 @@ async function buildApp(
 // ── Tests: GET /chain/gas-history ─────────────────────────────────────────────
 
 describe('GET /chain/gas-history', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns history with computed stats for bnb', async () => {
     const { app } = await buildApp();
@@ -173,7 +181,9 @@ describe('GET /chain/gas-history', () => {
 // ── Tests: GET /chain/gas-current ─────────────────────────────────────────────
 
 describe('GET /chain/gas-current', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns live BNB gas price in gwei', async () => {
     const { app } = await buildApp();

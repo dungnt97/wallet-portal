@@ -78,30 +78,35 @@ async function buildApp(
   const { streamAuditCsv } = await import('../services/audit-csv.service.js');
 
   vi.mocked(listAuditLogs).mockImplementation(
-    opts.listAuditLogsFn ??
+    (opts.listAuditLogsFn as typeof listAuditLogs) ??
       (async () => ({
-        data: [makeAuditLog()],
+        data: [makeAuditLog()] as never,
         total: 1,
         page: 1,
         limit: 50,
       }))
   );
 
-  vi.mocked(getAuditLog).mockImplementation(opts.getAuditLogFn ?? (async () => makeAuditLog()));
+  vi.mocked(getAuditLog).mockImplementation(
+    (opts.getAuditLogFn as typeof getAuditLog) ?? (async () => makeAuditLog() as never)
+  );
 
-  vi.mocked(countAuditLogs).mockImplementation(opts.countAuditLogsFn ?? (async () => 5));
+  vi.mocked(countAuditLogs).mockImplementation(
+    (opts.countAuditLogsFn as typeof countAuditLogs) ?? (async () => 5)
+  );
 
   vi.mocked(queryAuditLogsForExport).mockImplementation(
-    opts.queryForExportFn ?? (async () => [makeAuditLog()])
+    (opts.queryForExportFn as typeof queryAuditLogsForExport) ??
+      (async () => [makeAuditLog()] as never)
   );
 
   vi.mocked(verifyChain).mockImplementation(
-    opts.verifyChainFn ?? (async () => ({ verified: true, checked: 10 }))
+    (opts.verifyChainFn as typeof verifyChain) ?? (async () => ({ verified: true, checked: 10 }))
   );
 
   vi.mocked(streamAuditCsv).mockImplementation(
-    opts.streamCsvFn ??
-      ((rows: unknown, chunk: (s: string) => void) => {
+    (opts.streamCsvFn as typeof streamAuditCsv) ??
+      ((_rows, chunk) => {
         chunk(`id,staffId,action\n${AUDIT_ID},${STAFF_ID},user.kyc_updated\n`);
       })
   );
@@ -115,7 +120,9 @@ async function buildApp(
 // ── Tests: GET /audit-logs ────────────────────────────────────────────────────
 
 describe('GET /audit-logs', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated audit log list', async () => {
     const app = await buildApp();
@@ -201,7 +208,9 @@ describe('GET /audit-logs', () => {
 // ── Tests: GET /audit-logs/verify ────────────────────────────────────────────
 
 describe('GET /audit-logs/verify', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns verified=true when chain is intact', async () => {
     const app = await buildApp();
@@ -260,7 +269,9 @@ describe('GET /audit-logs/verify', () => {
 // ── Tests: GET /audit-logs/export.csv ────────────────────────────────────────
 
 describe('GET /audit-logs/export.csv', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('streams CSV body when row count under cap', async () => {
     const app = await buildApp({ countAuditLogsFn: async () => 100 });
@@ -320,7 +331,9 @@ describe('GET /audit-logs/export.csv', () => {
 // ── Tests: GET /audit-logs/:id ────────────────────────────────────────────────
 
 describe('GET /audit-logs/:id', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns single audit log entry', async () => {
     const app = await buildApp();

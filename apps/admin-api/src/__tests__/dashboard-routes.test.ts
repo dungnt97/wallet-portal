@@ -92,7 +92,7 @@ async function buildApp(
 
   const { getDashboardHistory } = await import('../services/dashboard-history.service.js');
   vi.mocked(getDashboardHistory).mockImplementation(
-    opts.historyFn ??
+    (opts.historyFn as typeof getDashboardHistory | undefined) ??
       (async (_, metric, range) => ({
         metric,
         range,
@@ -109,7 +109,9 @@ async function buildApp(
 // ── Tests: GET /dashboard/metrics ────────────────────────────────────────────
 
 describe('GET /dashboard/metrics', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns aggregated metrics', async () => {
     const app = await buildApp();
@@ -150,7 +152,9 @@ describe('GET /dashboard/metrics', () => {
 // ── Tests: GET /dashboard/nav-counts ─────────────────────────────────────────
 
 describe('GET /dashboard/nav-counts', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns badge counts for sidebar', async () => {
     // Build fresh app so metricCallN starts at 0 — nav-counts uses calls 1-5
@@ -191,7 +195,9 @@ describe('GET /dashboard/nav-counts', () => {
 // ── Tests: GET /dashboard/history ────────────────────────────────────────────
 
 describe('GET /dashboard/history', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns history points for aum/24h', async () => {
     const app = await buildApp();

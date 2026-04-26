@@ -160,7 +160,9 @@ async function buildApp(opts: {
 // ── POST /auth/webauthn/register/options ───────────────────────────────────────
 
 describe('POST /auth/webauthn/register/options', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 with registration options', async () => {
     const { app } = await buildApp({ existingCreds: [] });
@@ -195,7 +197,9 @@ describe('POST /auth/webauthn/register/options', () => {
 // ── POST /auth/webauthn/register/verify ────────────────────────────────────────
 
 describe('POST /auth/webauthn/register/verify', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 with credentialId on successful verification', async () => {
     const { app } = await buildApp({});
@@ -319,7 +323,9 @@ describe('POST /auth/webauthn/challenge', () => {
 // ── POST /auth/webauthn/verify ─────────────────────────────────────────────────
 
 describe('POST /auth/webauthn/verify', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 with steppedUpAt on successful assertion', async () => {
     const { app } = await buildApp({

@@ -260,21 +260,35 @@ async function buildApp(
   const { cancelCeremony } = await import('../services/signer-ceremony-cancel.service.js');
 
   vi.mocked(addSigner).mockImplementation(
-    opts.addSignerFn ??
-      (async () => ({ ceremonyId: CEREMONY_ID, bnbOpId: BNB_OP_ID, solanaOpId: SOL_OP_ID }))
+    (opts.addSignerFn ??
+      (async () => ({
+        ceremonyId: CEREMONY_ID,
+        bnbOpId: BNB_OP_ID,
+        solanaOpId: SOL_OP_ID,
+      }))) as typeof addSigner
   );
 
   vi.mocked(removeSigner).mockImplementation(
-    opts.removeSignerFn ??
-      (async () => ({ ceremonyId: CEREMONY_ID, bnbOpId: BNB_OP_ID, solanaOpId: SOL_OP_ID }))
+    (opts.removeSignerFn ??
+      (async () => ({
+        ceremonyId: CEREMONY_ID,
+        bnbOpId: BNB_OP_ID,
+        solanaOpId: SOL_OP_ID,
+      }))) as typeof removeSigner
   );
 
   vi.mocked(rotateSigners).mockImplementation(
-    opts.rotateSignersFn ??
-      (async () => ({ ceremonyId: CEREMONY_ID, bnbOpId: BNB_OP_ID, solanaOpId: SOL_OP_ID }))
+    (opts.rotateSignersFn ??
+      (async () => ({
+        ceremonyId: CEREMONY_ID,
+        bnbOpId: BNB_OP_ID,
+        solanaOpId: SOL_OP_ID,
+      }))) as typeof rotateSigners
   );
 
-  vi.mocked(cancelCeremony).mockImplementation(opts.cancelCeremonyFn ?? (async () => undefined));
+  vi.mocked(cancelCeremony).mockImplementation(
+    (opts.cancelCeremonyFn ?? (async () => undefined)) as typeof cancelCeremony
+  );
 
   const { default: signersRoutes } = await import('../routes/signers.routes.js');
   await app.register(signersRoutes);
@@ -285,7 +299,9 @@ async function buildApp(
 // ── Tests: GET /signers/stats ─────────────────────────────────────────────────
 
 describe('GET /signers/stats', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns signer stats with enriched data', async () => {
     const app = await buildApp();
@@ -331,7 +347,9 @@ describe('GET /signers/stats', () => {
 // ── Tests: POST /signers/add ──────────────────────────────────────────────────
 
 describe('POST /signers/add', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('initiates signer_add ceremony and returns 201', async () => {
     const app = await buildApp();
@@ -396,7 +414,9 @@ describe('POST /signers/add', () => {
 // ── Tests: POST /signers/remove ───────────────────────────────────────────────
 
 describe('POST /signers/remove', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('initiates signer_remove ceremony and returns 201', async () => {
     const app = await buildApp();
@@ -447,7 +467,9 @@ describe('POST /signers/remove', () => {
 // ── Tests: POST /signers/rotate ───────────────────────────────────────────────
 
 describe('POST /signers/rotate', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('initiates signer_rotate ceremony and returns 201', async () => {
     const REMOVE_ID = '00000000-0000-0000-0000-000000000020';
@@ -501,7 +523,9 @@ describe('POST /signers/rotate', () => {
 // ── Tests: GET /signers/ceremonies ────────────────────────────────────────────
 
 describe('GET /signers/ceremonies', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated ceremony list', async () => {
     const app = await buildApp({ skipStatsPreload: true });
@@ -547,7 +571,9 @@ describe('GET /signers/ceremonies', () => {
 // ── Tests: GET /signers/ceremonies/:id ───────────────────────────────────────
 
 describe('GET /signers/ceremonies/:id', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns ceremony detail', async () => {
     const app = await buildApp();
@@ -588,7 +614,9 @@ describe('GET /signers/ceremonies/:id', () => {
 // ── Tests: POST /signers/ceremonies/:id/cancel ────────────────────────────────
 
 describe('POST /signers/ceremonies/:id/cancel', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('cancels ceremony and returns 204', async () => {
     const app = await buildApp();

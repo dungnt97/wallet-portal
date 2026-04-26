@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 // Tests for Fastify infrastructure plugins:
 //   db.plugin.ts         — decorates app.db, onClose calls client.end()
@@ -202,7 +202,7 @@ async function buildAppWithRedisStub() {
   // Register a fastify-plugin with name='redis' so queue plugin's dependency check passes
   const fp = (await import('fastify-plugin')).default;
   const redisStub = fp(
-    async (a: typeof app) => {
+    async (a: FastifyInstance) => {
       a.decorate('redis', { options: { host: 'localhost', port: 6379 } } as never);
     },
     { name: 'redis' }

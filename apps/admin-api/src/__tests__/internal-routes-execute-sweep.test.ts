@@ -126,7 +126,9 @@ function authHeader() {
 // ── POST /internal/withdrawals/:id/execute ────────────────────────────────────
 
 describe('POST /internal/withdrawals/:id/execute', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('happy path — returns jobId from executeWithdrawal', async () => {
     const { app } = await buildApp();
@@ -199,7 +201,9 @@ describe('POST /internal/withdrawals/:id/execute', () => {
 // ── POST /internal/sweeps/:id/broadcasted ─────────────────────────────────────
 
 describe('POST /internal/sweeps/:id/broadcasted', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('happy path — records sweep broadcasted and returns ok=true', async () => {
     const { app } = await buildApp();
@@ -256,7 +260,9 @@ describe('POST /internal/sweeps/:id/broadcasted', () => {
 // ── POST /internal/sweeps/:id/confirmed ───────────────────────────────────────
 
 describe('POST /internal/sweeps/:id/confirmed', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('happy path — records sweep confirmed and returns ok=true', async () => {
     const { app } = await buildApp();

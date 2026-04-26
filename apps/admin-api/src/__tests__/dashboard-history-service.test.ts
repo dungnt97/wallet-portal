@@ -15,7 +15,9 @@ function makeDb(rows1: unknown[], rows2: unknown[] = []) {
 }
 
 describe('getDashboardHistory — aum', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns metric=aum with cumulative points', async () => {
     // rows1 = delta buckets; rows2 = prior sum
@@ -33,9 +35,9 @@ describe('getDashboardHistory — aum', () => {
     expect(result.range).toBe('24h');
     expect(result.points).toHaveLength(2);
     // cumulative: 200 + 500 = 700, then 700 + 300 = 1000
-    expect(result.points[0].v).toBe(700);
-    expect(result.points[1].v).toBe(1000);
-    expect(typeof result.points[0].t).toBe('string');
+    expect(result.points[0]!.v).toBe(700);
+    expect(result.points[1]!.v).toBe(1000);
+    expect(typeof result.points[0]!.t).toBe('string');
   });
 
   it('clamps negative cumulative to 0', async () => {
@@ -46,7 +48,7 @@ describe('getDashboardHistory — aum', () => {
     const { getDashboardHistory } = await import('../services/dashboard-history.service.js');
     const result = await getDashboardHistory(db as never, 'aum', '24h');
     // cumulative: 50 + (-100) = -50 → clamped to 0
-    expect(result.points[0].v).toBe(0);
+    expect(result.points[0]!.v).toBe(0);
   });
 
   it('returns empty points when no delta rows', async () => {
@@ -61,12 +63,14 @@ describe('getDashboardHistory — aum', () => {
     const db = makeDb(bucketRows, [{}]);
     const { getDashboardHistory } = await import('../services/dashboard-history.service.js');
     const result = await getDashboardHistory(db as never, 'aum', '30d');
-    expect(result.points[0].v).toBe(400);
+    expect(result.points[0]!.v).toBe(400);
   });
 });
 
 describe('getDashboardHistory — deposits', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns metric=deposits with count per bucket', async () => {
     const bucketRows = [
@@ -80,8 +84,8 @@ describe('getDashboardHistory — deposits', () => {
 
     expect(result.metric).toBe('deposits');
     expect(result.points).toHaveLength(2);
-    expect(result.points[0].v).toBe(15);
-    expect(result.points[1].v).toBe(8);
+    expect(result.points[0]!.v).toBe(15);
+    expect(result.points[1]!.v).toBe(8);
   });
 
   it('returns empty points when no deposits in range', async () => {
@@ -97,12 +101,14 @@ describe('getDashboardHistory — deposits', () => {
     };
     const { getDashboardHistory } = await import('../services/dashboard-history.service.js');
     const result = await getDashboardHistory(db as never, 'deposits', '7d');
-    expect(result.points[0].v).toBe(0);
+    expect(result.points[0]!.v).toBe(0);
   });
 });
 
 describe('getDashboardHistory — withdrawals', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns metric=withdrawals with count per bucket', async () => {
     const bucketRows = [{ bucket: '2026-01-15T09:00:00Z', cnt: '3' }];
@@ -113,7 +119,7 @@ describe('getDashboardHistory — withdrawals', () => {
 
     expect(result.metric).toBe('withdrawals');
     expect(result.points).toHaveLength(1);
-    expect(result.points[0].v).toBe(3);
+    expect(result.points[0]!.v).toBe(3);
   });
 
   it('returns empty points for withdrawals when no data', async () => {

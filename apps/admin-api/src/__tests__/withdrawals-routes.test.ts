@@ -29,11 +29,8 @@ vi.mock('../services/withdrawal-create.service.js', () => ({
   PolicyRejectedError: class PolicyRejectedError extends Error {
     statusCode = 403;
     code = 'POLICY_REJECTED';
-    constructor(
-      m: string,
-      public reasons?: Array<{ rule: string; message: string }>
-    ) {
-      super(m);
+    constructor(public reasons: Array<{ rule: string; message: string }>) {
+      super(`Policy rejected: ${reasons.map((r) => r.message).join('; ')}`);
       this.name = 'PolicyRejectedError';
     }
   },
@@ -68,11 +65,8 @@ vi.mock('../services/withdrawal-approve.service.js', () => ({
   PolicyRejectedError: class PolicyRejectedError extends Error {
     statusCode = 403;
     code = 'POLICY_REJECTED';
-    constructor(
-      m: string,
-      public reasons?: Array<{ rule: string; message: string }>
-    ) {
-      super(m);
+    constructor(public reasons: Array<{ rule: string; message: string }>) {
+      super(`Policy rejected: ${reasons.map((r) => r.message).join('; ')}`);
       this.name = 'PolicyRejectedError';
     }
   },
@@ -253,7 +247,7 @@ async function buildApp(
     await import('../services/withdrawal-csv.service.js');
 
   vi.mocked(createWithdrawal).mockImplementation(
-    opts.mockCreateFn ??
+    (opts.mockCreateFn ??
       (async (db, input) => ({
         withdrawal: {
           id: WD_ID,
@@ -276,11 +270,11 @@ async function buildApp(
           requiredSigs: 2,
           status: 'pending',
         },
-      }))
+      }))) as typeof createWithdrawal
   );
 
   vi.mocked(approveWithdrawal).mockImplementation(
-    opts.mockApproveFn ??
+    (opts.mockApproveFn ??
       (async () => ({
         op: {
           id: OP_ID,
@@ -290,18 +284,18 @@ async function buildApp(
         },
         progress: '1/2',
         thresholdMet: false,
-      }))
+      }))) as typeof approveWithdrawal
   );
 
   vi.mocked(executeWithdrawal).mockImplementation(
-    opts.mockExecuteFn ??
+    (opts.mockExecuteFn ??
       (async () => ({
         jobId: `job-${Math.random().toString(36).slice(2)}`,
-      }))
+      }))) as typeof executeWithdrawal
   );
 
   vi.mocked(countWithdrawalsForExport).mockResolvedValue(10);
-  vi.mocked(queryWithdrawalsForExport).mockResolvedValue(withdrawalList);
+  vi.mocked(queryWithdrawalsForExport).mockResolvedValue(withdrawalList as never);
 
   vi.mocked(streamWithdrawalCsv).mockImplementation((rows, chunk) => {
     // biome-ignore lint/suspicious/noExplicitAny: test mock — row shape is dynamic
@@ -560,9 +554,7 @@ describe('POST /withdrawals', () => {
     const { PolicyRejectedError } = await import('../services/withdrawal-create.service.js');
     const app = await buildApp({
       mockCreateFn: async () => {
-        throw new PolicyRejectedError('Policy rejected', [
-          { rule: 'daily_limit', message: 'Exceeds daily limit' },
-        ]);
+        throw new PolicyRejectedError([{ rule: 'daily_limit', message: 'Exceeds daily limit' }]);
       },
     });
 
@@ -704,9 +696,7 @@ describe('POST /withdrawals/:id/approve', () => {
     const { PolicyRejectedError } = await import('../services/withdrawal-approve.service.js');
     const app = await buildApp({
       mockApproveFn: async () => {
-        throw new PolicyRejectedError('Policy check failed', [
-          { rule: 'compliance', message: 'Account under review' },
-        ]);
+        throw new PolicyRejectedError([{ rule: 'compliance', message: 'Account under review' }]);
       },
     });
 

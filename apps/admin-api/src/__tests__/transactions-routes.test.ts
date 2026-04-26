@@ -89,7 +89,9 @@ async function buildApp(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('GET /transactions', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated transaction list', async () => {
     const app = await buildApp();

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Supplemental pg-backup.worker tests covering:
 //   - uploadToS3 (lines 38-62): S3 upload path when BACKUP_S3_BUCKET is set
 //   - real pg_dump execution path (lines 107-129)
@@ -86,12 +86,14 @@ describe('createPgBackupWorker — real dump path', () => {
   it('executes pg_dump, uploads to S3, marks backup as done', async () => {
     // Make execFile call the callback immediately (success)
     const { execFile } = await import('node:child_process');
-    vi.mocked(execFile).mockImplementation(
-      (_cmd: string, _args: string[], cb: (err: Error | null) => void) => {
-        cb(null);
-        return undefined as never;
-      }
-    );
+    vi.mocked(execFile).mockImplementation(((
+      _cmd: string,
+      _args: string[],
+      cb: (err: Error | null) => void
+    ) => {
+      cb(null);
+      return undefined as never;
+    }) as never);
 
     const db = makeDb();
     const { createPgBackupWorker } = await import('../workers/pg-backup.worker.js');
@@ -110,12 +112,14 @@ describe('createPgBackupWorker — real dump path', () => {
 
   it('marks backup as failed and rethrows when pg_dump fails', async () => {
     const { execFile } = await import('node:child_process');
-    vi.mocked(execFile).mockImplementation(
-      (_cmd: string, _args: string[], cb: (err: Error | null) => void) => {
-        cb(new Error('pg_dump: connection refused'));
-        return undefined as never;
-      }
-    );
+    vi.mocked(execFile).mockImplementation(((
+      _cmd: string,
+      _args: string[],
+      cb: (err: Error | null) => void
+    ) => {
+      cb(new Error('pg_dump: connection refused'));
+      return undefined as never;
+    }) as never);
 
     const db = makeDb();
     const { createPgBackupWorker } = await import('../workers/pg-backup.worker.js');

@@ -7,7 +7,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // ── session-lookup ────────────────────────────────────────────────────────────
 
 describe('lookupStaffByEmail', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns staff when active record found', async () => {
     const staffRow = {

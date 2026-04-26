@@ -81,7 +81,7 @@ describe('probePolicyEngine', () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
     const { probePolicyEngine } = await import('../services/health-probes.service.js');
     await probePolicyEngine('http://policy-engine:4000');
-    const calledUrl = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const calledUrl = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(calledUrl).toBe('http://policy-engine:4000/health/live');
   });
 });
@@ -271,7 +271,7 @@ describe('probeWorkers', () => {
     const { probeWorkers } = await import('../services/health-probes.service.js');
     const results = await probeWorkers(redis);
     expect(results.every((r) => r.status === 'error')).toBe(true);
-    expect(results[0].error).toContain('no heartbeat key');
+    expect(results[0]!.error).toContain('no heartbeat key');
   });
 
   it('returns error when redis.get throws', async () => {

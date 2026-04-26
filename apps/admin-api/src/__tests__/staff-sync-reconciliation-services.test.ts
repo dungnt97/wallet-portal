@@ -67,7 +67,9 @@ function makeSelectChain(rows: { chain: 'bnb' | 'sol'; address: string }[]) {
 }
 
 describe('enumerateManagedAddresses', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns hot wallet addresses for scope=hot (USDT+USDC per wallet)', async () => {
     let callN = 0;
@@ -90,8 +92,8 @@ describe('enumerateManagedAddresses', () => {
     );
     const results = await enumerateManagedAddresses(db, 'hot', null, new Date());
     expect(results).toHaveLength(2); // USDT + USDC for 1 hot wallet
-    expect(results[0].addressScope).toBe('hot');
-    expect(results[0].accountLabel).toBe('hot_safe');
+    expect(results[0]!.addressScope).toBe('hot');
+    expect(results[0]!.accountLabel).toBe('hot_safe');
     const tokens = results.map((r) => r.token).sort();
     expect(tokens).toEqual(['USDC', 'USDT']);
   });
@@ -110,8 +112,8 @@ describe('enumerateManagedAddresses', () => {
     );
     const results = await enumerateManagedAddresses(db, 'cold', null, new Date());
     expect(results).toHaveLength(2);
-    expect(results[0].addressScope).toBe('cold');
-    expect(results[0].accountLabel).toBe('cold_reserve');
+    expect(results[0]!.addressScope).toBe('cold');
+    expect(results[0]!.accountLabel).toBe('cold_reserve');
   });
 
   it('returns user addresses for scope=users with correct accountLabel', async () => {
@@ -132,8 +134,8 @@ describe('enumerateManagedAddresses', () => {
     );
     const results = await enumerateManagedAddresses(db, 'users', null, new Date());
     expect(results).toHaveLength(2); // USDT + USDC
-    expect(results[0].addressScope).toBe('user');
-    expect(results[0].accountLabel).toBe('user:user-001');
+    expect(results[0]!.addressScope).toBe('user');
+    expect(results[0]!.accountLabel).toBe('user:user-001');
   });
 
   it('returns all three scopes for scope=all', async () => {
@@ -200,16 +202,19 @@ describe('enumerateManagedAddresses', () => {
 // ── reconciliation-ledger-expected ────────────────────────────────────────────
 
 describe('computeLedgerExpected', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns empty Map when no account labels provided', async () => {
-    const db = { select: vi.fn() } as never;
+    const mockSelect = vi.fn();
+    const db = { select: mockSelect } as never;
     const { computeLedgerExpected } = await import(
       '../services/reconciliation-ledger-expected.service.js'
     );
     const result = await computeLedgerExpected(db, [], ['USDT', 'USDC']);
     expect(result.size).toBe(0);
-    expect(db.select).not.toHaveBeenCalled();
+    expect(mockSelect).not.toHaveBeenCalled();
   });
 
   it('returns Map keyed by accountLabel:token with bigint values', async () => {

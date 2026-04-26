@@ -115,15 +115,15 @@ async function buildApp(
   const { createSweeps } = await import('../services/sweep-create.service.js');
 
   vi.mocked(scanSweepCandidates).mockImplementation(
-    opts.scanCandidatesFn ?? (async () => [makeCandidate()])
+    (opts.scanCandidatesFn ?? (async () => [makeCandidate()])) as typeof scanSweepCandidates
   );
 
   vi.mocked(createSweeps).mockImplementation(
-    opts.createSweepsFn ??
+    (opts.createSweepsFn ??
       (async () => ({
         created: [{ sweepId: SWEEP_ID, userAddressId: ADDR_ID, jobId: 'job-sweep-1' }],
         skipped: [],
-      }))
+      }))) as typeof createSweeps
   );
 
   const { default: sweepsRoutes } = await import('../routes/sweeps.routes.js');
@@ -135,7 +135,9 @@ async function buildApp(
 // ── Tests: GET /sweeps ────────────────────────────────────────────────────────
 
 describe('GET /sweeps', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated list of sweeps', async () => {
     const app = await buildApp();
@@ -200,7 +202,9 @@ describe('GET /sweeps', () => {
 // ── Tests: GET /sweeps/candidates ─────────────────────────────────────────────
 
 describe('GET /sweeps/candidates', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns sweep candidates', async () => {
     const app = await buildApp();
@@ -253,7 +257,9 @@ describe('GET /sweeps/candidates', () => {
 // ── Tests: POST /sweeps/scan ──────────────────────────────────────────────────
 
 describe('POST /sweeps/scan', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns fresh candidate list', async () => {
     const app = await buildApp();
@@ -290,7 +296,9 @@ describe('POST /sweeps/scan', () => {
 // ── Tests: POST /sweeps/trigger ───────────────────────────────────────────────
 
 describe('POST /sweeps/trigger', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates sweeps and returns result', async () => {
     const app = await buildApp();
@@ -377,7 +385,9 @@ describe('POST /sweeps/trigger', () => {
 // ── Tests: GET /sweeps/batches ────────────────────────────────────────────────
 
 describe('GET /sweeps/batches', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns batch aggregations from recent sweeps', async () => {
     const app = await buildApp({

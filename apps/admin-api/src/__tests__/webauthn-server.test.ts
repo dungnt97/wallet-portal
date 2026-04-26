@@ -65,7 +65,7 @@ describe('buildRegistrationOptions', () => {
     vi.mocked(generateRegistrationOptions).mockClear();
 
     await buildRegistrationOptions(CFG, 'user-abc', 'user@test.com', 'User', []);
-    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0][0];
+    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0]![0]!;
     expect(callArgs.userID).toBeInstanceOf(Uint8Array);
     expect(new TextDecoder().decode(callArgs.userID as Uint8Array)).toBe('user-abc');
   });
@@ -76,9 +76,9 @@ describe('buildRegistrationOptions', () => {
     vi.mocked(generateRegistrationOptions).mockClear();
 
     await buildRegistrationOptions(CFG, 'user-001', 'user@test.com', 'User', ['cred-1', 'cred-2']);
-    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0][0];
+    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0]![0]!;
     expect(callArgs.excludeCredentials).toHaveLength(2);
-    expect(callArgs.excludeCredentials?.[0].id).toBe('cred-1');
+    expect(callArgs.excludeCredentials?.[0]?.id).toBe('cred-1');
   });
 
   it('returns empty excludeCredentials when none provided', async () => {
@@ -87,7 +87,7 @@ describe('buildRegistrationOptions', () => {
     vi.mocked(generateRegistrationOptions).mockClear();
 
     await buildRegistrationOptions(CFG, 'user-001', 'user@test.com', 'User', []);
-    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0][0];
+    const callArgs = vi.mocked(generateRegistrationOptions).mock.calls[0]![0]!;
     expect(callArgs.excludeCredentials).toHaveLength(0);
   });
 });
@@ -126,9 +126,9 @@ describe('buildAuthenticationOptions', () => {
         timeout: 60_000,
       })
     );
-    expect(vi.mocked(generateAuthenticationOptions).mock.calls[0][0].allowCredentials).toHaveLength(
-      1
-    );
+    expect(
+      vi.mocked(generateAuthenticationOptions).mock.calls[0]![0]!.allowCredentials
+    ).toHaveLength(1);
     expect(result).toBeDefined();
   });
 
@@ -138,7 +138,7 @@ describe('buildAuthenticationOptions', () => {
     vi.mocked(generateAuthenticationOptions).mockClear();
 
     await buildAuthenticationOptions(CFG, []);
-    const callArgs = vi.mocked(generateAuthenticationOptions).mock.calls[0][0];
+    const callArgs = vi.mocked(generateAuthenticationOptions).mock.calls[0]![0]!;
     expect(callArgs.allowCredentials).toHaveLength(0);
   });
 });

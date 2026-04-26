@@ -133,7 +133,9 @@ async function buildApp(
 // ── Tests: GET /notifications ─────────────────────────────────────────────────
 
 describe('GET /notifications', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns list of notifications', async () => {
     const app = await buildApp();
@@ -186,7 +188,9 @@ describe('GET /notifications', () => {
 // ── Tests: GET /notifications/unread-count ────────────────────────────────────
 
 describe('GET /notifications/unread-count', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns unread count', async () => {
     const app = Fastify({ logger: false });
@@ -221,7 +225,9 @@ describe('GET /notifications/unread-count', () => {
 // ── Tests: POST /notifications/:id/read ──────────────────────────────────────
 
 describe('POST /notifications/:id/read', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('marks notification as read and returns ok', async () => {
     const app = await buildApp({ updateReturning: [{ id: NOTIF_ID }] });
@@ -255,7 +261,9 @@ describe('POST /notifications/:id/read', () => {
 // ── Tests: POST /notifications/mark-all-read ─────────────────────────────────
 
 describe('POST /notifications/mark-all-read', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('marks all notifications read and returns count', async () => {
     const app = await buildApp({
@@ -281,7 +289,9 @@ describe('POST /notifications/mark-all-read', () => {
 // ── Tests: GET /staff/me/notification-prefs ───────────────────────────────────
 
 describe('GET /staff/me/notification-prefs', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns stored notification prefs', async () => {
     const app = await buildApp();
@@ -307,7 +317,9 @@ describe('GET /staff/me/notification-prefs', () => {
 // ── Tests: PATCH /staff/me/notification-prefs ────────────────────────────────
 
 describe('PATCH /staff/me/notification-prefs', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('merges and returns updated prefs', async () => {
     const app = await buildApp();

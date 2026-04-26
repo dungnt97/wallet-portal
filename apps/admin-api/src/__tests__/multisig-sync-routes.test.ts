@@ -54,8 +54,12 @@ async function buildApp(
 // ── Tests: GET /multisig/sync-status ─────────────────────────────────────────
 
 describe('GET /multisig/sync-status', () => {
-  beforeEach(() => vi.clearAllMocks());
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('proxies sync status from wallet-engine', async () => {
     const app = await buildApp();
@@ -102,8 +106,12 @@ describe('GET /multisig/sync-status', () => {
 // ── Tests: POST /multisig/sync-refresh ───────────────────────────────────────
 
 describe('POST /multisig/sync-refresh', () => {
-  beforeEach(() => vi.clearAllMocks());
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('triggers cache refresh and returns fresh sync status', async () => {
     const fresh = makeSyncStatus({

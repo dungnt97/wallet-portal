@@ -62,19 +62,21 @@ async function buildApp(
     selectCallN++;
     const rows =
       selectCallN === 1
-        ? walletRows.filter((r) => r.tier === 'hot')
-        : walletRows.filter((r) => r.tier === 'cold');
+        ? walletRows.filter((r) => (r.tier as string) === 'hot')
+        : walletRows.filter((r) => (r.tier as string) === 'cold');
     return {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           // .then(cb) pattern used by cold.routes — drizzle mock requires .then for await chaining
           // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then for await chaining
           then: (resolve: (r: typeof walletRows) => void) => {
-            const hotRows = walletRows.filter((r) => r.tier === 'hot');
+            const hotRows = walletRows.filter((r) => (r.tier as string) === 'hot');
             // second select call inside then
             const mockInnerSelect = {
               from: vi.fn().mockReturnValue({
-                where: vi.fn().mockResolvedValue(walletRows.filter((r) => r.tier === 'cold')),
+                where: vi
+                  .fn()
+                  .mockResolvedValue(walletRows.filter((r) => (r.tier as string) === 'cold')),
               }),
             };
             return resolve(hotRows) ?? Promise.resolve(resolve(hotRows));
@@ -98,12 +100,14 @@ async function buildApp(
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockImplementation(() => {
-          const rows1 = walletRows.filter((r) => r.tier === 'hot');
-          const rows2 = walletRows.filter((r) => r.tier === 'cold');
+          const rows1 = walletRows.filter((r) => (r.tier as string) === 'hot');
+          const rows2 = walletRows.filter((r) => (r.tier as string) === 'cold');
           let callCount = 0;
           const promise = Promise.resolve(rows1);
           // biome-ignore lint/suspicious/noThenProperty: drizzle ORM mock requires .then
-          (promise as Record<string, unknown>).then = (cb: (r: typeof walletRows) => unknown) => {
+          (promise as unknown as Record<string, unknown>).then = (
+            cb: (r: typeof walletRows) => unknown
+          ) => {
             callCount++;
             if (callCount === 1) {
               return {
@@ -145,7 +149,9 @@ async function buildApp(
 // ── Tests: GET /cold/balances ─────────────────────────────────────────────────
 
 describe('GET /cold/balances', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns balance list from service', async () => {
     const { app } = await buildApp();
@@ -184,7 +190,7 @@ describe('GET /cold/balances', () => {
     const { app, getColdBalances } = await buildApp();
     await app.inject({ method: 'GET', url: '/cold/balances' });
     expect(vi.mocked(getColdBalances)).toHaveBeenCalledOnce();
-    const [, , probeConfig] = vi.mocked(getColdBalances).mock.calls[0];
+    const [, , probeConfig] = vi.mocked(getColdBalances).mock.calls[0]!;
     expect(probeConfig).toHaveProperty('rpcBnb');
     expect(probeConfig).toHaveProperty('rpcSolana');
     await app.close();
@@ -194,7 +200,9 @@ describe('GET /cold/balances', () => {
 // ── Tests: POST /cold/band-check/run ─────────────────────────────────────────
 
 describe('POST /cold/band-check/run', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('flushes Redis cache and returns fresh balances', async () => {
     const { app, mockRedis } = await buildApp();

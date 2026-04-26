@@ -69,7 +69,9 @@ describe('GET /ops/health — chain probe closures', () => {
     vi.mocked(probes.checkDegradationTransition).mockReturnValue(false);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('executes BNB and SOL getLatestBlock closures via RPC calls', async () => {
     // Distinguish BNB vs SOL by the request body method field

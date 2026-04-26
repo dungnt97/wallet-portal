@@ -5,7 +5,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 //        POST /recovery/:entityType/:entityId/cancel
 // Tests recovery-disabled 503, all error class mappings, success paths
 // Uses Fastify inject + mocked services — no real Postgres
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ async function buildApp(
   const { cancelTx } = await import('../services/recovery-cancel.service.js');
 
   vi.mocked(listStuckTxs).mockImplementation(
-    opts.listStuckFn ??
+    (opts.listStuckFn as typeof listStuckTxs | undefined) ??
       (async () => ({
         items: [makeStuckItem()],
         thresholdsUsed: { evmMinutes: 10, solanaSeconds: 60 },
@@ -147,22 +147,22 @@ async function buildApp(
   );
 
   vi.mocked(bumpTx).mockImplementation(
-    opts.bumpTxFn ??
+    (opts.bumpTxFn ??
       (async () => ({
         ok: true,
         actionId: ACTION_ID,
         newTxHash: '0xnewbumped',
         bumpCount: 1,
-      }))
+      }))) as typeof bumpTx
   );
 
   vi.mocked(cancelTx).mockImplementation(
-    opts.cancelTxFn ??
+    (opts.cancelTxFn ??
       (async () => ({
         ok: true,
         actionId: ACTION_ID,
         cancelTxHash: '0xcanceltx',
-      }))
+      }))) as typeof cancelTx
   );
 
   const { default: recoveryRoutes } = await import('../routes/recovery.routes.js');
@@ -174,10 +174,12 @@ async function buildApp(
 // ── Tests: GET /recovery/stuck ────────────────────────────────────────────────
 
 describe('GET /recovery/stuck', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   afterEach(() => {
-    process.env.RECOVERY_ENABLED = undefined;
+    delete process.env['RECOVERY_ENABLED'];
   });
 
   it('returns stuck transactions', async () => {
@@ -255,7 +257,9 @@ describe('GET /recovery/stuck', () => {
 // ── Tests: POST /recovery/:entityType/:entityId/bump ─────────────────────────
 
 describe('POST /recovery/:entityType/:entityId/bump', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('bumps a stuck withdrawal', async () => {
     const app = await buildApp();
@@ -289,7 +293,7 @@ describe('POST /recovery/:entityType/:entityId/bump', () => {
     const { RecoveryDisabledError } = await import('../services/recovery-bump.service.js');
     const app = await buildApp({
       bumpTxFn: async () => {
-        throw new RecoveryDisabledError('disabled');
+        throw new RecoveryDisabledError();
       },
     });
     const res = await app.inject({
@@ -306,7 +310,7 @@ describe('POST /recovery/:entityType/:entityId/bump', () => {
     const { ColdTierNotSupportedError } = await import('../services/recovery-bump.service.js');
     const app = await buildApp({
       bumpTxFn: async () => {
-        throw new ColdTierNotSupportedError('cold tier');
+        throw new ColdTierNotSupportedError();
       },
     });
     const res = await app.inject({
@@ -354,7 +358,7 @@ describe('POST /recovery/:entityType/:entityId/bump', () => {
     const { BumpRateLimitError } = await import('../services/recovery-bump.service.js');
     const app = await buildApp({
       bumpTxFn: async () => {
-        throw new BumpRateLimitError('max bumps reached');
+        throw new BumpRateLimitError(5, 5);
       },
     });
     const res = await app.inject({
@@ -397,7 +401,9 @@ describe('POST /recovery/:entityType/:entityId/bump', () => {
 // ── Tests: POST /recovery/:entityType/:entityId/cancel ────────────────────────
 
 describe('POST /recovery/:entityType/:entityId/cancel', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('cancels a stuck withdrawal', async () => {
     const app = await buildApp();
@@ -418,7 +424,7 @@ describe('POST /recovery/:entityType/:entityId/cancel', () => {
     const { SolanaCannotCancelError } = await import('../services/recovery-cancel.service.js');
     const app = await buildApp({
       cancelTxFn: async () => {
-        throw new SolanaCannotCancelError('solana does not support cancel');
+        throw new SolanaCannotCancelError();
       },
     });
     const res = await app.inject({
@@ -437,7 +443,7 @@ describe('POST /recovery/:entityType/:entityId/cancel', () => {
     const { RecoveryDisabledError } = await import('../services/recovery-bump.service.js');
     const app = await buildApp({
       cancelTxFn: async () => {
-        throw new RecoveryDisabledError('disabled');
+        throw new RecoveryDisabledError();
       },
     });
     const res = await app.inject({
@@ -453,7 +459,7 @@ describe('POST /recovery/:entityType/:entityId/cancel', () => {
     const { ColdTierNotSupportedError } = await import('../services/recovery-bump.service.js');
     const app = await buildApp({
       cancelTxFn: async () => {
-        throw new ColdTierNotSupportedError('cold tier');
+        throw new ColdTierNotSupportedError();
       },
     });
     const res = await app.inject({

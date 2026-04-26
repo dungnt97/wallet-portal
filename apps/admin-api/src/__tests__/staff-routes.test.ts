@@ -159,11 +159,11 @@ async function buildApp(
   };
 
   const selectMock = makeSelectMock({
-    staffRows: opts.staffRows,
-    staffCount: opts.staffCount,
-    sessionRows: opts.sessionRows,
-    sessionCount: opts.sessionCount,
-    loginHistoryRows: opts.loginHistoryRows,
+    ...(opts.staffRows !== undefined && { staffRows: opts.staffRows }),
+    ...(opts.staffCount !== undefined && { staffCount: opts.staffCount }),
+    ...(opts.sessionRows !== undefined && { sessionRows: opts.sessionRows }),
+    ...(opts.sessionCount !== undefined && { sessionCount: opts.sessionCount }),
+    ...(opts.loginHistoryRows !== undefined && { loginHistoryRows: opts.loginHistoryRows }),
   });
 
   const mockDb = {
@@ -199,7 +199,7 @@ async function buildApp(
   const { syncGoogleWorkspace } = await import('../services/staff-sync-google.service.js');
 
   vi.mocked(updateProfile).mockImplementation(
-    opts.updateProfileFn ??
+    (opts.updateProfileFn as typeof updateProfile | undefined) ??
       (async () => ({
         id: STAFF_ID,
         name: 'Updated Name',
@@ -209,7 +209,7 @@ async function buildApp(
   );
 
   vi.mocked(inviteStaff).mockImplementation(
-    opts.inviteStaffFn ??
+    (opts.inviteStaffFn as typeof inviteStaff | undefined) ??
       (async () => ({
         staffId: STAFF_ID_2,
         inviteLink: 'https://admin.example.com/invite/token123',
@@ -218,7 +218,7 @@ async function buildApp(
   );
 
   vi.mocked(syncGoogleWorkspace).mockImplementation(
-    opts.syncGoogleFn ??
+    (opts.syncGoogleFn as typeof syncGoogleWorkspace | undefined) ??
       (async () => ({
         synced: 5,
         created: 2,
@@ -237,7 +237,9 @@ async function buildApp(
 // ── Tests: GET /staff ─────────────────────────────────────────────────────────
 
 describe('GET /staff', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated staff list', async () => {
     const app = await buildApp();
@@ -288,7 +290,9 @@ describe('GET /staff', () => {
 // ── Tests: POST /staff/signing-keys ──────────────────────────────────────────
 
 describe('POST /staff/signing-keys', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('registers a signing key', async () => {
     const app = await buildApp();
@@ -383,7 +387,9 @@ describe('POST /staff/signing-keys', () => {
 // ── Tests: PATCH /staff/me ────────────────────────────────────────────────────
 
 describe('PATCH /staff/me', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('updates name', async () => {
     const app = await buildApp();
@@ -430,7 +436,9 @@ describe('PATCH /staff/me', () => {
 // ── Tests: POST /staff/me/logout-all ─────────────────────────────────────────
 
 describe('POST /staff/me/logout-all', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('destroys session and returns message', async () => {
     const app = await buildApp();
@@ -445,7 +453,9 @@ describe('POST /staff/me/logout-all', () => {
 // ── Tests: POST /staff/invite ─────────────────────────────────────────────────
 
 describe('POST /staff/invite', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates invite and returns 201', async () => {
     const app = await buildApp();
@@ -493,7 +503,9 @@ describe('POST /staff/invite', () => {
 // ── Tests: POST /staff/sync-google-workspace ──────────────────────────────────
 
 describe('POST /staff/sync-google-workspace', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('syncs workspace and returns stats', async () => {
     const app = await buildApp();
@@ -525,7 +537,9 @@ describe('POST /staff/sync-google-workspace', () => {
 // We build a dedicated app per test with a tightly controlled mock to avoid cross-contamination.
 
 describe('GET /staff/me/sessions', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns own session history', async () => {
     const sessionRow = makeSessionRow();
@@ -595,7 +609,9 @@ describe('GET /staff/me/sessions', () => {
 // ── Tests: GET /staff/:id/sessions ───────────────────────────────────────────
 
 describe('GET /staff/:id/sessions', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns session history for specific staff', async () => {
     const sessionRow = makeSessionRow({ staffId: STAFF_ID_2 });
@@ -665,7 +681,9 @@ describe('GET /staff/:id/sessions', () => {
 // ── Tests: GET /staff/login-history ──────────────────────────────────────────
 
 describe('GET /staff/login-history', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns global login history', async () => {
     const loginRow = {

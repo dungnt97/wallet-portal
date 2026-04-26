@@ -81,7 +81,9 @@ async function buildApp(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('GET /wallets', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated wallet list', async () => {
     const app = await buildApp();

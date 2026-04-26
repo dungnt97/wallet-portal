@@ -123,23 +123,23 @@ async function buildApp() {
 // ── POST /recovery/:entityType/:entityId/bump — makeNotify closure ─────────────
 
 describe('POST /recovery/bump — makeNotify closure invoked', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('invokes makeNotify closure when bumpTx calls the notifyFn callback', async () => {
     const { bumpTx } = await import('../services/recovery-bump.service.js');
     const { notifyStaff } = await import('../services/notify-staff.service.js');
 
     // bumpTx calls the notifyFn synchronously before returning
-    vi.mocked(bumpTx).mockImplementationOnce(
-      async (
-        _db: unknown,
-        _params: unknown,
-        notifyFn: (args: { title: string; body: string; actionId: string }) => Promise<void>
-      ) => {
-        await notifyFn({ title: 'Bump submitted', body: 'Tx bumped', actionId: ACTION_ID });
-        return { ok: true, actionId: ACTION_ID, newTxHash: '0xnew', bumpCount: 1 };
-      }
-    );
+    vi.mocked(bumpTx).mockImplementationOnce((async (
+      _db: unknown,
+      _params: unknown,
+      notifyFn: (args: { title: string; body: string; actionId: string }) => Promise<void>
+    ) => {
+      await notifyFn({ title: 'Bump submitted', body: 'Tx bumped', actionId: ACTION_ID });
+      return { ok: true, actionId: ACTION_ID, newTxHash: '0xnew', bumpCount: 1 };
+    }) as unknown as typeof bumpTx);
 
     const app = await buildApp();
     const res = await app.inject({
@@ -165,22 +165,22 @@ describe('POST /recovery/bump — makeNotify closure invoked', () => {
 // ── POST /recovery/:entityType/:entityId/cancel — makeNotify + GasOracleError ─
 
 describe('POST /recovery/cancel — makeNotify closure + GasOracleError', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('invokes makeNotify closure when cancelTx calls the notifyFn callback', async () => {
     const { cancelTx } = await import('../services/recovery-cancel.service.js');
     const { notifyStaff } = await import('../services/notify-staff.service.js');
 
-    vi.mocked(cancelTx).mockImplementationOnce(
-      async (
-        _db: unknown,
-        _params: unknown,
-        notifyFn: (args: { title: string; body: string; actionId: string }) => Promise<void>
-      ) => {
-        await notifyFn({ title: 'Cancel submitted', body: 'Tx cancelled', actionId: ACTION_ID });
-        return { ok: true, actionId: ACTION_ID, cancelTxHash: '0xcancel' };
-      }
-    );
+    vi.mocked(cancelTx).mockImplementationOnce((async (
+      _db: unknown,
+      _params: unknown,
+      notifyFn: (args: { title: string; body: string; actionId: string }) => Promise<void>
+    ) => {
+      await notifyFn({ title: 'Cancel submitted', body: 'Tx cancelled', actionId: ACTION_ID });
+      return { ok: true, actionId: ACTION_ID, cancelTxHash: '0xcancel' };
+    }) as unknown as typeof cancelTx);
 
     const app = await buildApp();
     const res = await app.inject({

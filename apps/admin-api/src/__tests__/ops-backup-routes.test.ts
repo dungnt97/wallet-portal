@@ -76,7 +76,9 @@ async function buildApp(
 // ── Tests: POST /ops/backup/pg-dump ──────────────────────────────────────────
 
 describe('POST /ops/backup/pg-dump', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('enqueues a backup job and returns 202', async () => {
     const app = await buildApp();
@@ -116,7 +118,9 @@ describe('POST /ops/backup/pg-dump', () => {
 // ── Tests: GET /ops/backups ───────────────────────────────────────────────────
 
 describe('GET /ops/backups', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns last 20 backup rows', async () => {
     const app = await buildApp();

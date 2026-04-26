@@ -115,7 +115,9 @@ async function buildApp(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('GET /search', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns results for all entity types', async () => {
     const app = await buildApp();

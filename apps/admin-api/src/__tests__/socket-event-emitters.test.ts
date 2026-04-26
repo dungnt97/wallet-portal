@@ -230,7 +230,7 @@ describe('deriveUserAddresses', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer secret-token' }),
       })
     );
-    expect(result.addresses[0].chain).toBe('bnb');
+    expect(result.addresses[0]!.chain).toBe('bnb');
   });
 
   it('throws WalletEngineError on non-2xx response', async () => {

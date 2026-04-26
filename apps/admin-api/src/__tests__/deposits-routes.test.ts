@@ -177,7 +177,7 @@ async function buildApp(
   );
 
   vi.mocked(manualCredit).mockImplementation(
-    opts.manualCreditFn ??
+    (opts.manualCreditFn as typeof manualCredit | undefined) ??
       (async (db, io, emailQueue, slackQueue, input) => ({
         depositId: DEPOSIT_ID,
         userId: input.userId,
@@ -190,9 +190,9 @@ async function buildApp(
   );
 
   vi.mocked(countDepositsForExport).mockResolvedValue(10);
-  vi.mocked(queryDepositsForExport).mockResolvedValue(depositList);
+  vi.mocked(queryDepositsForExport).mockResolvedValue(depositList as never);
   vi.mocked(streamDepositCsv).mockImplementation((rows, chunk) => {
-    const csv = `id,userId,amount,status\n${rows.map((r: Record<string, unknown>) => `${r.id},${r.userId},${r.amount},${r.status}`).join('\n')}`;
+    const csv = `id,userId,amount,status\n${(rows as unknown as Record<string, unknown>[]).map((r) => `${r['id']},${r['userId']},${r['amount']},${r['status']}`).join('\n')}`;
     chunk(csv);
   });
 

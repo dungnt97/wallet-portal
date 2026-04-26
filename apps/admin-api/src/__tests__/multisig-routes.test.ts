@@ -244,7 +244,8 @@ async function buildApp(
   // Apply executeWithdrawal mock
   const { executeWithdrawal } = await import('../services/withdrawal-execute.service.js');
   vi.mocked(executeWithdrawal).mockImplementation(
-    opts.executeWithdrawalFn ?? (async () => ({ jobId: 'job-exec-1' }))
+    (opts.executeWithdrawalFn as typeof executeWithdrawal | undefined) ??
+      (async () => ({ jobId: 'job-exec-1' }))
   );
 
   const { default: multisigRoutes } = await import('../routes/multisig.routes.js');
@@ -256,7 +257,9 @@ async function buildApp(
 // ── Tests: GET /multisig-ops ──────────────────────────────────────────────────
 
 describe('GET /multisig-ops', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paginated list of multisig ops', async () => {
     const app = await buildApp();
@@ -313,7 +316,9 @@ describe('GET /multisig-ops', () => {
 // ── Tests: POST /multisig-ops/:id/submit-signature ────────────────────────────
 
 describe('POST /multisig-ops/:id/submit-signature', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('submits signature and updates op', async () => {
     const app = await buildApp();
@@ -439,7 +444,9 @@ describe('POST /multisig-ops/:id/submit-signature', () => {
 // ── Tests: POST /multisig-ops/:id/approve ────────────────────────────────────
 
 describe('POST /multisig-ops/:id/approve', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('approves op and returns updated state', async () => {
     const app = await buildApp({
@@ -501,7 +508,9 @@ describe('POST /multisig-ops/:id/approve', () => {
 // ── Tests: POST /multisig-ops/:id/reject ─────────────────────────────────────
 
 describe('POST /multisig-ops/:id/reject', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('rejects op and returns ok=true', async () => {
     const app = await buildApp();
@@ -555,7 +564,9 @@ describe('POST /multisig-ops/:id/reject', () => {
 // ── Tests: POST /multisig-ops/:id/execute ────────────────────────────────────
 
 describe('POST /multisig-ops/:id/execute', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('executes non-withdrawal op and returns 202', async () => {
     const app = await buildApp({ opById: makeOp({ status: 'ready', withdrawalId: null }) });

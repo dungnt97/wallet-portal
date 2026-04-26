@@ -64,10 +64,12 @@ async function buildApp(
 
   const { getState, toggle } = await import('../services/kill-switch.service.js');
 
-  vi.mocked(getState).mockImplementation(opts.getStateFn ?? (async () => makeKillSwitchState()));
+  vi.mocked(getState).mockImplementation(
+    (opts.getStateFn ?? (async () => makeKillSwitchState())) as typeof getState
+  );
 
   vi.mocked(toggle).mockImplementation(
-    opts.toggleFn ?? (async () => makeKillSwitchState({ enabled: true }))
+    (opts.toggleFn ?? (async () => makeKillSwitchState({ enabled: true }))) as typeof toggle
   );
 
   const { default: opsKillSwitchRoutes } = await import('../routes/ops-kill-switch.routes.js');
@@ -79,7 +81,9 @@ async function buildApp(
 // ── Tests: GET /ops/kill-switch ───────────────────────────────────────────────
 
 describe('GET /ops/kill-switch', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns current kill-switch state', async () => {
     const app = await buildApp();
@@ -107,7 +111,9 @@ describe('GET /ops/kill-switch', () => {
 // ── Tests: POST /ops/kill-switch ───────────────────��──────────────────────────
 
 describe('POST /ops/kill-switch', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('toggles kill-switch on and returns new state', async () => {
     const app = await buildApp({

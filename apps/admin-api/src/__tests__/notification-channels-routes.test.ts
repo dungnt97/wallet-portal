@@ -83,7 +83,9 @@ async function buildApp(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('GET /notification-channels', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns channels and eventKinds', async () => {
     const app = await buildApp();

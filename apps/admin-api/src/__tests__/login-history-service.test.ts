@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // recordLogin: inserts row, swallows DB errors, logs on error
 
 describe('recordLogin', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('inserts a login history row on success', async () => {
     const mockInsert = vi.fn().mockReturnValue({
@@ -15,7 +17,7 @@ describe('recordLogin', () => {
     await recordLogin(db, { staffId: 'staff-1', success: true, ip: '1.2.3.4', ua: 'Mozilla' });
 
     expect(mockInsert).toHaveBeenCalledOnce();
-    const valuesCall = mockInsert.mock.results[0].value.values.mock.calls[0][0];
+    const valuesCall = mockInsert.mock.results[0]!.value.values.mock.calls[0]![0];
     expect(valuesCall.staffId).toBe('staff-1');
     expect(valuesCall.success).toBe(true);
     expect(valuesCall.ipAddress).toBe('1.2.3.4');
@@ -33,7 +35,7 @@ describe('recordLogin', () => {
       ua: null,
     });
 
-    const valuesCall = mockInsert.mock.results[0].value.values.mock.calls[0][0];
+    const valuesCall = mockInsert.mock.results[0]!.value.values.mock.calls[0]![0];
     expect(valuesCall.staffId).toBeUndefined();
     expect(valuesCall.success).toBe(false);
   });
@@ -51,7 +53,7 @@ describe('recordLogin', () => {
       failureReason: 'DOMAIN_NOT_ALLOWED',
     });
 
-    const valuesCall = mockInsert.mock.results[0].value.values.mock.calls[0][0];
+    const valuesCall = mockInsert.mock.results[0]!.value.values.mock.calls[0]![0];
     expect(valuesCall.failureReason).toBe('DOMAIN_NOT_ALLOWED');
   });
 

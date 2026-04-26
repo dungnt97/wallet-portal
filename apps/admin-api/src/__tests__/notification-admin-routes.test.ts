@@ -140,7 +140,9 @@ async function buildApp(
 // ── Tests: GET /admin/notification-channels ───────────────────────────────────
 
 describe('GET /admin/notification-channels', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns channel list', async () => {
     const app = await buildApp();
@@ -174,7 +176,9 @@ describe('GET /admin/notification-channels', () => {
 // ── Tests: POST /admin/notification-channels ──────────────────────────────────
 
 describe('POST /admin/notification-channels', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('creates channel and returns 201', async () => {
     const app = await buildApp();
@@ -242,7 +246,9 @@ describe('POST /admin/notification-channels', () => {
 // ── Tests: PATCH /admin/notification-channels/:id ─────────────────────────────
 
 describe('PATCH /admin/notification-channels/:id', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('updates channel fields and returns updated row', async () => {
     const app = await buildApp({
@@ -284,7 +290,9 @@ describe('PATCH /admin/notification-channels/:id', () => {
 // ── Tests: DELETE /admin/notification-channels/:id ────────────────────────────
 
 describe('DELETE /admin/notification-channels/:id', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('deletes channel and returns ok', async () => {
     const app = await buildApp();
@@ -409,7 +417,9 @@ describe('POST /admin/notification-channels/:id/test', () => {
 // ── Tests: GET /admin/notification-routing ────────────────────────────────────
 
 describe('GET /admin/notification-routing', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns routing rule list', async () => {
     const app = await buildApp();
@@ -449,7 +459,9 @@ describe('GET /admin/notification-routing', () => {
 // ── Tests: PATCH /admin/notification-routing ──────────────────────────────────
 
 describe('PATCH /admin/notification-routing', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('upserts routing rule and returns rule', async () => {
     const app = Fastify({ logger: false });

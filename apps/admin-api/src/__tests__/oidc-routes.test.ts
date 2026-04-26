@@ -258,7 +258,9 @@ describe('GET /auth/session/callback', () => {
 // ── GET /auth/me ──────────────────────────────────────────────────────────────
 
 describe('GET /auth/me', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 200 with staff when session is active', async () => {
     const { app } = await buildApp({
@@ -286,7 +288,9 @@ describe('GET /auth/me', () => {
 // ── POST /auth/session/logout ─────────────────────────────────────────────────
 
 describe('POST /auth/session/logout', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('destroys session and returns ok=true', async () => {
     const destroyFn = vi.fn().mockResolvedValue(undefined);
@@ -303,7 +307,9 @@ describe('POST /auth/session/logout', () => {
 // ── POST /auth/session/dev-login ──────────────────────────────────────────────
 
 describe('POST /auth/session/dev-login', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 403 DEV_MODE_DISABLED when AUTH_DEV_MODE is false', async () => {
     const { app } = await buildApp({ cfgOverrides: { AUTH_DEV_MODE: 'false' } });
@@ -358,7 +364,9 @@ describe('POST /auth/session/dev-login', () => {
 // ── POST /auth/session/heartbeat ──────────────────────────────────────────────
 
 describe('POST /auth/session/heartbeat', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns 204 when staff session is active', async () => {
     const { app } = await buildApp({ sessionOverrides: { staff: STAFF_ROW } });

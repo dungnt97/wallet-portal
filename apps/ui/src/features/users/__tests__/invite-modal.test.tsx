@@ -15,7 +15,7 @@ const mockUseInvite = vi.fn(() => ({
   mutate: mockMutate,
   isPending: false,
   isError: false,
-  error: null,
+  error: null as Error | null,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -212,5 +212,67 @@ describe('InviteModal', () => {
     render(<InviteModal open={true} onClose={onClose} />);
     await user.click(screen.getByText('common.cancel'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('calls toast with error when mutation onError fires', async () => {
+    const mockToastFn = vi.fn();
+    // Override useToast to return our spy
+    // biome-ignore lint/suspicious/noExplicitAny: mock override for test spy
+    (vi.mocked(await import('@/components/overlays/toast-host')) as any).useToast = () =>
+      mockToastFn;
+
+    // biome-ignore lint/suspicious/noExplicitAny: test capture
+    let capturedOnError: ((err: Error) => void) | undefined;
+    mockUseInvite.mockReturnValue({
+      mutate: vi.fn((_body: unknown, opts: { onError?: (err: Error) => void }) => {
+        capturedOnError = opts.onError;
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    render(<InviteModal open={true} onClose={vi.fn()} />);
+    await user.type(screen.getByPlaceholderText('Jordan Lee'), 'Bob');
+    await user.type(screen.getByPlaceholderText('jordan@treasury.io'), 'bob@co.com');
+    await user.click(screen.getByText('users.sendInvite').closest('button') as HTMLElement);
+
+    act(() => {
+      capturedOnError?.(new Error('Email already in use'));
+    });
+
+    expect(mockToastFn).toHaveBeenCalledWith('Email already in use', 'error');
+  });
+
+  it('shows copy button in success state (covers handleCopy guard)', async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: test capture
+    let capturedOnSuccess: ((r: unknown) => void) | undefined;
+    mockUseInvite.mockReturnValue({
+      mutate: vi.fn((_body: unknown, opts: { onSuccess?: (r: unknown) => void }) => {
+        capturedOnSuccess = opts.onSuccess;
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    render(<InviteModal open={true} onClose={vi.fn()} />);
+    await user.type(screen.getByPlaceholderText('Jordan Lee'), 'Alice');
+    await user.type(screen.getByPlaceholderText('jordan@treasury.io'), 'alice@co.com');
+    await user.click(screen.getByText('users.sendInvite').closest('button') as HTMLElement);
+
+    act(() => {
+      capturedOnSuccess?.({
+        staffId: 's-2',
+        inviteLink: 'https://app.example.com/invite/copytest',
+        expiresAt: '2099-01-01T00:00:00Z',
+      });
+    });
+
+    // Wait for success state to render and copy button to appear
+    await screen.findByText('https://app.example.com/invite/copytest');
+    expect(screen.getByTitle('common.copy')).toBeInTheDocument();
   });
 });

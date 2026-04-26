@@ -84,7 +84,7 @@ async function bootProcessor() {
   const { Worker } = await import('bullmq');
   startSignerCeremonyWorker({} as never, cfg);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -100,7 +100,7 @@ describe('signer-ceremony-broadcast-worker — dev-mode', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('dev mode: generates synthetic hash and calls /chain-confirmed', async () => {
@@ -115,7 +115,7 @@ describe('signer-ceremony-broadcast-worker — dev-mode', () => {
     const confirmed = calls.find(([url]) => url.includes('/chain-confirmed'));
     expect(confirmed).toBeDefined();
 
-    const body = JSON.parse(confirmed![1].body as string) as { txHash: string; chain: string };
+    const body = JSON.parse(confirmed?.[1].body as string) as { txHash: string; chain: string };
     expect(body.txHash).toMatch(/^0x[0-9a-f]{64}$/);
     expect(body.chain).toBe('bnb');
   });
@@ -130,7 +130,7 @@ describe('signer-ceremony-broadcast-worker — dev-mode', () => {
 
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
     const confirmed = calls.find(([url]) => url.includes('/chain-confirmed'));
-    const body = JSON.parse(confirmed![1].body as string) as { chain: string };
+    const body = JSON.parse(confirmed?.[1].body as string) as { chain: string };
     expect(body.chain).toBe('sol');
   });
 });
@@ -144,7 +144,7 @@ describe('signer-ceremony-broadcast-worker — idempotency guard', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('chain already confirmed with txHash: skips, no fetch call', async () => {
@@ -171,7 +171,7 @@ describe('signer-ceremony-broadcast-worker — cancelled ceremony', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('ceremony.status=cancelled: skips broadcast, no fetch call', async () => {
@@ -195,7 +195,7 @@ describe('signer-ceremony-broadcast-worker — ceremony not found', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('ceremony row missing in DB: returns without throwing or calling fetch', async () => {
@@ -219,7 +219,7 @@ describe('signer-ceremony-broadcast-worker — chain-confirmed failure', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('chain-confirmed returns 500: calls /chain-failed and re-throws for BullMQ retry', async () => {

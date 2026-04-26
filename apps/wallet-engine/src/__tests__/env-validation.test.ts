@@ -42,14 +42,14 @@ describe('loadConfig', () => {
 
   it('applies PORT default of 3002', () => {
     Object.assign(process.env, VALID_ENV);
-    delete process.env['PORT']; // must use delete — =undefined coerces to string 'undefined'
+    process.env.PORT = undefined; // must use delete — =undefined coerces to string 'undefined'
     const cfg = loadConfig();
     expect(cfg.PORT).toBe(3002);
   });
 
   it('throws when DATABASE_URL missing', () => {
     Object.assign(process.env, VALID_ENV);
-    delete process.env['DATABASE_URL']; // must use delete — =undefined coerces to string 'undefined'
+    process.env.DATABASE_URL = undefined; // must use delete — =undefined coerces to string 'undefined'
     expect(() => loadConfig()).toThrow('Invalid environment configuration');
   });
 

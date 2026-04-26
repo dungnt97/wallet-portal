@@ -9,8 +9,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 describe('env.ts — bnbRpcUrls with fallback', () => {
   afterEach(() => {
-    delete process.env.RPC_BNB_FALLBACK;
-    delete process.env.RPC_SOLANA_FALLBACK;
+    process.env.RPC_BNB_FALLBACK = undefined;
+    process.env.RPC_SOLANA_FALLBACK = undefined;
   });
 
   it('bnbRpcUrls returns [primary, fallback] when both set', async () => {
@@ -75,7 +75,7 @@ describe('env.ts — loadConfig WATCHER_ENABLED transform', () => {
     for (const key of Object.keys(BASE_ENV)) {
       delete process.env[key];
     }
-    delete process.env.WATCHER_ENABLED;
+    process.env.WATCHER_ENABLED = undefined;
   });
 
   it('WATCHER_ENABLED=false → parsed as false boolean', async () => {
@@ -98,7 +98,7 @@ describe('env.ts — loadConfig WATCHER_ENABLED transform', () => {
 
   it('WATCHER_ENABLED unset → defaults to true', async () => {
     Object.assign(process.env, BASE_ENV);
-    delete process.env.WATCHER_ENABLED;
+    process.env.WATCHER_ENABLED = undefined;
 
     const { loadConfig } = await import('../config/env.js');
     const cfg = loadConfig();

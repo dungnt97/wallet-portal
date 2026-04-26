@@ -115,7 +115,7 @@ async function bootProcessor(cfg = prodCfg) {
   const { Worker } = await import('bullmq');
   startSweepExecuteWorker({} as never, cfg, makeSolDeps() as never);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -138,8 +138,8 @@ describe('sweep-execute-worker — Solana prod path (HD_MASTER_SEED_SOLANA set)'
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_SEED_SOLANA;
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
     vi.clearAllMocks();
   });
 
@@ -195,8 +195,8 @@ describe('sweep-execute-worker — policy engine rejection', () => {
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_SEED_SOLANA;
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
     vi.clearAllMocks();
   });
 
@@ -222,7 +222,7 @@ describe('sweep-execute-worker — policy engine rejection', () => {
 describe('sweep-execute-worker — event handler callbacks invoked', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.HD_MASTER_SEED_SOLANA;
+    process.env.HD_MASTER_SEED_SOLANA = undefined;
   });
 
   afterEach(() => {

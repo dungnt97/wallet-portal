@@ -69,7 +69,7 @@ const baseParams: BuildSweepEVMParams = {
 describe('buildAndSignSweepEVM — dev-mode (no HD key)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -101,7 +101,7 @@ describe('buildAndSignSweepEVM — prod path (HD key present)', () => {
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
     vi.clearAllMocks();
   });
 
@@ -124,7 +124,7 @@ describe('buildAndSignSweepEVM — prod path (HD key present)', () => {
 describe('broadcastSweepEVM — dev-mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -147,7 +147,7 @@ describe('broadcastSweepEVM — prod path', () => {
     process.env.HD_MASTER_XPUB_BNB = 'word '.repeat(12).trim();
   });
   afterEach(() => {
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
     vi.clearAllMocks();
   });
 

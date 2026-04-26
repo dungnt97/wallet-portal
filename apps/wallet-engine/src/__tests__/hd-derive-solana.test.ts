@@ -45,13 +45,13 @@ describe('deriveSolanaAddressBatch', () => {
   it('batch matches individual derivation', () => {
     const batch = deriveSolanaAddressBatch(TEST_SEED_HEX, 0, 3);
     for (let i = 0; i < 3; i++) {
-      expect(batch[i]!.address).toBe(deriveSolanaAddress(TEST_SEED_HEX, i).address);
+      expect(batch[i]?.address).toBe(deriveSolanaAddress(TEST_SEED_HEX, i).address);
     }
   });
 
   it('startIndex offset preserved in batch', () => {
     const batch = deriveSolanaAddressBatch(TEST_SEED_HEX, 5, 2);
-    expect(batch[0]!.index).toBe(5);
-    expect(batch[1]!.index).toBe(6);
+    expect(batch[0]?.index).toBe(5);
+    expect(batch[1]?.index).toBe(6);
   });
 });

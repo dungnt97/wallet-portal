@@ -191,8 +191,8 @@ describe('probeBatch', () => {
     const results = await probeBatch(redis, requests, batchCfg);
 
     expect(results).toHaveLength(1);
-    expect(results[0]!.balanceMinor).toBeNull();
-    expect(results[0]!.stale).toBe(true);
+    expect(results[0]?.balanceMinor).toBeNull();
+    expect(results[0]?.stale).toBe(true);
   });
 
   it('returns correct balanceMinor string on success', async () => {
@@ -212,7 +212,7 @@ describe('probeBatch', () => {
 
     const results = await probeBatch(redis, requests, batchCfg);
 
-    expect(results[0]!.balanceMinor).toBe('12345');
-    expect(results[0]!.stale).toBe(false);
+    expect(results[0]?.balanceMinor).toBe('12345');
+    expect(results[0]?.stale).toBe(false);
   });
 });

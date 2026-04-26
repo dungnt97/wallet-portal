@@ -85,18 +85,18 @@ describe('recovery-bump-evm — prod path tx build + broadcast', () => {
   const GWEI = 1_000_000_000n;
 
   beforeEach(() => {
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.HD_MASTER_XPUB_BNB = 'test test test test test test test test test test test junk';
     // No hard cap hit — use default 50 gwei; fees will be well below
-    delete process.env.RECOVERY_MAX_BUMP_GWEI;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
     vi.clearAllMocks();
     mockSignTransaction.mockResolvedValue('0xsignedTxHex');
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_XPUB_BNB;
-    delete process.env.RECOVERY_MAX_BUMP_GWEI;
-    delete process.env.AUTH_DEV_MODE;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('prod: builds tx, signs, broadcasts and returns txHash', async () => {
@@ -161,17 +161,17 @@ describe('recovery-cancel-evm — prod path tx build + broadcast', () => {
   const GWEI = 1_000_000_000n;
 
   beforeEach(() => {
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.HD_MASTER_XPUB_BNB = 'test test test test test test test test test test test junk';
-    delete process.env.RECOVERY_MAX_BUMP_GWEI;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
     vi.clearAllMocks();
     mockSignTransaction.mockResolvedValue('0xsignedCancelTxHex');
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_XPUB_BNB;
-    delete process.env.RECOVERY_MAX_BUMP_GWEI;
-    delete process.env.AUTH_DEV_MODE;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('prod: builds cancel tx, signs, broadcasts and returns txHash', async () => {
@@ -255,7 +255,7 @@ describe('recovery-bump-solana — prod path (mocked @solana/web3.js)', () => {
   // We do this by supplying a real serialised empty transaction.
 
   beforeEach(() => {
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.HD_MASTER_SEED_SOLANA = 'deadbeef'.repeat(8);
     vi.clearAllMocks();
     mockSolanaGetBlockhash.mockResolvedValue({
@@ -266,8 +266,8 @@ describe('recovery-bump-solana — prod path (mocked @solana/web3.js)', () => {
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_SEED_SOLANA;
-    delete process.env.AUTH_DEV_MODE;
+    process.env.HD_MASTER_SEED_SOLANA = undefined;
+    process.env.AUTH_DEV_MODE = undefined;
   });
 
   it('prod: blockhash unavailable throws SOLANA_BLOCKHASH_UNAVAILABLE', async () => {

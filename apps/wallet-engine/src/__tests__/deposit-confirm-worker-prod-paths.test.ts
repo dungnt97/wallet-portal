@@ -72,7 +72,7 @@ async function bootProcessor(cfg: AppConfig) {
   const { Worker } = await import('bullmq');
   startDepositConfirmWorker({} as never, cfg);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }

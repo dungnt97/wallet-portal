@@ -122,7 +122,7 @@ async function bootProcessor() {
   const { Worker } = await import('bullmq');
   startSweepExecuteWorker({} as never, cfg, makeDeps() as never);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -136,8 +136,8 @@ describe('sweep-execute-worker — dev-mode (no HD keys set)', () => {
     mockCallSweepBroadcasted.mockResolvedValue(undefined);
     mockCallSweepConfirmed.mockResolvedValue(undefined);
     // No HD key → dev mode active
-    delete process.env.HD_MASTER_XPUB_BNB;
-    delete process.env.HD_MASTER_SEED_SOLANA;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.HD_MASTER_SEED_SOLANA = undefined;
   });
 
   afterEach(() => {
@@ -175,7 +175,7 @@ describe('sweep-execute-worker — kill-switch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsKillSwitchEnabled.mockResolvedValue(true); // ON
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
   });
 
   afterEach(() => {
@@ -188,7 +188,7 @@ describe('sweep-execute-worker — kill-switch', () => {
     await processor(job);
 
     expect(job.moveToDelayed).toHaveBeenCalledOnce();
-    const delayArg = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]![0] as number;
+    const delayArg = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as number;
     expect(delayArg - Date.now()).toBeGreaterThanOrEqual(28_000);
     expect(mockCallSweepBroadcasted).not.toHaveBeenCalled();
   });
@@ -211,7 +211,7 @@ describe('sweep-execute-worker — prod EVM path', () => {
   });
 
   afterEach(() => {
-    delete process.env.HD_MASTER_XPUB_BNB;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
     vi.clearAllMocks();
   });
 

@@ -97,7 +97,7 @@ async function bootProcessor() {
   const { Worker } = await import('bullmq');
   startWithdrawalExecuteWorker({} as never, cfg);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -107,7 +107,7 @@ async function bootProcessor() {
 describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     // Set required prod env vars for Solana
     process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsMultisigPda111';
     process.env.SOL_RPC_URL = 'https://fake-sol-rpc';
@@ -124,9 +124,9 @@ describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', ()
   });
 
   afterEach(() => {
-    delete process.env.SQUADS_MULTISIG_ADDRESS;
-    delete process.env.SOL_RPC_URL;
-    delete process.env.WALLET_ENGINE_SOL_PAYER_KEY;
+    process.env.SQUADS_MULTISIG_ADDRESS = undefined;
+    process.env.SOL_RPC_URL = undefined;
+    process.env.WALLET_ENGINE_SOL_PAYER_KEY = undefined;
     vi.unstubAllGlobals();
     vi.resetModules();
   });
@@ -163,7 +163,7 @@ describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', ()
   });
 
   it('missing SQUADS_MULTISIG_ADDRESS: throws FATAL', async () => {
-    delete process.env.SQUADS_MULTISIG_ADDRESS;
+    process.env.SQUADS_MULTISIG_ADDRESS = undefined;
 
     const processor = await bootProcessor();
     const job = makeJob({
@@ -177,7 +177,7 @@ describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', ()
   });
 
   it('missing SOL_RPC_URL: throws FATAL', async () => {
-    delete process.env.SOL_RPC_URL;
+    process.env.SOL_RPC_URL = undefined;
 
     const processor = await bootProcessor();
     const job = makeJob({
@@ -191,7 +191,7 @@ describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', ()
   });
 
   it('missing WALLET_ENGINE_SOL_PAYER_KEY: throws FATAL', async () => {
-    delete process.env.WALLET_ENGINE_SOL_PAYER_KEY;
+    process.env.WALLET_ENGINE_SOL_PAYER_KEY = undefined;
 
     const processor = await bootProcessor();
     const job = makeJob({
@@ -210,12 +210,12 @@ describe('withdrawal-execute-worker — Solana prod path (no AUTH_DEV_MODE)', ()
 describe('withdrawal-execute-worker — EVM prod missing BNB_USDT_ADDRESS FATAL', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.SAFE_ADDRESS = '0xSafeAddr';
     process.env.BNB_RPC_URL = 'https://fake-bnb-rpc';
-    process.env.WALLET_ENGINE_EXECUTOR_KEY = '0x' + 'ab'.repeat(32);
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = `0x${'ab'.repeat(32)}`;
     // BNB_USDT_ADDRESS NOT set → should throw
-    delete process.env.BNB_USDT_ADDRESS;
+    process.env.BNB_USDT_ADDRESS = undefined;
     vi.stubGlobal(
       'fetch',
       vi
@@ -227,9 +227,9 @@ describe('withdrawal-execute-worker — EVM prod missing BNB_USDT_ADDRESS FATAL'
   });
 
   afterEach(() => {
-    delete process.env.SAFE_ADDRESS;
-    delete process.env.BNB_RPC_URL;
-    delete process.env.WALLET_ENGINE_EXECUTOR_KEY;
+    process.env.SAFE_ADDRESS = undefined;
+    process.env.BNB_RPC_URL = undefined;
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = undefined;
     vi.unstubAllGlobals();
     vi.resetModules();
   });

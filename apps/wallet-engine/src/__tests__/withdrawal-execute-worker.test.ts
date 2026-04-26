@@ -119,7 +119,7 @@ describe('withdrawal-execute-worker — dev-mode path', () => {
     startWithdrawalExecuteWorker({} as never, cfg);
     // Extract processor from last Worker construction
     const calls = vi.mocked(Worker).mock.calls;
-    processor = calls[calls.length - 1]![1] as unknown as typeof processor;
+    processor = calls[calls.length - 1]?.[1] as unknown as typeof processor;
   });
 
   afterEach(() => {
@@ -145,7 +145,7 @@ describe('withdrawal-execute-worker — dev-mode path', () => {
     expect(confirmedCall).toBeDefined();
 
     // txHash in body should start with 0x
-    const broadcastBody = JSON.parse(broadcastedCall![1].body as string) as { txHash: string };
+    const broadcastBody = JSON.parse(broadcastedCall?.[1].body as string) as { txHash: string };
     expect(broadcastBody.txHash).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
@@ -190,7 +190,7 @@ describe('withdrawal-execute-worker — kill-switch', () => {
     const { Worker } = await import('bullmq');
     startWithdrawalExecuteWorker({} as never, cfg);
     const calls = vi.mocked(Worker).mock.calls;
-    processor = calls[calls.length - 1]![1] as unknown as typeof processor;
+    processor = calls[calls.length - 1]?.[1] as unknown as typeof processor;
   });
 
   afterEach(() => {
@@ -209,7 +209,7 @@ describe('withdrawal-execute-worker — kill-switch', () => {
     await processor(job);
 
     expect(job.moveToDelayed).toHaveBeenCalledOnce();
-    const delayArg = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]![0] as number;
+    const delayArg = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as number;
     expect(delayArg).toBeGreaterThanOrEqual(Date.now() + 28_000);
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
@@ -221,7 +221,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    delete process.env.AUTH_DEV_MODE; // not dev mode
+    process.env.AUTH_DEV_MODE = undefined; // not dev mode
   });
 
   afterEach(() => {
@@ -249,7 +249,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
     const { Worker } = await import('bullmq');
     startWithdrawalExecuteWorker({} as never, cfg);
     const calls = vi.mocked(Worker).mock.calls;
-    const processor = calls[calls.length - 1]![1] as unknown as (
+    const processor = calls[calls.length - 1]?.[1] as unknown as (
       job: ReturnType<typeof makeJob>
     ) => Promise<void>;
 
@@ -264,7 +264,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
   });
 
   it('missing SAFE_ADDRESS in prod EVM: throws FATAL', async () => {
-    delete process.env.SAFE_ADDRESS;
+    process.env.SAFE_ADDRESS = undefined;
     vi.stubGlobal(
       'fetch',
       vi
@@ -290,7 +290,7 @@ describe('withdrawal-execute-worker — prod EVM error cases', () => {
     const { Worker } = await import('bullmq');
     startWithdrawalExecuteWorker({} as never, cfg);
     const calls = vi.mocked(Worker).mock.calls;
-    const processor = calls[calls.length - 1]![1] as unknown as (
+    const processor = calls[calls.length - 1]?.[1] as unknown as (
       job: ReturnType<typeof makeJob>
     ) => Promise<void>;
 

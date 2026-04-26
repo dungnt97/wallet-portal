@@ -33,19 +33,19 @@ describe('parseBnbTransferLog', () => {
     const log = makeLog();
     const result = parseBnbTransferLog(log, USDT, USDC);
     expect(result).not.toBeNull();
-    expect(result!.token).toBe('USDT');
-    expect(result!.from).toBe('0x' + 'a'.repeat(40));
-    expect(result!.to).toBe('0x' + 'b'.repeat(40));
-    expect(result!.amount).toBe(BigInt('1000000000000000000')); // 1e18
-    expect(result!.txHash).toBe('0xtxhash');
-    expect(result!.blockNumber).toBe(12345);
+    expect(result?.token).toBe('USDT');
+    expect(result?.from).toBe(`0x${'a'.repeat(40)}`);
+    expect(result?.to).toBe(`0x${'b'.repeat(40)}`);
+    expect(result?.amount).toBe(BigInt('1000000000000000000')); // 1e18
+    expect(result?.txHash).toBe('0xtxhash');
+    expect(result?.blockNumber).toBe(12345);
   });
 
   it('parses a USDC transfer log correctly', () => {
     const log = makeLog({ address: USDC });
     const result = parseBnbTransferLog(log, USDT, USDC);
     expect(result).not.toBeNull();
-    expect(result!.token).toBe('USDC');
+    expect(result?.token).toBe('USDC');
   });
 
   it('returns null for non-Transfer topic', () => {
@@ -67,6 +67,6 @@ describe('parseBnbTransferLog', () => {
     const log = makeLog({ address: USDT.toLowerCase() });
     const result = parseBnbTransferLog(log, USDT, USDC);
     expect(result).not.toBeNull();
-    expect(result!.token).toBe('USDT');
+    expect(result?.token).toBe('USDT');
   });
 });

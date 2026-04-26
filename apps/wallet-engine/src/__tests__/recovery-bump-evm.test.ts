@@ -70,8 +70,8 @@ describe('bumpEvmTx', () => {
   });
 
   afterEach(() => {
-    delete process.env['AUTH_DEV_MODE'];
-    delete process.env['RECOVERY_MAX_BUMP_GWEI'];
+    process.env.AUTH_DEV_MODE = undefined;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
   });
 
   it('dev-mode: returns synthetic tx hash without calling provider', async () => {
@@ -85,13 +85,13 @@ describe('bumpEvmTx', () => {
   describe('prod-mode fee math', () => {
     beforeEach(() => {
       // Exit dev mode — requires HD_MASTER_XPUB_BNB to be set to something non-empty
-      delete process.env['AUTH_DEV_MODE'];
+      process.env.AUTH_DEV_MODE = undefined;
       process.env.HD_MASTER_XPUB_BNB =
         'test test test test test test test test test test test junk';
     });
 
     afterEach(() => {
-      delete process.env['HD_MASTER_XPUB_BNB'];
+      process.env.HD_MASTER_XPUB_BNB = undefined;
     });
 
     it('multiplier applied: bump1 = origFee × 1.15^1', async () => {

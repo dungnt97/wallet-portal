@@ -76,7 +76,7 @@ async function bootProcessor() {
   const { Worker } = await import('bullmq');
   startColdTimelockBroadcastWorker({} as never, cfg);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -99,7 +99,7 @@ describe('cold-timelock-broadcast-worker — kill-switch', () => {
     await processor(job);
 
     expect(job.moveToDelayed).toHaveBeenCalledOnce();
-    const delay = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]![0] as number;
+    const delay = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as number;
     expect(delay - Date.now()).toBeGreaterThanOrEqual(28_000);
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
@@ -170,7 +170,7 @@ describe('cold-timelock-broadcast-worker — timelock not yet expired', () => {
     await processor(job);
 
     expect(job.moveToDelayed).toHaveBeenCalledOnce();
-    const delay = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]![0] as number;
+    const delay = (job.moveToDelayed as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as number;
     // delay is an absolute epoch ms; should be ~61s ahead of now
     expect(delay - Date.now()).toBeGreaterThan(50_000);
   });
@@ -224,7 +224,7 @@ describe('cold-timelock-broadcast-worker — happy path', () => {
     const calls = vi.mocked(fetch).mock.calls as [string, RequestInit][];
     const executeCall = calls.find(([url]) => url.includes('/execute'));
     expect(executeCall).toBeDefined();
-    expect(executeCall![1].method).toBe('POST');
+    expect(executeCall?.[1].method).toBe('POST');
   });
 
   it('approved status (not time_locked) also triggers execute', async () => {

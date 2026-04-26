@@ -137,7 +137,7 @@ async function bootProcessor() {
   const { Worker } = await import('bullmq');
   startSignerCeremonyWorker({} as never, cfg);
   const calls = vi.mocked(Worker).mock.calls;
-  return calls[calls.length - 1]![1] as unknown as (
+  return calls[calls.length - 1]?.[1] as unknown as (
     job: ReturnType<typeof makeJob>
   ) => Promise<void>;
 }
@@ -147,23 +147,23 @@ async function bootProcessor() {
 describe('signer-ceremony-broadcast-worker — EVM prod: missing env FATAL', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.SAFE_ADDRESS = '0xSafeContract';
     process.env.BNB_RPC_URL = 'https://fake-bnb';
-    process.env.WALLET_ENGINE_EXECUTOR_KEY = '0x' + 'ab'.repeat(32);
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = `0x${'ab'.repeat(32)}`;
   });
 
   afterEach(() => {
-    delete process.env.AUTH_DEV_MODE;
-    delete process.env.SAFE_ADDRESS;
-    delete process.env.BNB_RPC_URL;
-    delete process.env.WALLET_ENGINE_EXECUTOR_KEY;
+    process.env.AUTH_DEV_MODE = undefined;
+    process.env.SAFE_ADDRESS = undefined;
+    process.env.BNB_RPC_URL = undefined;
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = undefined;
     vi.unstubAllGlobals();
     vi.resetModules();
   });
 
   it('missing SAFE_ADDRESS: throws FATAL, chain-failed callback called', async () => {
-    delete process.env.SAFE_ADDRESS;
+    process.env.SAFE_ADDRESS = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal(
       'fetch',
@@ -182,7 +182,7 @@ describe('signer-ceremony-broadcast-worker — EVM prod: missing env FATAL', () 
   });
 
   it('missing BNB_RPC_URL: throws FATAL', async () => {
-    delete process.env.BNB_RPC_URL;
+    process.env.BNB_RPC_URL = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOkResponse()));
 
@@ -193,7 +193,7 @@ describe('signer-ceremony-broadcast-worker — EVM prod: missing env FATAL', () 
   });
 
   it('missing WALLET_ENGINE_EXECUTOR_KEY: throws FATAL', async () => {
-    delete process.env.WALLET_ENGINE_EXECUTOR_KEY;
+    process.env.WALLET_ENGINE_EXECUTOR_KEY = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOkResponse()));
 
@@ -254,17 +254,17 @@ describe('signer-ceremony-broadcast-worker — EVM prod: missing env FATAL', () 
 describe('signer-ceremony-broadcast-worker — Solana prod path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     process.env.SQUADS_MULTISIG_ADDRESS = 'SquadsMultisigPda222';
     process.env.SOL_RPC_URL = 'https://fake-sol';
     process.env.WALLET_ENGINE_SOL_PAYER_KEY = Buffer.from(new Uint8Array(64)).toString('base64');
   });
 
   afterEach(() => {
-    delete process.env.AUTH_DEV_MODE;
-    delete process.env.SQUADS_MULTISIG_ADDRESS;
-    delete process.env.SOL_RPC_URL;
-    delete process.env.WALLET_ENGINE_SOL_PAYER_KEY;
+    process.env.AUTH_DEV_MODE = undefined;
+    process.env.SQUADS_MULTISIG_ADDRESS = undefined;
+    process.env.SOL_RPC_URL = undefined;
+    process.env.WALLET_ENGINE_SOL_PAYER_KEY = undefined;
     vi.unstubAllGlobals();
     vi.resetModules();
   });
@@ -282,7 +282,7 @@ describe('signer-ceremony-broadcast-worker — Solana prod path', () => {
   });
 
   it('missing SQUADS_MULTISIG_ADDRESS: throws FATAL', async () => {
-    delete process.env.SQUADS_MULTISIG_ADDRESS;
+    process.env.SQUADS_MULTISIG_ADDRESS = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOkResponse()));
 
@@ -293,7 +293,7 @@ describe('signer-ceremony-broadcast-worker — Solana prod path', () => {
   });
 
   it('missing SOL_RPC_URL: throws FATAL', async () => {
-    delete process.env.SOL_RPC_URL;
+    process.env.SOL_RPC_URL = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOkResponse()));
 
@@ -304,7 +304,7 @@ describe('signer-ceremony-broadcast-worker — Solana prod path', () => {
   });
 
   it('missing WALLET_ENGINE_SOL_PAYER_KEY: throws FATAL', async () => {
-    delete process.env.WALLET_ENGINE_SOL_PAYER_KEY;
+    process.env.WALLET_ENGINE_SOL_PAYER_KEY = undefined;
     mockFindFirst.mockResolvedValue(makeCeremony());
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOkResponse()));
 
@@ -338,7 +338,7 @@ describe('signer-ceremony-broadcast-worker — chain-failed callback non-2xx', (
   });
 
   afterEach(() => {
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     vi.unstubAllGlobals();
     vi.resetModules();
   });
@@ -372,7 +372,7 @@ describe('signer-ceremony-broadcast-worker — event handler callbacks invoked',
   });
 
   afterEach(() => {
-    delete process.env.AUTH_DEV_MODE;
+    process.env.AUTH_DEV_MODE = undefined;
     vi.resetModules();
   });
 

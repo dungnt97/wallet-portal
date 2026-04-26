@@ -48,14 +48,14 @@ describe('deriveBnbAddressBatch', () => {
   it('batch addresses match individual derivation', () => {
     const batch = deriveBnbAddressBatch(TEST_MNEMONIC, 0, 3);
     for (let i = 0; i < 3; i++) {
-      expect(batch[i]!.address).toBe(deriveBnbAddress(TEST_MNEMONIC, i).address);
+      expect(batch[i]?.address).toBe(deriveBnbAddress(TEST_MNEMONIC, i).address);
     }
   });
 
   it('startIndex offset works correctly', () => {
     const batch = deriveBnbAddressBatch(TEST_MNEMONIC, 10, 2);
-    expect(batch[0]!.index).toBe(10);
-    expect(batch[1]!.index).toBe(11);
-    expect(batch[0]!.address).toBe(deriveBnbAddress(TEST_MNEMONIC, 10).address);
+    expect(batch[0]?.index).toBe(10);
+    expect(batch[1]?.index).toBe(11);
+    expect(batch[0]?.address).toBe(deriveBnbAddress(TEST_MNEMONIC, 10).address);
   });
 });

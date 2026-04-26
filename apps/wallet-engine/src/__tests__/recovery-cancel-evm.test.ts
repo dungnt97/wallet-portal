@@ -22,9 +22,9 @@ const createTestParams = (overrides: Partial<CancelEvmParams> = {}): CancelEvmPa
 describe('recovery-cancel-evm', () => {
   beforeEach(() => {
     vi.resetModules();
-    delete process.env.AUTH_DEV_MODE;
-    delete process.env.HD_MASTER_XPUB_BNB;
-    delete process.env.RECOVERY_MAX_BUMP_GWEI;
+    process.env.AUTH_DEV_MODE = undefined;
+    process.env.HD_MASTER_XPUB_BNB = undefined;
+    process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
   });
 
   describe('Dev mode behavior', () => {
@@ -47,7 +47,7 @@ describe('recovery-cancel-evm', () => {
 
     it('should not require HD key material in dev mode', async () => {
       process.env.AUTH_DEV_MODE = 'true';
-      delete process.env.HD_MASTER_XPUB_BNB;
+      process.env.HD_MASTER_XPUB_BNB = undefined;
 
       const mockProvider = {
         getTransaction: vi.fn(),
@@ -82,7 +82,7 @@ describe('recovery-cancel-evm', () => {
   describe('Production mode (with mocked signing)', () => {
     it('should throw when HD key is missing in production', async () => {
       process.env.AUTH_DEV_MODE = 'false';
-      delete process.env.HD_MASTER_XPUB_BNB;
+      process.env.HD_MASTER_XPUB_BNB = undefined;
 
       const mockProvider = {
         getTransaction: vi.fn(),
@@ -231,7 +231,7 @@ describe('recovery-cancel-evm', () => {
 
     it('should handle default max bump gwei when env var missing', async () => {
       process.env.AUTH_DEV_MODE = 'true';
-      delete process.env.RECOVERY_MAX_BUMP_GWEI;
+      process.env.RECOVERY_MAX_BUMP_GWEI = undefined;
 
       const mockProvider = {
         getTransaction: vi.fn().mockResolvedValue({

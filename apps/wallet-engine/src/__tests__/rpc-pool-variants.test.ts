@@ -42,8 +42,8 @@ describe('rpc-pool-variants', () => {
         const pool = makeBnbPool(urls);
 
         const configs = pool.provider.providerConfigs;
-        expect(configs[0]!.priority).toBe(1);
-        expect(configs[1]!.priority).toBe(2);
+        expect(configs[0]?.priority).toBe(1);
+        expect(configs[1]?.priority).toBe(2);
       });
 
       it('should assign weight 2 to first provider, weight 1 to others', () => {
@@ -51,9 +51,9 @@ describe('rpc-pool-variants', () => {
         const pool = makeBnbPool(urls);
 
         const configs = pool.provider.providerConfigs;
-        expect(configs[0]!.weight).toBe(2);
-        expect(configs[1]!.weight).toBe(1);
-        expect(configs[2]!.weight).toBe(1);
+        expect(configs[0]?.weight).toBe(2);
+        expect(configs[1]?.weight).toBe(1);
+        expect(configs[2]?.weight).toBe(1);
       });
 
       it('should use quorum of 1', () => {
@@ -271,7 +271,7 @@ describe('rpc-pool-variants', () => {
       it('should pass connection to function', async () => {
         const pool = makeSolanaPool(['https://api.mainnet-beta.solana.com']);
 
-        let receivedConnection;
+        let receivedConnection: unknown;
         const mockFn = vi.fn().mockImplementation(async (conn) => {
           receivedConnection = conn;
           return 'ok';

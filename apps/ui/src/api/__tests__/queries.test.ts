@@ -495,3 +495,435 @@ describe('useRefreshMultisigSync', () => {
     expect(result.current.data?.bnb.status).toBe('error');
   });
 });
+
+// ── Additional query/mutation hooks ──────────────────────────────────────────
+
+describe('useKillSwitch', () => {
+  it('fetches from api.get', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ enabled: false, reason: null });
+    const { wrapper } = makeWrapper();
+    const { useKillSwitch } = await import('../queries');
+    const { result } = renderHook(() => useKillSwitch(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useOpsHealth', () => {
+  it('fetches health from api.get', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ status: 'ok' });
+    const { wrapper } = makeWrapper();
+    const { useOpsHealth } = await import('../queries');
+    const { result } = renderHook(() => useOpsHealth(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useToggleKillSwitch', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ enabled: true, reason: 'test' });
+    const { wrapper } = makeWrapper();
+    const { useToggleKillSwitch } = await import('../queries');
+    const { result } = renderHook(() => useToggleKillSwitch(), { wrapper });
+    result.current.mutate({ enabled: true, reason: 'test' });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useMultisigOps', () => {
+  it('fetches multisig ops list', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0, page: 1 });
+    const { wrapper } = makeWrapper();
+    const { useMultisigOps } = await import('../queries');
+    const { result } = renderHook(() => useMultisigOps(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+
+  it('passes pagination params in query string', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0, page: 2 });
+    const { wrapper } = makeWrapper();
+    const { useMultisigOps } = await import('../queries');
+    const { result } = renderHook(() => useMultisigOps({ page: 2, limit: 10 }), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calls = vi.mocked(api.get).mock.calls;
+    const url = calls[calls.length - 1][0] as string;
+    expect(url).toContain('page=2');
+    expect(url).toContain('limit=10');
+  });
+});
+
+describe('useStaffList', () => {
+  it('fetches staff list', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0, page: 1 });
+    const { wrapper } = makeWrapper();
+    const { useStaffList } = await import('../queries');
+    const { result } = renderHook(() => useStaffList(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useSweepBatches', () => {
+  it('fetches sweep batches without chain filter', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0 });
+    const { wrapper } = makeWrapper();
+    const { useSweepBatches } = await import('../queries');
+    const { result } = renderHook(() => useSweepBatches(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+
+  it('passes chain param when provided', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0 });
+    const { wrapper } = makeWrapper();
+    const { useSweepBatches } = await import('../queries');
+    const { result } = renderHook(() => useSweepBatches('bnb'), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calls = vi.mocked(api.get).mock.calls;
+    const url = calls[calls.length - 1][0] as string;
+    expect(url).toContain('chain=bnb');
+  });
+});
+
+describe('useTransactions', () => {
+  it('fetches transactions list', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0, page: 1 });
+    const { wrapper } = makeWrapper();
+    const { useTransactions } = await import('../queries');
+    const { result } = renderHook(() => useTransactions(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useLoginHistory', () => {
+  it('fetches login history', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0 });
+    const { wrapper } = makeWrapper();
+    const { useLoginHistory } = await import('../queries');
+    const { result } = renderHook(() => useLoginHistory(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useNotifChannels', () => {
+  it('fetches notification channels', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue([]);
+    const { wrapper } = makeWrapper();
+    const { useNotifChannels } = await import('../queries');
+    const { result } = renderHook(() => useNotifChannels(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useAdminChannels', () => {
+  it('fetches admin notification channels', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue([]);
+    const { wrapper } = makeWrapper();
+    const { useAdminChannels } = await import('../queries');
+    const { result } = renderHook(() => useAdminChannels(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useAdminRouting', () => {
+  it('fetches admin routing rules', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue([]);
+    const { wrapper } = makeWrapper();
+    const { useAdminRouting } = await import('../queries');
+    const { result } = renderHook(() => useAdminRouting(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useNavCounts', () => {
+  it('fetches nav badge counts', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({
+      deposits: 2,
+      sweep: 1,
+      withdrawals: 3,
+      multisig: 0,
+      recovery: 0,
+    });
+    const { wrapper } = makeWrapper();
+    const { useNavCounts } = await import('../queries');
+    const { result } = renderHook(() => useNavCounts(), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(vi.mocked(api.get)).toHaveBeenCalledWith(expect.stringContaining('nav-counts'));
+  });
+});
+
+describe('useAddDepositToSweep', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useAddDepositToSweep } = await import('../queries');
+    const { result } = renderHook(() => useAddDepositToSweep('dep-1'), { wrapper });
+    result.current.mutate(undefined);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useRejectWithdrawal', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useRejectWithdrawal } = await import('../queries');
+    const { result } = renderHook(() => useRejectWithdrawal('wd-1'), { wrapper });
+    result.current.mutate({});
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useSubmitWithdrawal', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useSubmitWithdrawal } = await import('../queries');
+    const { result } = renderHook(() => useSubmitWithdrawal('wd-2'), { wrapper });
+    result.current.mutate(undefined);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useApproveMultisigOp', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useApproveMultisigOp } = await import('../queries');
+    const { result } = renderHook(() => useApproveMultisigOp('op-1'), { wrapper });
+    result.current.mutate({ signature: '0xsig', signerAddress: '0xaddr', chain: 'bnb' } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useRejectMultisigOp', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useRejectMultisigOp } = await import('../queries');
+    const { result } = renderHook(() => useRejectMultisigOp('op-1'), { wrapper });
+    result.current.mutate({ reason: 'test' } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useExecuteMultisigOp', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useExecuteMultisigOp } = await import('../queries');
+    const { result } = renderHook(() => useExecuteMultisigOp('op-1'), { wrapper });
+    result.current.mutate(undefined);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useSlaSummary', () => {
+  it('fetches SLA summary', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ avgConfirmMs: 1200, p99ConfirmMs: 3000 });
+    const { wrapper } = makeWrapper();
+    const { useSlaSummary } = await import('../queries');
+    const { result } = renderHook(() => useSlaSummary(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useComplianceSummary', () => {
+  it('fetches compliance summary', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ flaggedCount: 0 });
+    const { wrapper } = makeWrapper();
+    const { useComplianceSummary } = await import('../queries');
+    const { result } = renderHook(() => useComplianceSummary(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useColdWallets', () => {
+  it('fetches cold wallets', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [] });
+    const { wrapper } = makeWrapper();
+    const { useColdWallets } = await import('../queries');
+    const { result } = renderHook(() => useColdWallets(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useColdBalances', () => {
+  it('fetches cold balances', async () => {
+    const { api } = await import('../client');
+    // useColdBalances calls api.get(...).then(r => r.data) — mock the full response shape
+    vi.mocked(api.get).mockResolvedValue({ data: [] });
+    const { wrapper } = makeWrapper();
+    const { useColdBalances } = await import('../queries');
+    const { result } = renderHook(() => useColdBalances(), { wrapper });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useWallets', () => {
+  it('fetches wallets list', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ data: [], total: 0 });
+    const { wrapper } = makeWrapper();
+    const { useWallets } = await import('../queries');
+    const { result } = renderHook(() => useWallets(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useCreateAdminChannel', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ id: 'ch-1' });
+    const { wrapper } = makeWrapper();
+    const { useCreateAdminChannel } = await import('../queries');
+    const { result } = renderHook(() => useCreateAdminChannel(), { wrapper });
+    result.current.mutate({ name: 'slack', config: {} } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useUpdateAdminChannel', () => {
+  it('calls api.patch on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.patch).mockResolvedValue({ id: 'ch-1' });
+    const { wrapper } = makeWrapper();
+    const { useUpdateAdminChannel } = await import('../queries');
+    const { result } = renderHook(() => useUpdateAdminChannel(), { wrapper });
+    result.current.mutate({ id: 'ch-1', update: {} } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.patch)).toHaveBeenCalled();
+  });
+});
+
+describe('useDeleteAdminChannel', () => {
+  it('calls api.delete on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.delete).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useDeleteAdminChannel } = await import('../queries');
+    const { result } = renderHook(() => useDeleteAdminChannel(), { wrapper });
+    result.current.mutate('ch-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.delete)).toHaveBeenCalled();
+  });
+});
+
+describe('useTestAdminChannel', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ sent: true });
+    const { wrapper } = makeWrapper();
+    const { useTestAdminChannel } = await import('../queries');
+    const { result } = renderHook(() => useTestAdminChannel(), { wrapper });
+    result.current.mutate('ch-1');
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useUpsertRoutingRule', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useUpsertRoutingRule } = await import('../queries');
+    const { result } = renderHook(() => useUpsertRoutingRule(), { wrapper });
+    result.current.mutate({ eventType: 'deposit.credited', channelId: 'ch-1' } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useDashboardMetrics', () => {
+  it('fetches dashboard metrics', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ series: [] });
+    const { wrapper } = makeWrapper();
+    const { useDashboardMetrics } = await import('../queries');
+    const { result } = renderHook(() => useDashboardMetrics(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useDashboardHistory', () => {
+  it('fetches dashboard history for metric and range', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.get).mockResolvedValue({ points: [] });
+    const { wrapper } = makeWrapper();
+    const { useDashboardHistory } = await import('../queries');
+    const { result } = renderHook(() => useDashboardHistory('aum', '7d'), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.get)).toHaveBeenCalled();
+  });
+});
+
+describe('useRunBandCheck', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ ok: true });
+    const { wrapper } = makeWrapper();
+    const { useRunBandCheck } = await import('../queries');
+    const { result } = renderHook(() => useRunBandCheck(), { wrapper });
+    result.current.mutate(undefined);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});
+
+describe('useRebalance', () => {
+  it('calls api.post on mutate', async () => {
+    const { api } = await import('../client');
+    vi.mocked(api.post).mockResolvedValue({ jobId: 'reb-1' });
+    const { wrapper } = makeWrapper();
+    const { useRebalance } = await import('../queries');
+    const { result } = renderHook(() => useRebalance(), { wrapper });
+    result.current.mutate({ direction: 'hot_to_cold', amount: '1000', chain: 'bnb' } as never);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(vi.mocked(api.post)).toHaveBeenCalled();
+  });
+});

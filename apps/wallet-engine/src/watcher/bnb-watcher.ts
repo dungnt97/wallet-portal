@@ -17,6 +17,16 @@ const DEFAULT_POLL_INTERVAL_MS = 5_000;
 const MAX_BLOCKS_PER_TICK = 10;
 /** Exponential backoff: max delay between retries on RPC error (ms) */
 const MAX_BACKOFF_MS = 30_000;
+/**
+ * Public BSC testnet RPCs prune log history beyond ~512 blocks. If the saved
+ * checkpoint falls further behind chain tip than this (e.g. wallet-engine was
+ * offline overnight), the watcher would loop forever on `getLogs` errors. At
+ * startup we detect that condition and skip-ahead to (tip - SAFETY_BUFFER).
+ * Historical deposits in the gap are unrecoverable from a pruned RPC anyway —
+ * for prod, point at a full archive node and this guard is a no-op.
+ */
+const MAX_STARTUP_CATCHUP_BLOCKS = 256;
+const STARTUP_SAFETY_BUFFER = 64;
 
 export interface BnbWatcherOptions {
   pollIntervalMs?: number;
@@ -45,6 +55,26 @@ export class BnbWatcher {
     if (saved !== null) {
       this.lastProcessedBlock = saved;
       logger.info({ lastBlock: this.lastProcessedBlock }, 'BNB watcher resumed from checkpoint');
+      // Skip-ahead guard: if we're so far behind that public RPCs will reject
+      // getLogs (history pruned), jump near tip so the watcher can move forward.
+      try {
+        const tip = await this.provider.getBlockNumber();
+        const lag = tip - saved;
+        if (lag > MAX_STARTUP_CATCHUP_BLOCKS) {
+          const skipTo = Math.max(0, tip - STARTUP_SAFETY_BUFFER);
+          logger.warn(
+            { savedCheckpoint: saved, tip, lag, skipTo },
+            'BNB checkpoint too stale for catch-up — skipping ahead near tip'
+          );
+          this.lastProcessedBlock = skipTo;
+          await this.checkpoint.save('bnb', skipTo);
+        }
+      } catch (err) {
+        logger.warn(
+          { err },
+          'BNB watcher could not probe tip on startup — proceeding from saved checkpoint'
+        );
+      }
     } else {
       // First run — start from current tip (no historical backfill)
       try {

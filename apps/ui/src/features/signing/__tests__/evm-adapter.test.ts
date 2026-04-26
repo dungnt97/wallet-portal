@@ -4,9 +4,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type EVMBroadcastParams,
+  type EVMBuildSafeTxParams,
   type EVMSignParams,
   evmBroadcastViaSafe,
+  evmBuildSafeTx,
   evmSign,
+  getSafeTxServiceUrl,
 } from '../evm-adapter';
 
 // ── evmSign ────────────────────────────────────────────────────────────────
@@ -143,5 +146,116 @@ describe('evmBroadcastViaSafe', () => {
     await expect(evmBroadcastViaSafe(params, apiKit)).rejects.toThrow(
       '[evm-adapter] evmBroadcastViaSafe: safeTxHash required'
     );
+  });
+});
+
+// ── getSafeTxServiceUrl ────────────────────────────────────────────────────
+
+describe('getSafeTxServiceUrl', () => {
+  it('returns fallback URL when env var not set', () => {
+    // VITE_SAFE_TX_SERVICE_URL is not set in test env
+    const url = getSafeTxServiceUrl();
+    expect(typeof url).toBe('string');
+    expect(url.length).toBeGreaterThan(0);
+    expect(url).toContain('safe');
+  });
+});
+
+// ── evmBuildSafeTx ─────────────────────────────────────────────────────────
+
+describe('evmBuildSafeTx', () => {
+  const makeTxData = (overrides = {}) => ({
+    to: '0xTokenContract' as `0x${string}`,
+    value: '0',
+    data: '0xa9059cbb' as `0x${string}`,
+    operation: 0,
+    safeTxGas: '0',
+    baseGas: '0',
+    gasPrice: '0',
+    gasToken: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+    refundReceiver: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+    nonce: '1',
+    ...overrides,
+  });
+
+  const makeProtocolKit = (overrides?: Record<string, unknown>) =>
+    ({
+      createTransaction: vi.fn().mockResolvedValue({ data: makeTxData() }),
+      getTransactionHash: vi.fn().mockResolvedValue('0xtxhash123'),
+      ...overrides,
+    }) as unknown as EVMBuildSafeTxParams['protocolKit'];
+
+  it('throws when safeAddress is empty', async () => {
+    const protocolKit = makeProtocolKit();
+    await expect(
+      evmBuildSafeTx({
+        safeAddress: '' as `0x${string}`,
+        to: '0xTo',
+        value: BigInt(0),
+        data: '0x',
+        protocolKit,
+      })
+    ).rejects.toThrow('[evm-adapter] evmBuildSafeTx: safeAddress required');
+  });
+
+  it('returns safeTxHash and typedData on success', async () => {
+    const protocolKit = makeProtocolKit();
+    const result = await evmBuildSafeTx({
+      safeAddress: '0xSafe' as `0x${string}`,
+      to: '0xTo',
+      value: BigInt(1000000),
+      data: '0xa9059cbb',
+      protocolKit,
+    });
+
+    expect(result.safeTxHash).toBe('0xtxhash123');
+    expect(result.typedData.primaryType).toBe('SafeTx');
+    expect(result.typedData.domain.name).toBe('Safe');
+    expect(result.typedData.domain.verifyingContract).toBe('0xSafe');
+  });
+
+  it('passes correct tx fields to createTransaction', async () => {
+    const protocolKit = makeProtocolKit();
+    await evmBuildSafeTx({
+      safeAddress: '0xSafe' as `0x${string}`,
+      to: '0xTokenAddr',
+      value: BigInt(0),
+      data: '0xdata',
+      protocolKit,
+    });
+
+    expect(protocolKit.createTransaction).toHaveBeenCalledWith({
+      transactions: [{ to: '0xTokenAddr', value: '0', data: '0xdata' }],
+    });
+  });
+
+  it('throws when createTransaction fails', async () => {
+    const protocolKit = makeProtocolKit({
+      createTransaction: vi.fn().mockRejectedValue(new Error('RPC error')),
+    });
+    await expect(
+      evmBuildSafeTx({
+        safeAddress: '0xSafe' as `0x${string}`,
+        to: '0xTo',
+        value: BigInt(0),
+        data: '0x',
+        protocolKit,
+      })
+    ).rejects.toThrow('[evm-adapter] evmBuildSafeTx: createTransaction failed: RPC error');
+  });
+
+  it('throws when getTransactionHash fails', async () => {
+    const protocolKit = makeProtocolKit({
+      getTransactionHash: vi.fn().mockRejectedValue(new Error('Hash error')),
+    });
+    await expect(
+      evmBuildSafeTx({
+        safeAddress: '0xSafe' as `0x${string}`,
+        to: '0xTo',
+        value: BigInt(0),
+        data: '0x',
+        protocolKit,
+      })
+    ).rejects.toThrow('[evm-adapter] evmBuildSafeTx: getTransactionHash failed: Hash error');
   });
 });

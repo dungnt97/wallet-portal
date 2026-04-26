@@ -324,4 +324,147 @@ describe('useWithdrawalActions', () => {
     });
     expect(result.current.selected?.stage).toBe('awaiting_signatures');
   });
+
+  it('onReject error callback shows error toast', () => {
+    let capturedOnError: ((err: unknown) => void) | undefined;
+    mockRejectMutate.mockImplementation(
+      (_: unknown, opts: { onError?: (err: unknown) => void }) => {
+        capturedOnError = opts.onError;
+      }
+    );
+
+    const { result } = renderHook(() => useWithdrawalActions(mockSigningFlow as never, vi.fn()));
+    act(() => {
+      result.current.onReject(mockWithdrawal);
+    });
+    act(() => {
+      capturedOnError?.(new Error('network error'));
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('approveError'), 'error');
+  });
+
+  it('onExecute error callback shows error toast', () => {
+    let capturedOnError: ((err: unknown) => void) | undefined;
+    mockExecuteMutate.mockImplementation(
+      (_: undefined, opts: { onError?: (err: unknown) => void }) => {
+        capturedOnError = opts.onError;
+      }
+    );
+
+    const { result } = renderHook(() => useWithdrawalActions(mockSigningFlow as never, vi.fn()));
+    act(() => {
+      result.current.onExecute(mockWithdrawal);
+    });
+    act(() => {
+      capturedOnError?.(new Error('broadcast failed'));
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('executeError'), 'error');
+  });
+
+  it('onSubmitDraft error callback shows error toast', () => {
+    let capturedOnError: ((err: unknown) => void) | undefined;
+    mockSubmitMutate.mockImplementation(
+      (_: undefined, opts: { onError?: (err: unknown) => void }) => {
+        capturedOnError = opts.onError;
+      }
+    );
+
+    const { result } = renderHook(() => useWithdrawalActions(mockSigningFlow as never, vi.fn()));
+    act(() => {
+      result.current.onSubmitDraft(mockWithdrawal);
+    });
+    act(() => {
+      capturedOnError?.(new Error('submit failed'));
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('approveError'), 'error');
+  });
+
+  it('onSigningComplete onSuccess shows threshold toast when thresholdMet is true', () => {
+    let capturedOnSuccess: ((r: unknown) => void) | undefined;
+    mockApproveMutate.mockImplementation(
+      (_: unknown, opts: { onSuccess?: (r: unknown) => void }) => {
+        capturedOnSuccess = opts.onSuccess;
+      }
+    );
+
+    const flowWithSig = {
+      ...mockSigningFlow,
+      state: {
+        ...mockSigningFlow.state,
+        signature: { signer: '0xSigner', signature: '0xSig', at: '' },
+        hwAttestation: null,
+      },
+    };
+    const { result } = renderHook(() => useWithdrawalActions(flowWithSig as never, vi.fn()));
+    act(() => {
+      result.current.onApprove(mockWithdrawal);
+    });
+    act(() => {
+      result.current.onSigningComplete();
+    });
+    act(() => {
+      capturedOnSuccess?.({ op: { collectedSigs: 2, requiredSigs: 2 }, thresholdMet: true });
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('approveThreshold'), 'success');
+    expect(result.current.selected?.stage).toBe('executing');
+  });
+
+  it('onSigningComplete onSuccess shows approveSuccess when threshold not met', () => {
+    let capturedOnSuccess: ((r: unknown) => void) | undefined;
+    mockApproveMutate.mockImplementation(
+      (_: unknown, opts: { onSuccess?: (r: unknown) => void }) => {
+        capturedOnSuccess = opts.onSuccess;
+      }
+    );
+
+    const flowWithSig = {
+      ...mockSigningFlow,
+      state: {
+        ...mockSigningFlow.state,
+        signature: { signer: '0xSigner', signature: '0xSig', at: '' },
+        hwAttestation: null,
+      },
+    };
+    const { result } = renderHook(() => useWithdrawalActions(flowWithSig as never, vi.fn()));
+    act(() => {
+      result.current.onApprove(mockWithdrawal);
+    });
+    act(() => {
+      result.current.onSigningComplete();
+    });
+    act(() => {
+      capturedOnSuccess?.({ op: { collectedSigs: 1, requiredSigs: 2 }, thresholdMet: false });
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('approveSuccess'), 'success');
+    expect(result.current.selected?.stage).toBe('awaiting_signatures');
+  });
+
+  it('onSigningComplete onError shows error toast', () => {
+    let capturedOnError: ((err: unknown) => void) | undefined;
+    mockApproveMutate.mockImplementation(
+      (_: unknown, opts: { onError?: (err: unknown) => void }) => {
+        capturedOnError = opts.onError;
+      }
+    );
+
+    const flowWithSig = {
+      ...mockSigningFlow,
+      state: {
+        ...mockSigningFlow.state,
+        signature: { signer: '0xSigner', signature: '0xSig', at: '' },
+        hwAttestation: null,
+      },
+    };
+    const { result } = renderHook(() => useWithdrawalActions(flowWithSig as never, vi.fn()));
+    act(() => {
+      result.current.onApprove(mockWithdrawal);
+    });
+    act(() => {
+      result.current.onSigningComplete();
+    });
+    act(() => {
+      capturedOnError?.(new Error('signature rejected'));
+    });
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('approveError'), 'error');
+  });
 });

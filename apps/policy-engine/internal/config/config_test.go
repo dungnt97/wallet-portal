@@ -9,6 +9,8 @@ func TestLoad_WithAllRequiredEnvVars(t *testing.T) {
 	// Set required environment variables
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost/db")
 	t.Setenv("SVC_BEARER_TOKEN", "test_token_123")
+	// CI sets POLICY_DEV_MODE=true at workflow level; unset for default-value assertion
+	os.Unsetenv("POLICY_DEV_MODE")
 
 	cfg, err := Load()
 	if err != nil {

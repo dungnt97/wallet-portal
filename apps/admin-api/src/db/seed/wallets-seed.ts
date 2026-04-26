@@ -3,11 +3,14 @@
 import type { Db } from '../index.js';
 import { wallets } from '../schema/index.js';
 
+// Placeholders must satisfy on-chain address format so health probes can call
+// eth_getBalance / getBalance without RPC parse errors. They resolve to zero
+// balance on-chain (no funds sent), which is the desired dev behaviour.
 const DEV_PLACEHOLDERS = {
-  bnbHot: '0xHOT0SAFE00000000000000000000000000000001',
-  bnbCold: '0xCOLD0SAFE0000000000000000000000000000002',
-  solHot: 'HotSquadsAddressAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-  solCold: 'ColdSquadsAddressBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  bnbHot: '0x000000000000000000000000000000000000dEaD',
+  bnbCold: '0x000000000000000000000000000000000000bEEf',
+  solHot: '11111111111111111111111111111111',
+  solCold: 'So11111111111111111111111111111111111111112',
 } as const;
 
 const resolveWalletFixtures = () => {

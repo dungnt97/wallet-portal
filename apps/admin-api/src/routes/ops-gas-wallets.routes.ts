@@ -20,6 +20,15 @@ const LOW_BALANCE_THRESHOLD: Record<'bnb' | 'sol', number> = {
   sol: 0.5,
 };
 
+// EVM addresses must be 0x-prefixed hex (40 hex chars after 0x).
+const BNB_ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
+// Solana base58 alphabet excludes 0/O/I/l; addresses are 32-44 chars.
+const SOL_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+function isValidChainAddress(chain: 'bnb' | 'sol', address: string): boolean {
+  return chain === 'bnb' ? BNB_ADDR_RE.test(address) : SOL_ADDR_RE.test(address);
+}
+
 const GasWalletSchema = z.object({
   chain: z.enum(['bnb', 'sol']),
   address: z.string(),
@@ -110,6 +119,18 @@ const opsGasWalletsRoutes: FastifyPluginAsync = async (app) => {
           const symbol = chain === 'bnb' ? 'BNB' : 'SOL';
           const decimals = chain === 'bnb' ? 18 : 9;
           const thresholdLow = LOW_BALANCE_THRESHOLD[chain];
+          if (!isValidChainAddress(chain, w.address)) {
+            return {
+              chain,
+              address: w.address,
+              symbol,
+              balance: null,
+              thresholdLow,
+              isLow: false,
+              status: 'error' as const,
+              error: 'invalid address format (placeholder/seed?)',
+            };
+          }
           try {
             const raw =
               chain === 'bnb'

@@ -343,7 +343,7 @@ describe('SigningSession discriminated union', () => {
 
 describe('canonicalSolanaBytes', () => {
   const validSession = {
-    v: 1,
+    v: 1 as const,
     kind: 'sol' as const,
     multisigPda: '11111111111111111111111111111111',
     opId: '550e8400-e29b-41d4-a716-446655440000',

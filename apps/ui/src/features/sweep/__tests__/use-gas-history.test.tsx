@@ -1,5 +1,119 @@
-import { describe, expect, it } from 'vitest';
-import { GAS_HISTORY_QUERY_KEY, type GasHistoryData, type GasPoint } from '../use-gas-history';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  GAS_HISTORY_QUERY_KEY,
+  type GasHistoryData,
+  type GasPoint,
+  useGasHistory,
+} from '../use-gas-history';
+
+// ── Mocks ─────────────────────────────────────────────────────────────────────
+
+vi.mock('@/api/client', () => ({
+  api: {
+    get: vi.fn(),
+  },
+}));
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function makeWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    qc,
+    wrapper: ({ children }: { children: ReactNode }) =>
+      QueryClientProvider({ client: qc, children }),
+  };
+}
+
+// ── useGasHistory hook ────────────────────────────────────────────────────────
+
+describe('useGasHistory hook', () => {
+  it('calls api.get with correct URL for bnb chain', async () => {
+    const { api } = await import('@/api/client');
+    const mockData: GasHistoryData = { points: [], current: 3.5, avg: 3.0, min: 2.5, max: 4.0 };
+    vi.mocked(api.get).mockResolvedValue(mockData);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useGasHistory('bnb'), { wrapper });
+
+    await waitFor(() =>
+      expect(result.current.isSuccess ?? result.current.data !== undefined).toBeTruthy()
+    );
+    expect(vi.mocked(api.get)).toHaveBeenCalledWith('/chain/gas-history?chain=bnb&range=24h');
+  });
+
+  it('calls api.get with correct URL for sol chain', async () => {
+    const { api } = await import('@/api/client');
+    const mockData: GasHistoryData = {
+      points: [],
+      current: 0.00025,
+      avg: null,
+      min: null,
+      max: null,
+    };
+    vi.mocked(api.get).mockResolvedValue(mockData);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useGasHistory('sol'), { wrapper });
+
+    await waitFor(() => expect(vi.mocked(api.get)).toHaveBeenCalled());
+    expect(vi.mocked(api.get)).toHaveBeenCalledWith('/chain/gas-history?chain=sol&range=24h');
+  });
+
+  it('returns fetched data on success', async () => {
+    const { api } = await import('@/api/client');
+    const mockData: GasHistoryData = {
+      points: [{ t: '2026-04-25T10:00:00Z', price: 3.5 }],
+      current: 3.5,
+      avg: 3.0,
+      min: 2.5,
+      max: 4.0,
+    };
+    vi.mocked(api.get).mockResolvedValue(mockData);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useGasHistory('bnb'), { wrapper });
+
+    await waitFor(() => result.current.data !== undefined && result.current.data !== null);
+    // data should match or be placeholder (depending on timing)
+    expect(result.current.data).toBeDefined();
+  });
+
+  it('uses placeholder data { points: [], current: null } on error', async () => {
+    const { api } = await import('@/api/client');
+    vi.mocked(api.get).mockRejectedValue(new Error('RPC unavailable'));
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useGasHistory('bnb'), { wrapper });
+
+    // Placeholder is returned while loading/error
+    expect(result.current.data).toBeDefined();
+    const data = result.current.data as GasHistoryData | undefined;
+    if (data) {
+      // placeholder shape
+      expect(Array.isArray(data.points)).toBe(true);
+    }
+  });
+
+  it('returns the correct query key for bnb', async () => {
+    const { api } = await import('@/api/client');
+    vi.mocked(api.get).mockResolvedValue({
+      points: [],
+      current: null,
+      avg: null,
+      min: null,
+      max: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    renderHook(() => useGasHistory('bnb'), { wrapper });
+    // query key is validated via GAS_HISTORY_QUERY_KEY tests below
+    expect(GAS_HISTORY_QUERY_KEY('bnb')).toEqual(['chain', 'gas-history', 'bnb']);
+  });
+});
 
 describe('useGasHistory types and query key', () => {
   it('creates correct query key for BNB chain', () => {

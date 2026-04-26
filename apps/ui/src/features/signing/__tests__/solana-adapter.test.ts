@@ -3,7 +3,13 @@ import { PublicKey } from '@solana/web3.js';
 // Tests: solanaSign golden path, empty message rejection, wallet error propagation.
 // solanaProposeSquads and solanaApproveProposal: mocked Connection path.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { deriveVaultPda, getSquadsMultisigPda, solanaSign } from '../solana-adapter';
+import {
+  deriveVaultPda,
+  getSquadsMultisigPda,
+  solanaApproveProposal,
+  solanaProposeSquads,
+  solanaSign,
+} from '../solana-adapter';
 
 // Mock @sqds/multisig so PDA derivation doesn't require real program seeds
 vi.mock('@sqds/multisig', () => {
@@ -27,6 +33,12 @@ vi.mock('@sqds/multisig', () => {
     },
   };
 });
+
+// Top-level import resolves to mock (vi.mock is hoisted)
+// biome-ignore lint/suspicious/noExplicitAny: test mock access
+import * as multisigMock from '@sqds/multisig';
+// biome-ignore lint/suspicious/noExplicitAny: test mock access
+const multisigAccounts = multisigMock.accounts as any;
 
 // ── solanaSign ─────────────────────────────────────────────────────────────
 
@@ -145,5 +157,197 @@ describe('deriveVaultPda', () => {
     const vault0 = deriveVaultPda(multisigPda, 0);
     const vault1 = deriveVaultPda(multisigPda, 1);
     expect(vault0.toBase58()).not.toBe(vault1.toBase58());
+  });
+});
+
+// ── solanaProposeSquads ────────────────────────────────────────────────────
+
+describe('solanaProposeSquads', () => {
+  const mockPda = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bXo');
+  const multisigPda = mockPda;
+  const creator = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  const walletPubkey = new PublicKey('SysvarRent111111111111111111111111111111111');
+
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const fakeMessage = { instructions: [] } as any;
+
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const makeConnection = (overrides?: Record<string, unknown>): any => ({
+    getLatestBlockhash: vi
+      .fn()
+      .mockResolvedValue({ blockhash: 'testblockhash', lastValidBlockHeight: 1000 }),
+    ...overrides,
+  });
+
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const makeWallet = (overrides?: Record<string, unknown>): any => ({
+    publicKey: walletPubkey,
+    sendTransaction: vi.fn().mockResolvedValue('0xproposalsig'),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    multisigAccounts.Multisig.fromAccountAddress.mockResolvedValue({
+      transactionIndex: { toNumber: () => 5 },
+    });
+  });
+
+  it('throws when wallet not connected', async () => {
+    const wallet = makeWallet({ publicKey: null });
+    const connection = makeConnection();
+
+    await expect(
+      solanaProposeSquads(
+        { multisigPda, creator, transactionMessage: fakeMessage },
+        connection,
+        wallet
+      )
+    ).rejects.toThrow('[solana-adapter] solanaProposeSquads: wallet not connected');
+  });
+
+  it('throws when loading multisig account fails', async () => {
+    multisigAccounts.Multisig.fromAccountAddress.mockRejectedValue(new Error('RPC unavailable'));
+
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    await expect(
+      solanaProposeSquads(
+        { multisigPda, creator, transactionMessage: fakeMessage },
+        connection,
+        wallet
+      )
+    ).rejects.toThrow(
+      '[solana-adapter] solanaProposeSquads: failed to load multisig: RPC unavailable'
+    );
+  });
+
+  it('throws when sendTransaction fails', async () => {
+    const wallet = makeWallet({
+      sendTransaction: vi.fn().mockRejectedValue(new Error('Transaction rejected')),
+    });
+    const connection = makeConnection();
+
+    await expect(
+      solanaProposeSquads(
+        { multisigPda, creator, transactionMessage: fakeMessage },
+        connection,
+        wallet
+      )
+    ).rejects.toThrow(
+      '[solana-adapter] solanaProposeSquads: sendTransaction failed: Transaction rejected'
+    );
+  });
+
+  it('returns proposalPubkey and signature on success', async () => {
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    const result = await solanaProposeSquads(
+      { multisigPda, creator, transactionMessage: fakeMessage, memo: 'test memo' },
+      connection,
+      wallet
+    );
+
+    expect(result.signature).toBe('0xproposalsig');
+    expect(result.proposalPubkey).toBeInstanceOf(PublicKey);
+  });
+
+  it('works with bigint transactionIndex', async () => {
+    multisigAccounts.Multisig.fromAccountAddress.mockResolvedValue({
+      transactionIndex: 3n,
+    });
+
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    const result = await solanaProposeSquads(
+      { multisigPda, creator, transactionMessage: fakeMessage },
+      connection,
+      wallet
+    );
+
+    expect(result.signature).toBe('0xproposalsig');
+  });
+});
+
+// ── solanaApproveProposal ──────────────────────────────────────────────────
+
+describe('solanaApproveProposal', () => {
+  const mockPda = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bXo');
+  const walletPubkey = new PublicKey('SysvarRent111111111111111111111111111111111');
+
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const makeConnection = (overrides?: Record<string, unknown>): any => ({
+    getLatestBlockhash: vi
+      .fn()
+      .mockResolvedValue({ blockhash: 'testblockhash2', lastValidBlockHeight: 2000 }),
+    ...overrides,
+  });
+
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const makeWallet = (overrides?: Record<string, unknown>): any => ({
+    publicKey: walletPubkey,
+    sendTransaction: vi.fn().mockResolvedValue('0xapprovalsig'),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    multisigAccounts.Proposal.fromAccountAddress.mockResolvedValue({
+      multisig: mockPda,
+      transactionIndex: { toNumber: () => 3 },
+    });
+  });
+
+  it('throws when wallet not connected', async () => {
+    const wallet = makeWallet({ publicKey: null });
+    const connection = makeConnection();
+
+    await expect(solanaApproveProposal(mockPda, wallet, connection)).rejects.toThrow(
+      '[solana-adapter] solanaApproveProposal: wallet not connected'
+    );
+  });
+
+  it('throws when loading proposal account fails', async () => {
+    multisigAccounts.Proposal.fromAccountAddress.mockRejectedValue(new Error('Account not found'));
+
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    await expect(solanaApproveProposal(mockPda, wallet, connection)).rejects.toThrow(
+      '[solana-adapter] solanaApproveProposal: failed to load proposal: Account not found'
+    );
+  });
+
+  it('throws when sendTransaction fails', async () => {
+    const wallet = makeWallet({
+      sendTransaction: vi.fn().mockRejectedValue(new Error('Insufficient funds')),
+    });
+    const connection = makeConnection();
+
+    await expect(solanaApproveProposal(mockPda, wallet, connection)).rejects.toThrow(
+      '[solana-adapter] solanaApproveProposal: sendTransaction failed: Insufficient funds'
+    );
+  });
+
+  it('returns signature on success', async () => {
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    const result = await solanaApproveProposal(mockPda, wallet, connection);
+    expect(result.signature).toBe('0xapprovalsig');
+  });
+
+  it('works with bigint proposalAccount.transactionIndex', async () => {
+    multisigAccounts.Proposal.fromAccountAddress.mockResolvedValue({
+      multisig: mockPda,
+      transactionIndex: 7n,
+    });
+
+    const wallet = makeWallet();
+    const connection = makeConnection();
+
+    const result = await solanaApproveProposal(mockPda, wallet, connection);
+    expect(result.signature).toBe('0xapprovalsig');
   });
 });

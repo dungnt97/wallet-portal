@@ -39,7 +39,7 @@ function makeSnapshot(overrides: Partial<ReconciliationSnapshot> = {}): Reconcil
   return {
     id: 'snap-001',
     createdAt: '2024-01-15T10:00:00Z',
-    scope: 'full',
+    scope: 'all',
     chain: null,
     triggeredBy: null,
     driftTotalMinor: '1000000',
@@ -81,12 +81,12 @@ describe('SnapshotList', () => {
   it('shows scope badge', () => {
     render(
       <SnapshotList
-        snapshots={[makeSnapshot({ scope: 'full' })]}
+        snapshots={[makeSnapshot({ scope: 'all' })]}
         selectedId={null}
         onSelect={vi.fn()}
       />
     );
-    expect(screen.getByText('full')).toBeInTheDocument();
+    expect(screen.getByText('all')).toBeInTheDocument();
   });
 
   it('shows chain badge when chain is set', () => {
@@ -193,13 +193,13 @@ describe('SnapshotList', () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
     render(<SnapshotList snapshots={[makeSnapshot()]} selectedId={null} onSelect={onSelect} />);
-    await user.click(screen.getByText('full'));
+    await user.click(screen.getByText('all'));
     expect(onSelect).toHaveBeenCalledWith('snap-001');
   });
 
   it('applies row-selected class to selected row', () => {
     render(<SnapshotList snapshots={[makeSnapshot()]} selectedId="snap-001" onSelect={vi.fn()} />);
-    const row = screen.getByText('full').closest('tr') as HTMLTableRowElement;
+    const row = screen.getByText('all').closest('tr') as HTMLTableRowElement;
     expect(row.className).toContain('row-selected');
   });
 

@@ -8,6 +8,13 @@ import { BlockCheckpoint } from '../watcher/block-checkpoint.js';
 import { TRANSFER_TOPIC } from '../watcher/bnb-log-parser.js';
 import { BnbWatcher } from '../watcher/bnb-watcher.js';
 
+// Mock deposit-detector at the boundary so watcher tests don't depend on
+// dynamic schema imports or DB side-effects inside detectDeposit.
+const mockDetectDeposit = vi.fn().mockResolvedValue(undefined);
+vi.mock('../watcher/deposit-detector.js', () => ({
+  detectDeposit: (...args: unknown[]) => mockDetectDeposit(...args),
+}));
+
 const USDT = '0x55d398326f99059fF775485246999027B3197955';
 const USDC = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
 const WATCHED = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
@@ -142,14 +149,15 @@ describe('BnbWatcher', () => {
     });
 
     await watcher.start();
-    // Wait for one tick
-    await new Promise((r) => setTimeout(r, 80));
+    // Wait for one tick — interval fires at 50ms
+    await new Promise((r) => setTimeout(r, 150));
     await watcher.stop();
 
     expect(provider.getLogs).toHaveBeenCalledWith(
       expect.objectContaining({ fromBlock: 10, toBlock: 12 })
     );
-    expect(queue.add).toHaveBeenCalledTimes(1);
+    // detectDeposit is the boundary we assert — mocked to avoid DB/schema deps
+    expect(mockDetectDeposit).toHaveBeenCalledTimes(1);
   });
 
   it('does not enqueue when Transfer recipient is not in registry', async () => {

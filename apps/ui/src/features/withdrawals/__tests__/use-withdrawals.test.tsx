@@ -1,8 +1,8 @@
 // Unit tests for withdrawals hooks: useWithdrawals, useWithdrawalsSocketListener, and adapter functions
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
-import React, { ReactNode } from 'react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import React, { type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock API and socket
 vi.mock('@/api/client', () => ({
@@ -19,10 +19,10 @@ vi.mock('@/api/socket', () => ({
 import { api } from '@/api/client';
 import { connectSocket, disconnectSocket } from '@/api/socket';
 import {
+  type ApiWithdrawal,
   apiToWithdrawalRow,
   useWithdrawals,
   useWithdrawalsSocketListener,
-  type ApiWithdrawal,
 } from '../use-withdrawals';
 
 // ── Fixtures & Types ─────────────────────────────────────────────────────────
@@ -59,10 +59,7 @@ function createQueryClient() {
   });
 }
 
-function renderWithProvider<T>(
-  hook: () => T,
-  queryClient: QueryClient = createQueryClient()
-) {
+function renderWithProvider<T>(hook: () => T, queryClient: QueryClient = createQueryClient()) {
   return renderHook(hook, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -279,7 +276,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     const { unmount } = renderWithProvider(() => useWithdrawalsSocketListener(), queryClient);
@@ -293,7 +292,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     const { unmount } = renderWithProvider(() => useWithdrawalsSocketListener(), queryClient);
@@ -308,7 +309,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     renderWithProvider(() => useWithdrawalsSocketListener(), queryClient);
@@ -329,7 +332,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     renderWithProvider(() => useWithdrawalsSocketListener(), queryClient);
@@ -346,7 +351,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     const { unmount } = renderWithProvider(() => useWithdrawalsSocketListener(), queryClient);
@@ -365,7 +372,9 @@ describe('useWithdrawalsSocketListener', () => {
       on: vi.fn(),
       off: vi.fn(),
     };
-    vi.mocked(connectSocket).mockReturnValue(mockSocket as unknown as ReturnType<typeof connectSocket>);
+    vi.mocked(connectSocket).mockReturnValue(
+      mockSocket as unknown as ReturnType<typeof connectSocket>
+    );
 
     const queryClient = createQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');

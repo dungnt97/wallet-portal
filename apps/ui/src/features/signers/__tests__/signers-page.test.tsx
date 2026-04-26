@@ -330,4 +330,47 @@ describe('SignersPage', () => {
     // History section renders (empty state for empty data)
     expect(screen.getByText('common.empty')).toBeInTheDocument();
   });
+
+  it('shows loading state in history tab when isPending', async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', role: 'admin' } });
+    mockUseStaff.mockReturnValue({ data: [], isPending: false });
+    // History uses page param; return isPending=true for that call
+    mockUseCeremonies.mockImplementation((params: { page?: number }) => {
+      if (params?.page !== undefined) return { data: undefined, isPending: true };
+      return { data: { data: [] }, isPending: false };
+    });
+    render(<SignersPage />);
+    await user.click(screen.getByText('signers.ceremony.historyTabLabel'));
+    expect(screen.getByText('common.loading')).toBeInTheDocument();
+  });
+
+  it('renders history rows with completed ceremonies', async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({ staff: { staffId: 'a1', role: 'admin' } });
+    mockUseStaff.mockReturnValue({ data: [], isPending: false });
+    mockUseCeremonies.mockImplementation((params: { page?: number }) => {
+      if (params?.page !== undefined) {
+        return {
+          data: {
+            data: [
+              {
+                id: 'c1',
+                status: 'confirmed',
+                chain: 'bnb',
+                type: 'add',
+                createdAt: new Date().toISOString(),
+              },
+            ],
+            total: 1,
+          },
+          isPending: false,
+        };
+      }
+      return { data: { data: [] }, isPending: false };
+    });
+    render(<SignersPage />);
+    await user.click(screen.getByText('signers.ceremony.historyTabLabel'));
+    expect(screen.getByTestId('ceremony-progress')).toBeInTheDocument();
+  });
 });

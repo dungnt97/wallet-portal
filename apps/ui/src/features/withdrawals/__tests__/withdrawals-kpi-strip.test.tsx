@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { WithdrawalRow } from '../withdrawal-types';
 import { WithdrawalsKpiStrip } from '../withdrawals-kpi-strip';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-type KpiItem = { key: string; value: unknown };
+type KpiItem = { key: string; value: ReactNode };
 
 vi.mock('@/components/custody', () => ({
   KpiStrip: ({ items }: { items: KpiItem[] }) => (

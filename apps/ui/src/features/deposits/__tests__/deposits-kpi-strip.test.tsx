@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FixDeposit } from '../deposit-types';
 import { DepositsKpiStrip } from '../deposits-kpi-strip';
 
-type KpiItem = { key: string; value: unknown };
+import type { ReactNode } from 'react';
+
+type KpiItem = { key: string; value: ReactNode };
 
 vi.mock('@/api/queries');
 vi.mock('@/components/custody', () => ({
@@ -47,18 +49,25 @@ describe('DepositsKpiStrip', () => {
     userId: 'user-1',
     userName: 'John Doe',
     chain: 'bnb',
+    token: 'USDT',
     amount: 5000,
     status: 'pending',
+    address: '0xDepositAddr',
+    txHash: '0xTxHash',
+    confirmations: 12,
+    requiredConfirmations: 12,
     detectedAt: new Date().toISOString(),
     creditedAt: null,
-    createdAt: new Date().toISOString(),
+    sweptAt: null,
+    risk: 'low',
+    blockNumber: 10000,
   };
 
   beforeEach(() => {
     vi.mocked(queries.useDashboardHistory).mockReturnValue({
       data: { points: [] },
       isLoading: false,
-    } as ReturnType<typeof queries.useDashboardHistory>);
+    } as unknown as ReturnType<typeof queries.useDashboardHistory>);
   });
 
   it('renders KPI strip with all items', () => {

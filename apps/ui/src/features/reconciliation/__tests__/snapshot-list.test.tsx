@@ -43,8 +43,11 @@ function makeSnapshot(overrides: Partial<ReconciliationSnapshot> = {}): Reconcil
     chain: null,
     triggeredBy: null,
     driftTotalMinor: '1000000',
+    onChainTotalMinor: '1000000',
+    ledgerTotalMinor: '1000000',
+    errorMessage: null,
+    completedAt: '2024-01-15T10:01:00Z',
     status: 'completed',
-    drifts: [],
     ...overrides,
   };
 }

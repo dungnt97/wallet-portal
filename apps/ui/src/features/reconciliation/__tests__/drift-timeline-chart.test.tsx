@@ -23,12 +23,15 @@ function makeSnapshot(overrides: Partial<ReconciliationSnapshot> = {}): Reconcil
   return {
     id: 'snap-001',
     createdAt: '2024-01-15T10:00:00Z',
-    scope: 'full',
+    scope: 'all',
     chain: null,
     triggeredBy: null,
     driftTotalMinor: '2000000',
+    onChainTotalMinor: '1000000',
+    ledgerTotalMinor: '1000000',
+    errorMessage: null,
+    completedAt: '2024-01-15T10:01:00Z',
     status: 'completed',
-    drifts: [],
     ...overrides,
   };
 }

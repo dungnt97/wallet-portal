@@ -3,14 +3,14 @@ import { AuthCallbackPage } from '@/features/auth/auth-callback-page';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock('@/api/client', () => ({
   ApiError: class ApiError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    constructor(status: number, message: string) {
       super(message);
       this.status = status;
     }
@@ -21,12 +21,17 @@ vi.mock('@/api/client', () => ({
 
 type AuthOverride = {
   refresh?: () => Promise<void>;
-  staff?: null | { id: string; name: string; email: string; role: string; initials: string };
+  staff?: null | {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'treasurer' | 'operator' | 'viewer';
+    initials: string;
+  };
 };
 
 function renderCallback(search: string, authOverrides: AuthOverride = {}) {
-  const navigate = vi.fn();
-  const refresh = vi.fn().mockResolvedValue(undefined);
+  const refresh = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const authCtx = {
     staff: null,
     loading: false,
@@ -67,7 +72,7 @@ describe('AuthCallbackPage', () => {
 
   it('shows loading state when ok=1 and refresh is pending', async () => {
     // refresh never resolves → stays in loading state
-    const refresh = vi.fn(() => new Promise(() => {}));
+    const refresh = vi.fn<() => Promise<void>>(() => new Promise(() => {}));
     renderCallback('?ok=1', { refresh });
     // The "loading" text is shown as a pulsing element
     const loadingEl = document.querySelector('.animate-pulse');
@@ -96,14 +101,14 @@ describe('AuthCallbackPage', () => {
   });
 
   it('calls refresh() when ok=1', () => {
-    const refresh = vi.fn(() => new Promise(() => {}));
+    const refresh = vi.fn<() => Promise<void>>(() => new Promise(() => {}));
     renderCallback('?ok=1', { refresh });
     expect(refresh).toHaveBeenCalled();
   });
 
   it('navigates to /app/dashboard after successful refresh', async () => {
     vi.useRealTimers();
-    const refresh = vi.fn().mockResolvedValue(undefined);
+    const refresh = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     renderCallback('?ok=1', { refresh });
     await waitFor(() => expect(screen.queryByTestId('dashboard')).toBeInTheDocument());
   });
@@ -111,7 +116,7 @@ describe('AuthCallbackPage', () => {
   it('navigates to intended path from sessionStorage after refresh', async () => {
     vi.useRealTimers();
     sessionStorage.setItem('wp_intended_path', '/app/deposits');
-    const refresh = vi.fn().mockResolvedValue(undefined);
+    const refresh = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     // intended path /app/deposits is not in our test routes, but navigation fires
     // so just verify refresh was called (navigation goes to intended path)
     renderCallback('?ok=1', { refresh });
@@ -124,7 +129,9 @@ describe('AuthCallbackPage', () => {
     // Uses real timers — only verify error is shown, not the 3s redirect
     vi.useRealTimers();
     const { ApiError } = await import('@/api/client');
-    const refresh = vi.fn().mockRejectedValue(new ApiError('Unauthorized', 401));
+    const refresh = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValue(new ApiError(401, 'Unauthorized'));
     renderCallback('?ok=1', { refresh });
     await waitFor(() =>
       expect(document.querySelector('.text-\\[var\\(--err-text\\)\\]')).toBeInTheDocument()
@@ -134,7 +141,7 @@ describe('AuthCallbackPage', () => {
   it('shows error state when refresh rejects with generic error', async () => {
     // Uses real timers — only verify error is shown
     vi.useRealTimers();
-    const refresh = vi.fn().mockRejectedValue(new Error('Network error'));
+    const refresh = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('Network error'));
     renderCallback('?ok=1', { refresh });
     await waitFor(() =>
       expect(document.querySelector('.text-\\[var\\(--err-text\\)\\]')).toBeInTheDocument()

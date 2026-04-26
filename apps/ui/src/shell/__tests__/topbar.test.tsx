@@ -1,7 +1,7 @@
 // Tests for shell/topbar.tsx — top navigation bar component.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ import { Topbar } from '../topbar';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const defaultProps = {
-  viewport: 'lg' as const,
+  viewport: 'wide' as const,
   onToggleSidebar: vi.fn(),
   onOpenCommandPalette: vi.fn(),
   onOpenTweaks: vi.fn(),
@@ -114,7 +114,7 @@ describe('Topbar', () => {
   });
 
   it('shows breadcrumb Treasury label on large viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByText('Treasury')).toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe('Topbar', () => {
   });
 
   it('renders search button on non-xs viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByText('topbar.searchLong')).toBeInTheDocument();
   });
 
@@ -148,7 +148,7 @@ describe('Topbar', () => {
   });
 
   it('renders env picker on large viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTestId('env-picker')).toBeInTheDocument();
   });
 
@@ -178,25 +178,25 @@ describe('Topbar', () => {
   });
 
   it('renders theme toggle on non-xs viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTitle('topbar.darkMode')).toBeInTheDocument();
   });
 
   it('calls toggleTheme when theme button clicked', async () => {
     const user = userEvent.setup();
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     await user.click(screen.getByTitle('topbar.darkMode'));
     expect(mockToggleTheme).toHaveBeenCalled();
   });
 
   it('shows lightMode title when theme is dark', () => {
     mockTheme.current = 'dark';
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTitle('topbar.lightMode')).toBeInTheDocument();
   });
 
   it('renders lang switcher on non-xs viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTestId('lang-switcher')).toBeInTheDocument();
   });
 
@@ -206,14 +206,14 @@ describe('Topbar', () => {
   });
 
   it('renders tweaks button on large viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTitle('topbar.tweaks')).toBeInTheDocument();
   });
 
   it('calls onOpenTweaks when tweaks button clicked', async () => {
     const onOpenTweaks = vi.fn();
     const user = userEvent.setup();
-    render(<Topbar {...defaultProps} viewport="lg" onOpenTweaks={onOpenTweaks} />);
+    render(<Topbar {...defaultProps} viewport="wide" onOpenTweaks={onOpenTweaks} />);
     await user.click(screen.getByTitle('topbar.tweaks'));
     expect(onOpenTweaks).toHaveBeenCalled();
   });
@@ -224,7 +224,7 @@ describe('Topbar', () => {
   });
 
   it('renders user menu in non-compact mode on large viewport', () => {
-    render(<Topbar {...defaultProps} viewport="lg" />);
+    render(<Topbar {...defaultProps} viewport="wide" />);
     expect(screen.getByTestId('user-menu-compact-false')).toBeInTheDocument();
   });
 });

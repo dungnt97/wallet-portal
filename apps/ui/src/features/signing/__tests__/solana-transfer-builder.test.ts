@@ -75,7 +75,8 @@ function makeOp(overrides: Partial<SigningOp> = {}): SigningOp {
     amount: 10,
     destination: VALID_DEST,
     withdrawalId: 'wd-001',
-    multisigOpId: 'msig-001',
+    signaturesRequired: 2,
+    totalSigners: 3,
     ...overrides,
   };
 }
@@ -101,7 +102,8 @@ describe('buildSolanaTransferInstruction — native SOL', () => {
     const op = makeOp({ token: 'SOL' as 'USDT', amount: 1 });
     buildSolanaTransferInstruction({ op, fromPubkey });
 
-    const call = mockSystemTransfer.mock.calls.at(-1)[0];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const call = mockSystemTransfer.mock.calls.at(-1)![0];
     expect(call.lamports).toBe(1_000_000_000n);
   });
 
@@ -109,7 +111,8 @@ describe('buildSolanaTransferInstruction — native SOL', () => {
     const op = makeOp({ token: 'SOL' as 'USDT', amount: 0.5, destination: VALID_DEST });
     buildSolanaTransferInstruction({ op, fromPubkey });
 
-    const call = mockSystemTransfer.mock.calls.at(-1)[0];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const call = mockSystemTransfer.mock.calls.at(-1)![0];
     expect(call.toPubkey.toBase58()).toBe(VALID_DEST);
   });
 
@@ -117,7 +120,8 @@ describe('buildSolanaTransferInstruction — native SOL', () => {
     const op = makeOp({ token: 'SOL' as 'USDT', amount: 0.000000001 }); // exactly 1 lamport
     buildSolanaTransferInstruction({ op, fromPubkey });
 
-    const call = mockSystemTransfer.mock.calls.at(-1)[0];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const call = mockSystemTransfer.mock.calls.at(-1)![0];
     expect(call.lamports).toBe(1n);
   });
 });

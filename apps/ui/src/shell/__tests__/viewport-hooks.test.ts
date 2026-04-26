@@ -73,7 +73,7 @@ describe('useViewportBucket', () => {
     });
 
     // Bucket didn't change — counter renders should not increase
-    expect(counter.result?.current ?? result.current).toBe('wide');
+    expect(counter.current ?? result.current).toBe('wide');
     expect(renderCount - before).toBeLessThanOrEqual(1);
   });
 

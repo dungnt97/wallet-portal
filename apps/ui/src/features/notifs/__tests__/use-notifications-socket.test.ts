@@ -73,7 +73,9 @@ describe('useNotificationsSocket', () => {
     mockSocket.io.opts.query = undefined;
     const { wrapper } = makeWrapper();
     renderHook(() => useNotificationsSocket(), { wrapper });
-    expect((mockSocket.io.opts.query as Record<string, string>)?.staffId).toBe('staff-42');
+    expect((mockSocket.io.opts.query as unknown as Record<string, string>)?.staffId).toBe(
+      'staff-42'
+    );
   });
 
   it('does not overwrite staffId when already set', async () => {

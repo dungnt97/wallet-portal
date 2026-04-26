@@ -39,9 +39,9 @@ function makeRow(overrides: Partial<WithdrawalRow> = {}): WithdrawalRow {
     risk: 'low',
     createdAt: new Date().toISOString(),
     requestedBy: 'staff-1',
-    userId: 'u-1',
-    userName: 'Alice',
     multisig: { required: 2, total: 3, collected: 1, approvers: [], rejectedBy: null },
+    txHash: null,
+    note: null,
     ...overrides,
   };
 }

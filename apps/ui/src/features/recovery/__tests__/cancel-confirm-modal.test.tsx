@@ -1,7 +1,7 @@
 // Tests for features/recovery/cancel-confirm-modal.tsx — cancel-replace stuck tx modal.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CancelConfirmModal } from '../cancel-confirm-modal';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -84,7 +84,10 @@ function makeItem(overrides: Record<string, unknown> = {}) {
     txHash: '0xabcdef1234567890abcdef1234567890',
     chain: 'bnb' as const,
     bumpCount: 0,
-    stuckSince: '2024-01-01T10:00:00Z',
+    broadcastAt: '2024-01-01T09:50:00Z',
+    ageSeconds: 600,
+    lastBumpAt: null,
+    canBump: true,
     canCancel: true,
     ...overrides,
   };

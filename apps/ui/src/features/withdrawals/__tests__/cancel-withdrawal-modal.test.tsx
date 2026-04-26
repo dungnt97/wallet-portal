@@ -21,7 +21,7 @@ vi.mock('@/api/client', () => ({
   ApiError: class ApiError extends Error {
     status: number;
     code?: string;
-    constructor(message: string, status: number) {
+    constructor(status: number, message: string) {
       super(message);
       this.status = status;
     }
@@ -153,7 +153,7 @@ describe('CancelWithdrawalModal', () => {
 
   it('shows API error when mutateAsync rejects with ApiError', async () => {
     const { ApiError } = await import('@/api/client');
-    mockMutateAsync.mockRejectedValue(new ApiError('Policy violation', 422));
+    mockMutateAsync.mockRejectedValue(new ApiError(422, 'Policy violation'));
     renderModal();
     const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, { target: { value: 'bad reason here' } });

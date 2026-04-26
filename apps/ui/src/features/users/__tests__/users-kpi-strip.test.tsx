@@ -38,7 +38,6 @@ describe('UsersKpiStrip', () => {
       riskScore: 10,
       status: 'active',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     },
     {
       id: 'u2',
@@ -47,7 +46,6 @@ describe('UsersKpiStrip', () => {
       riskScore: 50,
       status: 'active',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     },
   ];
 
@@ -60,19 +58,15 @@ describe('UsersKpiStrip', () => {
       status: 'active',
       role: 'admin',
       lastLoginAt: new Date(Date.now() - 60000).toISOString(),
-      mfaEnabled: true,
-      createdAt: new Date().toISOString(),
     },
     {
       id: 's2',
       email: 'staff2@example.com',
       name: 'Staff Two',
       initials: 'S2',
-      status: 'inactive',
-      role: 'user',
+      status: 'suspended',
+      role: 'viewer',
       lastLoginAt: null,
-      mfaEnabled: false,
-      createdAt: new Date().toISOString(),
     },
   ];
 

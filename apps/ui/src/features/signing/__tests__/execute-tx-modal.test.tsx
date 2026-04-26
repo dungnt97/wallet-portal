@@ -48,7 +48,8 @@ function makeOp(overrides: Partial<SigningOp> = {}): SigningOp {
     amount: 2500,
     destination: '0xdestination1234567890',
     withdrawalId: 'wd-001',
-    multisigOpId: 'msig-001',
+    signaturesRequired: 2,
+    totalSigners: 3,
     ...overrides,
   };
 }
@@ -57,6 +58,7 @@ function makeBroadcast(overrides: Partial<BroadcastResult> = {}): BroadcastResul
   return {
     hash: '0xhashABCDEF1234567890abcdef',
     blockNumber: 12_345_678,
+    confirmedAt: new Date().toISOString(),
     ...overrides,
   };
 }

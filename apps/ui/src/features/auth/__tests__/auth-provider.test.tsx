@@ -15,7 +15,7 @@ vi.mock('@/api/client', () => ({
   ApiError: class ApiError extends Error {
     status: number;
     code?: string;
-    constructor(message: string, status: number) {
+    constructor(status: number, message: string) {
       super(message);
       this.status = status;
     }
@@ -148,7 +148,7 @@ describe('AuthProvider', () => {
 
   it('leaves staff null when /auth/me returns 401', async () => {
     const { api, ApiError } = await import('@/api/client');
-    vi.mocked(api.get).mockRejectedValue(new ApiError('Unauthorized', 401));
+    vi.mocked(api.get).mockRejectedValue(new ApiError(401, 'Unauthorized'));
 
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -252,7 +252,7 @@ describe('hasPerm', () => {
 
   it('returns false when no staff loaded', async () => {
     const { api, ApiError } = await import('@/api/client');
-    vi.mocked(api.get).mockRejectedValue(new ApiError('', 401));
+    vi.mocked(api.get).mockRejectedValue(new ApiError(401, ''));
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasPerm('withdrawal.create')).toBe(false);

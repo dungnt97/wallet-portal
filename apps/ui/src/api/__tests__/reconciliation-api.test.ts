@@ -37,8 +37,8 @@ describe('reconciliation API', () => {
 
   it('fetchSnapshots includes status param', () => {
     mockGet.mockResolvedValue({} as never);
-    fetchSnapshots({ status: 'complete' });
-    expect(mockGet).toHaveBeenCalledWith('/reconciliation/snapshots?status=complete');
+    fetchSnapshots({ status: 'completed' });
+    expect(mockGet).toHaveBeenCalledWith('/reconciliation/snapshots?status=completed');
   });
 
   it('fetchSnapshots combines params', () => {

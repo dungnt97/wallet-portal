@@ -47,7 +47,8 @@ function makeOp(overrides: Partial<SigningOp> = {}): SigningOp {
     amount: 100,
     destination: '0xdestination',
     withdrawalId: 'wd-001',
-    multisigOpId: 'msig-001',
+    signaturesRequired: 2,
+    totalSigners: 3,
     ...overrides,
   };
 }
@@ -163,7 +164,8 @@ describe('buildEvmSafeTxTypedData', () => {
   it('encodes ERC-20 calldata starting with transfer selector 0xa9059cbb', async () => {
     await buildEvmSafeTxTypedData({ safeAddress: SAFE_ADDRESS, op: makeOp({ amount: 50 }) });
 
-    const txArg = mockCreateTransaction.mock.calls.at(-1)[0].transactions[0];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const txArg = mockCreateTransaction.mock.calls.at(-1)![0].transactions[0];
     expect(txArg.data.startsWith('0xa9059cbb')).toBe(true);
   });
 

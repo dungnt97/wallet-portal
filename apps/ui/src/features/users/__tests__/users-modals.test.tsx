@@ -9,7 +9,7 @@ const mockUseCreateUser = vi.fn(() => ({
   mutate: mockMutate,
   isPending: false,
   isError: false,
-  error: null,
+  error: null as Error | null,
 }));
 
 vi.mock('@/api/users', () => ({

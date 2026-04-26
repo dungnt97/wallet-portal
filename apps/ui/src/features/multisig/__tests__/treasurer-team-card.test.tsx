@@ -30,7 +30,6 @@ function makeTreasurer(overrides: Partial<StaffMemberRow> = {}): StaffMemberRow 
     role: 'treasurer',
     status: 'active',
     lastLoginAt: null,
-    createdAt: '2024-01-01T00:00:00Z',
     ...overrides,
   };
 }

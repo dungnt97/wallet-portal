@@ -32,6 +32,7 @@ const BNB_HOT_USDT = {
   token: 'USDT' as const,
   balance: String(500n * BigInt(1e18)),
   stale: false,
+  lastCheckedAt: '2024-01-01T10:00:00Z',
 };
 
 const BNB_COLD_USDT = {
@@ -41,6 +42,7 @@ const BNB_COLD_USDT = {
   token: 'USDT' as const,
   balance: String(1000n * BigInt(1e18)),
   stale: false,
+  lastCheckedAt: '2024-01-01T10:00:00Z',
 };
 
 const SOL_HOT_USDC = {
@@ -50,6 +52,7 @@ const SOL_HOT_USDC = {
   token: 'USDC' as const,
   balance: String(200 * 1e6),
   stale: false,
+  lastCheckedAt: '2024-01-01T10:00:00Z',
 };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

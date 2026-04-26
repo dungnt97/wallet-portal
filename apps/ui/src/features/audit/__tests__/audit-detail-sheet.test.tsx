@@ -70,6 +70,7 @@ function makeRow(overrides: Partial<AuditLogEntry> = {}): AuditLogEntry {
     actorName: 'Alice Bob',
     actorEmail: 'alice@example.com',
     ipAddr: '1.2.3.4',
+    ua: null,
     createdAt: '2024-01-01T10:00:00Z',
     prevHash: 'abc123prev',
     hash: 'def456hash',

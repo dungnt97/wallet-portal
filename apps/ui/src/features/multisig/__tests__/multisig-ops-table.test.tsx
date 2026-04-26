@@ -38,16 +38,23 @@ vi.mock('../../_shared/realtime', () => ({
 describe('MultisigOpsTable', () => {
   const mockOp: MultisigOpDisplay = {
     id: 'op-000001',
+    withdrawalId: 'wd-001',
     operationType: 'withdraw',
     chain: 'bnb',
+    multisigAddr: '0xSafeAddr',
     safeName: 'Main Vault',
     amount: 5000,
     token: 'USDC',
+    destination: '0xDest',
+    nonce: 1,
     total: 3,
     collected: 2,
     required: 2,
+    approvers: [],
+    rejectedBy: null,
     status: 'collecting',
     expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    createdAt: new Date().toISOString(),
   };
 
   it('renders table with headers', () => {

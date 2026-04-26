@@ -1,7 +1,7 @@
 // Tests for features/signers/remove-signer-modal.tsx — remove treasurer modal.
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RemoveSignerModal } from '../remove-signer-modal';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────

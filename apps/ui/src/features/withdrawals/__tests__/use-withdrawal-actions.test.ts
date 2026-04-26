@@ -62,7 +62,6 @@ const mockWithdrawal: WithdrawalRow = {
   note: null,
   nonce: 1,
   sourceTier: 'hot',
-  withdrawalId: 'wd-001',
 };
 
 const mockSigningFlow = {

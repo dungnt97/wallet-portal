@@ -51,10 +51,9 @@ function makeRow(overrides: Partial<TxRow> = {}): TxRow {
     from: '0xFrom',
     to: '0xTo',
     status: 'confirmed',
-    hash: '0xhash',
+    txHash: '0xhash',
     blockNumber: 1000,
-    createdAt: new Date().toISOString(),
-    userId: 'user-1',
+    timestamp: new Date().toISOString(),
     ...overrides,
   };
 }

@@ -1,6 +1,6 @@
 // Tests for features/sweep/gas-monitor.tsx — 24h gas chart + tier table.
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 

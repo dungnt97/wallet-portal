@@ -89,7 +89,8 @@ describe('useSnapshotList', () => {
   it('fetches paginated snapshot list with default params', async () => {
     const mockResponse = {
       data: [mockSnapshot],
-      pagination: { page: 1, limit: 20, total: 1 },
+      page: 1,
+      total: 1,
     };
     vi.mocked(fetchSnapshots).mockResolvedValue(mockResponse);
 
@@ -112,7 +113,8 @@ describe('useSnapshotList', () => {
   it('fetches with custom page and status filter', async () => {
     const mockResponse = {
       data: [mockSnapshot],
-      pagination: { page: 2, limit: 20, total: 1 },
+      page: 2,
+      total: 1,
     };
     vi.mocked(fetchSnapshots).mockResolvedValue(mockResponse);
 
@@ -212,7 +214,7 @@ describe('useTriggerSnapshot', () => {
   });
 
   it('triggers a new snapshot with provided body', async () => {
-    const mockResponse = { snapshotId: 'snap-002', status: 'running' };
+    const mockResponse = { jobId: 'job-001', message: 'Snapshot triggered' };
     vi.mocked(triggerSnapshot).mockResolvedValue(mockResponse);
 
     const queryClient = createQueryClient();
@@ -234,7 +236,7 @@ describe('useTriggerSnapshot', () => {
   });
 
   it('invalidates reconciliation queries on success', async () => {
-    const mockResponse = { snapshotId: 'snap-002', status: 'running' };
+    const mockResponse = { jobId: 'job-001', message: 'Snapshot triggered' };
     vi.mocked(triggerSnapshot).mockResolvedValue(mockResponse);
 
     const queryClient = createQueryClient();

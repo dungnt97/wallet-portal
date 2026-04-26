@@ -54,7 +54,11 @@ function makeRow(overrides: Partial<AuditLogEntry> = {}): AuditLogEntry {
     actorName: 'Alice Bob',
     actorEmail: 'alice@example.com',
     ipAddr: '1.2.3.4',
+    ua: null,
     createdAt: '2024-01-01T10:00:00Z',
+    hash: 'def456hash',
+    prevHash: 'abc123prev',
+    changes: null,
     ...overrides,
   };
 }
@@ -62,6 +66,7 @@ function makeRow(overrides: Partial<AuditLogEntry> = {}): AuditLogEntry {
 function makeLoginRow(overrides: Partial<LoginHistoryRow> = {}): LoginHistoryRow {
   return {
     id: 'lr1',
+    staffId: 'staff-1',
     staffName: 'Alice Bob',
     email: 'alice@example.com',
     result: 'success',
@@ -311,8 +316,8 @@ describe('AuditLoginsTable', () => {
   });
 
   it('renders failure result badge', () => {
-    render(<AuditLoginsTable rows={[makeLoginRow({ result: 'failure' })]} />);
-    expect(screen.getByText('failure')).toBeInTheDocument();
+    render(<AuditLoginsTable rows={[makeLoginRow({ result: 'failed' })]} />);
+    expect(screen.getByText('failed')).toBeInTheDocument();
   });
 
   it('renders IP address', () => {

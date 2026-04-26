@@ -41,7 +41,7 @@ const mockStaff: StaffMemberRow = {
   role: 'admin',
   status: 'active',
   initials: 'AC',
-  createdAt: new Date().toISOString(),
+  lastLoginAt: null,
 };
 
 const mockUser: UserRecord = {
@@ -51,7 +51,6 @@ const mockUser: UserRecord = {
   status: 'active',
   riskScore: 20,
   createdAt: new Date().toISOString(),
-  addresses: [],
 };
 
 // ── StaffTable ─────────────────────────────────────────────────────────────────
@@ -94,9 +93,9 @@ describe('StaffTable', () => {
   });
 
   it('shows non-active status as plain badge', () => {
-    const inactiveStaff = { ...mockStaff, status: 'inactive' };
-    render(<StaffTable rows={[inactiveStaff]} />);
-    expect(screen.getByText('inactive')).toBeInTheDocument();
+    const suspendedStaff: StaffMemberRow = { ...mockStaff, status: 'suspended' };
+    render(<StaffTable rows={[suspendedStaff]} />);
+    expect(screen.getByText('suspended')).toBeInTheDocument();
   });
 
   it('renders multiple staff rows', () => {

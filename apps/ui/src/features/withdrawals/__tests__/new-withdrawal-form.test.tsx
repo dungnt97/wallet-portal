@@ -22,7 +22,7 @@ vi.mock('@/api/client', () => ({
   ApiError: class ApiError extends Error {
     status: number;
     code?: string;
-    constructor(message: string, status: number, code?: string) {
+    constructor(status: number, message: string, code?: string) {
       super(message);
       this.status = status;
       this.code = code;
@@ -278,7 +278,7 @@ describe('NewWithdrawalForm', () => {
 
   it('shows API error when mutateAsync rejects', async () => {
     const { ApiError } = await import('@/api/client');
-    mockMutateAsync.mockRejectedValue(new ApiError('Insufficient balance', 422));
+    mockMutateAsync.mockRejectedValue(new ApiError(422, 'Insufficient balance'));
     renderForm();
     fireEvent.change(document.getElementById('wd-amount') as HTMLInputElement, {
       target: { value: '999999' },

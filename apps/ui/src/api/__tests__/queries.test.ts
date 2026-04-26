@@ -859,7 +859,7 @@ describe('useTestAdminChannel', () => {
     const { wrapper } = makeWrapper();
     const { useTestAdminChannel } = await import('../queries');
     const { result } = renderHook(() => useTestAdminChannel(), { wrapper });
-    result.current.mutate('ch-1');
+    result.current.mutate({ id: 'ch-1' });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(vi.mocked(api.post)).toHaveBeenCalled();
   });

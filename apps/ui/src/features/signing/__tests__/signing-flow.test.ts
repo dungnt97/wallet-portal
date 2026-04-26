@@ -59,7 +59,6 @@ describe('withdrawalToOp', () => {
     note: null,
     nonce: 7,
     sourceTier: 'hot',
-    withdrawalId: 'wd-001',
   };
 
   it('maps id, chain, token correctly', () => {

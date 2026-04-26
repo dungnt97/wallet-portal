@@ -73,7 +73,8 @@ function makeOp(overrides: Partial<SigningOp> = {}): SigningOp {
     amount: 1000,
     destination: '0xdest',
     withdrawalId: 'wd-001',
-    multisigOpId: 'msig-001',
+    signaturesRequired: 2,
+    totalSigners: 3,
     ...overrides,
   };
 }

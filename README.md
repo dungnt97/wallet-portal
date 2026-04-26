@@ -1,605 +1,311 @@
-# Claude Code Boilerplate
+# Wallet Portal
 
 ![CI](https://github.com/dungnt97/wallet-portal/actions/workflows/ci.yml/badge.svg)
+![Node](https://img.shields.io/badge/node-20.x-339933?logo=nodedotjs&logoColor=white)
+![Go](https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-9.15-F69220?logo=pnpm&logoColor=white)
+![License](https://img.shields.io/badge/license-UNLICENSED-blue)
 
-A comprehensive boilerplate template for building professional software projects with **CLI Coding Agents** (**Claude Code** and **Open Code**). This template provides a complete development environment with AI-powered agent orchestration, automated workflows, and intelligent project management.
+**Custodial treasury admin portal** for managing on-chain assets across **BNB (EVM)** and **Solana**. Staff use it to handle deposits, sweeps, withdrawals, multisig approvals, and audit — with **2/3 treasurer co-sign** required before every outbound transfer and a hot/cold tier model enforced by policy.
 
-## What is Claude Code?
-
-**Claude Code** is Anthropic's official CLI tool that brings AI-powered development assistance directly to your terminal. It enables natural language interaction with your codebase and provides intelligent automation for common development tasks.
-
-- [Claude Code](https://claude.com/product/claude-code)
-- [Docs](https://docs.claude.com/en/docs/claude-code/overview)
-
-**Open Code CLI Coding Agents** extend Claude Code with specialized AI agents that handle specific aspects of software development - from planning and research to testing and documentation. This creates a collaborative AI development team that works alongside human developers.
-
-- [Open Code](https://opencode.ai/)
-- [Docs](https://opencode.ai/docs)
-
-## Related Projects & Directories
-
-- `claudekit` - Website of ClaudeKit
-  - Directory: `../claudekit`
-  - Repo: https://github.com/claudekit/claudekit
-- `claudekit-marketing` - Marketing Kit repository
-  - Directory: `../claudekit-marketing`
-  - Repo: https://github.com/claudekit/claudekit-marketing
-- `claudekit-cli` - CLI tool for quick project setup
-  - Directory: `../claudekit-cli`
-  - Repo: https://github.com/mrgoonie/claudekit-cli
-- `claudekit-docs` - Public documentation repository: https://docs.claudekit.cc
-  - Directory: `../claudekit-docs`
-  - Repo: https://github.com/claudekit/claudekit-docs
-
-## Key Benefits
-
-### 🚀 Accelerated Development
-- **AI-Powered Planning**: Automated technical planning and architecture design
-- **Intelligent Code Generation**: Context-aware code creation and modification
-- **Automated Testing**: Comprehensive test generation and execution
-- **Smart Documentation**: Synchronized docs that evolve with your code
-
-### 🎯 Enhanced Quality
-- **Multi-Agent Code Review**: Specialized agents for security, performance, and standards
-- **Automated Quality Assurance**: Continuous testing and validation
-- **Best Practices Enforcement**: Built-in adherence to coding standards
-- **Security-First Development**: Proactive security analysis and recommendations
-
-### 🏗️ Structured Workflow
-- **Agent Orchestration**: Coordinated AI agents working in parallel and sequential workflows
-- **Task Management**: Automated project tracking and progress monitoring
-- **Documentation Sync**: Always up-to-date technical documentation
-- **Clean Git Workflow**: Professional commit messages and branch management
-
-## Documentation
-
-### 📚 Core Documentation
-- **[Project Overview & PDR](./docs/project-overview-pdr.md)** - Comprehensive project overview, goals, features, and product development requirements
-- **[Codebase Summary](./docs/codebase-summary.md)** - High-level overview of project structure, technologies, and components
-- **[Code Standards](./docs/code-standards.md)** - Coding standards, naming conventions, and best practices
-- **[System Architecture](./docs/system-architecture.md)** - Detailed architecture documentation, component interactions, and data flow
-- **[Skills Reference](./guide/SKILLS.md)** - Complete guide to all available skills
-
-### 📖 Additional Resources
-- **[CLAUDE.md](./CLAUDE.md)** - Development instructions and workflows for AI agents
-- **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes
-- **[Windows Statusline Support](./docs/statusline-windows-support.md)** - Windows compatibility guide for Claude Code statusline
-- **[Statusline Architecture](./docs/statusline-architecture.md)** - Technical documentation for statusline implementation
-
-## Quick Start
-
-### Prerequisites
-- [Claude Code](https://code.claude.com/docs/en/setup) installed and configured
-- Git for version control
-- Node.js 18+ (or your preferred runtime)
-- Operating Systems: macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (with WSL 1, WSL 2, or Git for Windows)
-- Hardware: 4GB+ RAM
-
-### Setup your new project with ClaudeKit
-
-1. **Install ClaudeKit CLI**:
-   ```bash
-   npm install -g claudekit-cli
-   ```
-
-2. **Create your new project with ClaudeKit framework**:
-   ```bash
-   mkdir my-project
-   ck new --dir my-project --kit engineer
-   ```
-
-   **Note:** If you want to use the kit with your existing project:
-   ```bash
-   cd /path/to/project
-   ck init --kit engineer
-   ```
-
-3. **Start development**:
-   ```bash
-   # Begin with Claude Code
-   claude
-   # [YOLO mode - not recommended]
-   # claude --dangerously-skip-permissions
-
-   # now you can use these specific commands
-   /ck:plan "implement user authentication"
-   /ck:cook "add database integration"
-   ```
-
-📖 **Learn more from our docs:** [https://docs.claudekit.cc](https://docs.claudekit.cc)
-
-## Project Structure
-
-```
-├── .claude/                 # Claude Code configuration
-│   ├── agents/             # Claude Code agents
-│   ├── command-archive/    # Archived legacy command definitions
-│   ├── hooks/              # Claude Code hooks
-│   │   ├── .logs/          # Structured hook diagnostics (hook-log.jsonl)
-│   │   └── notifications/  # Multi-provider notification system
-│   ├── skills/             # Claude Code skills
-│   └── CLAUDE.md           # Global development instructions
-├── docs/                   # Project documentation
-│   ├── codebase-summary.md # Auto-generated codebase overview
-│   ├── code-standards.md   # Development standards
-│   ├── project-overview-pdr.md # Product requirements
-│   └── development-roadmap.md  # Project roadmap
-├── plans/                  # Implementation plans and reports
-│   ├── templates/          # Plan templates
-│   └── reports/            # Agent-to-agent communication
-├── CLAUDE.md              # Project-specific Claude instructions
-├── AGENTS.md              # Agent coordination guidelines
-└── README.md              # This file
-```
-
-## The AI Agent Team
-
-This boilerplate includes 17+ specialized AI agents that work together to deliver high-quality software. Agents coordinate through file-based communication, enabling sequential chaining and parallel execution patterns.
-
-### 🎯 Core Development Agents
-
-#### **Planner Agent**
-- Researches technical approaches and best practices
-- Creates comprehensive implementation plans
-- Analyzes architectural trade-offs
-- Spawns multiple researcher agents for parallel investigation
-
-#### **Researcher Agent**
-- Investigates specific technologies and frameworks
-- Analyzes existing solutions and patterns
-- Provides technical recommendations
-- Supports the planner with detailed findings
-
-#### **Tester Agent**
-- Generates comprehensive test suites
-- Validates functionality and performance
-- Ensures cross-platform compatibility
-- Reports on test coverage and quality metrics
-
-### 🔍 Quality Assurance Agents
-
-#### **Code Reviewer Agent**
-- Performs automated code quality analysis
-- Enforces coding standards and conventions
-- Identifies security vulnerabilities
-- Provides improvement recommendations
-
-#### **Debugger Agent**
-- Analyzes application logs and error reports
-- Diagnoses performance bottlenecks
-- Investigates CI/CD pipeline issues
-- Provides root cause analysis
-
-### 📚 Documentation & Management Agents
-
-#### **Docs Manager Agent**
-- Maintains synchronized technical documentation
-- Updates API documentation automatically
-- Ensures documentation accuracy
-- Manages codebase summaries with repomix
-
-#### **Git Manager Agent**
-- Creates clean, conventional commit messages
-- Manages branching and merge strategies
-- Handles version control workflows
-- Ensures professional git history
-
-#### **Project Manager Agent**
-- Tracks development progress and milestones
-- Updates project roadmaps and timelines
-- Manages task completion verification
-- Maintains project health metrics
-
-### 🎨 Design & Content Agents
-
-#### **UI/UX Designer Agent**
-- Creates design specifications and prototypes
-- Develops visual components
-- Ensures design system consistency
-- Performs user experience analysis
-
-#### **Copywriter Agent**
-- Creates marketing and technical content
-- Optimizes copy for conversion
-- Develops documentation narratives
-- Enhances content clarity
-
-### 🔎 Specialized Agents
-
-#### **Scout Agent**
-- Performs parallel codebase exploration
-- Analyzes code patterns and structure
-- Identifies optimization opportunities
-- Maps component relationships
-
-#### **Database Admin Agent**
-- Manages database operations
-- Performs migrations and optimization
-- Ensures data integrity
-- Designs schema patterns
-
-#### **Journal Writer Agent**
-- Documents development decisions
-- Tracks technical explorations
-- Records lessons learned
-- Maintains decision history
-
-## Agent Orchestration Patterns
-
-### Sequential Chaining
-Use when tasks have dependencies:
-```bash
-# Planning → Implementation → Testing → Review
-/ck:plan "implement user dashboard"
-# Wait for plan completion, then:
-/ck:cook  # Executes the plan
-# After implementation:
-/ck:test "validate dashboard functionality"
-# Finally:
-/ck:code-review "ensure code quality standards"
-
-# Alternative: Use /ck:cook for standalone implementation (plans internally)
-/ck:cook "implement user dashboard"
-```
-
-### Parallel Execution
-Use for independent tasks:
-```bash
-# Multiple researchers exploring different approaches
-planner agent spawns:
-- researcher (database options)
-- researcher (authentication methods)
-- researcher (UI frameworks)
-# All report back to planner simultaneously
-```
-
-### Context Management
-- Agents communicate through file system reports
-- Context is preserved between agent handoffs
-- Fresh context prevents conversation degradation
-- Essential information is documented in markdown
-
-## Development Workflow
-
-### 1. Feature Development
-```bash
-# Start with planning
-/ck:plan "add real-time notifications"
-
-# Research phase (automatic)
-# Multiple researcher agents investigate approaches
-
-# Implementation
-/ck:cook "implement notification system"
-
-# Quality assurance
-/ck:test
-/ck:code-review
-
-# Documentation update
-/ck:docs
-
-# Project tracking
-/ck:watzup  # Check project status
-```
-
-### 2. Bug Fixing
-```bash
-# Analyze the issue
-/ck:debug "investigate login failures"
-
-# Create fix plan
-/ck:plan "resolve authentication bug"
-
-# Implement solution
-/ck:fix "authentication issue"
-
-# Validate fix
-/ck:test
-```
-
-### 3. Documentation Management
-```bash
-# Update documentation
-/ck:docs
-
-# Generate codebase summary
-repomix  # Creates ./docs/codebase-summary.md
-
-# Review project status
-/ck:watzup
-```
-
-## Configuration Files
-
-### CLAUDE.md
-Project-specific instructions for Claude Code. Customize this file to define:
-- Project architecture guidelines
-- Development standards and conventions
-- Agent coordination protocols
-- Specific workflows for your project
-
-### plans/templates/*.md
-Reusable templates for:
-- Feature implementation plans
-- Bug fix procedures
-- Refactoring strategies
-- Architecture decisions
-
-## Gemini Skills Configuration
-
-This project includes several Gemini-powered skills that require a Google Gemini API key:
-
-- **gemini-audio** - Audio analysis and speech generation
-- **gemini-video-understanding** - Video analysis and understanding
-- **gemini-document-processing** - PDF document processing
-- **gemini-image-gen** - AI image generation
-- **gemini-vision** - Image analysis and vision capabilities
-
-### API Key Setup
-
-The Gemini skills check for `GEMINI_API_KEY` in the following order (priority from highest to lowest):
-
-1. **Environment Variable** (Recommended for development)
-   ```bash
-   export GEMINI_API_KEY='your-api-key-here'
-   ```
-
-2. **Project Root `.env`** (Recommended for project-specific keys)
-   ```bash
-   # Create .env in project root
-   echo 'GEMINI_API_KEY=your-api-key-here' > .env
-   ```
-
-3. **`.claude/.env`** (For Claude-specific configuration)
-   ```bash
-   # Copy example and edit
-   cp .claude/.env.example .claude/.env
-   # Then edit .claude/.env and set your API key
-   ```
-
-4. **`.claude/skills/.env`** (For shared skills configuration)
-   ```bash
-   # Copy example and edit
-   cp .claude/skills/.env.example .claude/skills/.env
-   # Then edit .claude/skills/.env and set your API key
-   ```
-
-5. **Individual Skill Directory `.env`** (For skill-specific keys)
-   ```bash
-   # Example for gemini-audio skill
-   cp .claude/skills/gemini-audio/.env.example .claude/skills/gemini-audio/.env
-   # Then edit and set your API key
-   ```
-
-### Getting Your API Key
-
-Get your free Gemini API key at: https://aistudio.google.com/apikey
-
-### Vertex AI Support
-
-To use Vertex AI instead of Google AI Studio:
-
-```bash
-# Enable Vertex AI
-export GEMINI_USE_VERTEX=true
-export VERTEX_PROJECT_ID=your-gcp-project-id
-export VERTEX_LOCATION=us-central1  # Optional, defaults to us-central1
-```
-
-Or in `.env` file:
-```
-GEMINI_USE_VERTEX=true
-VERTEX_PROJECT_ID=your-gcp-project-id
-VERTEX_LOCATION=us-central1
-```
-
-### Usage Examples
-
-```bash
-# Audio analysis
-claude "Analyze this audio file and summarize the key points: audio.mp3"
-
-# Video understanding
-claude "Describe what happens in this video: video.mp4"
-
-# Document processing
-claude "Extract all tables from this PDF: document.pdf"
-
-# Image generation
-claude "Generate an image of a serene mountain landscape"
-
-# Image analysis
-claude "What objects are in this image: photo.jpg"
-```
-
-## Model Context Protocol (MCP)
-
-✍️ Please read [my technical blog article about MCP here](https://faafospecialist.substack.com/p/claude-code-solution-to-use-mcp-servers).
-
-### Pre-requisites
-
-In ClaudeKit, you need to setup the MCP servers in `.claude/.mcp.json` file.
-
-Copy the example file:
-```bash
-mv .claude/.mcp.json.example .claude/.mcp.json
-```
-
-Then add your MCP servers, below are some examples:
-
-### [Context7](https://github.com/upstash/context7)
-```json
-{
-   "mcpServers": {
-      "context7": {
-         "command": "npx",
-         "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"],
-      }
-   }
-}
-```
-
-### [Human MCP](https://github.com/mrgoonie/human-mcp/)
-
-```json
-{
-   "mcpServers": {
-      "human": {
-         "command": "npx",
-         "args": ["@goonnguyen/human-mcp@latest"],
-         "env": { "GOOGLE_GEMINI_API_KEY": "YOUR_API_KEY" }
-      }
-   }
-}
-```
-
-### [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp)
-```json
-{
-   "mcpServers": {
-      "chrome-devtools": {
-         "command": "npx",
-         "args": ["-y", "chrome-devtools-mcp@latest"]
-      }
-   }
-}
-```
-
-## Best Practices
-
-### Development Principles
-- **YAGNI**: You Aren't Gonna Need It - avoid over-engineering
-- **KISS**: Keep It Simple, Stupid - prefer simple solutions
-- **DRY**: Don't Repeat Yourself - eliminate code duplication
-
-### Code Quality
-- All code changes go through automated review
-- Comprehensive testing is mandatory
-- Security considerations are built-in
-- Performance optimization is continuous
-
-### Documentation
-- Documentation evolves with code changes
-- API docs are automatically updated
-- Architecture decisions are recorded
-- Codebase summaries are regularly refreshed
-
-### Git Workflow
-- Clean, conventional commit messages
-- Professional git history
-- No AI attribution in commits
-- Focused, atomic commits
-
-## Usage Examples
-
-### Starting a New Feature
-```bash
-# Research and plan
-claude "I need to implement user authentication with OAuth2"
-# Planner agent creates comprehensive plan
-
-# Follow the plan
-claude "Implement the authentication plan"
-# Implementation follows the detailed plan
-
-# Ensure quality
-claude "Review and test the authentication system"
-# Testing and code review agents validate the implementation
-```
-
-### Debugging Issues
-```bash
-# Investigate problem
-claude "Debug the slow database queries"
-# Debugger agent analyzes logs and performance
-
-# Create solution
-claude "Optimize the identified query performance issues"
-# Implementation follows debugging recommendations
-
-# Validate fix
-claude "Test query performance improvements"
-# Tester agent validates the optimization
-```
-
-### Project Maintenance
-```bash
-# Check project health
-claude "What's the current project status?"
-# Project manager provides comprehensive status
-
-# Update documentation
-claude "Sync documentation with recent changes"
-# Docs manager updates all relevant documentation
-
-# Plan next sprint
-claude "Plan the next development phase"
-# Planner creates detailed roadmap for upcoming work
-```
-
-## Advanced Features
-
-### Multi-Project Support
-- Manage multiple repositories simultaneously
-- Shared agent configurations across projects
-- Consistent development patterns
-
-### Custom Agent Creation
-- Define project-specific agents
-- Extend existing agent capabilities
-- Create domain-specific expertise
-
-### Integration Capabilities
-- **Multi-provider notifications** (Telegram, Discord, Slack) with smart throttling
-- GitHub Actions integration
-- CI/CD pipeline enhancement
-
-See `.claude/hooks/notifications/docs/` for setup guides.
-
-## Customization Guide
-
-### 1. Project Setup
-- Update `CLAUDE.md` with your project specifics
-- Customize plan templates in `plans/templates/`
-
-### 2. Agent Specialization
-- Add domain-specific knowledge to agents
-- Create custom agents for unique requirements
-- Configure agent interaction patterns
-
-### 3. Workflow Optimization
-- Define project-specific commands
-- Create shortcuts for common tasks
-- Establish team coding standards
-
-## Contributing
-
-1. Fork this repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the agent orchestration workflow
-4. Ensure all tests pass and documentation is updated
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Learn More
-
-### Claude Code Resources
-- [Claude Code Documentation](https://claude.ai/code)
-
-### Community
-- [ClaudeKit Community](https://claudekit.cc/discord)
-- [Discussion Forum](https://github.com/anthropic/claude-code/discussions)
-- [Example Projects](https://github.com/topics/claude-code)
-
-### Support
-- [Issue Tracker](https://github.com/anthropic/claude-code/issues)
-- [Feature Requests](https://github.com/anthropic/claude-code/discussions/categories/ideas)
-- [Documentation](https://docs.claude.ai/code)
+> Built as a four-process backbone (UI · Admin API · Policy Engine · Wallet Engine) backed by Postgres 16 + Redis. Policy is gated by a Go service so a compromise in either Node service has a smaller blast radius.
 
 ---
 
-**Start building with AI-powered development today!** This boilerplate provides everything you need to create professional software with intelligent agent assistance.
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Repository Layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Available Scripts](#available-scripts)
+- [Environment Configuration](#environment-configuration)
+- [Local Endpoints](#local-endpoints)
+- [Testing](#testing)
+- [Observability](#observability)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Google Workspace OIDC · WebAuthn / TOTP · Ledger · MetaMask/Phantom │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   ▼
+                            ┌────────────┐
+                            │  Admin UI  │  React + Vite + TS  (5173)
+                            └─────┬──────┘
+              ┌────────────────────┼─────────────────────┐
+              ▼                    ▼                     ▼
+      ┌──────────────┐     ┌──────────────┐      ┌──────────────┐
+      │  Admin API   │────▶│Policy Engine │──────│Wallet Engine │
+      │ Node/Fastify │     │      Go      │ guard│ Node + chain │
+      │  (3001)      │     │   (3003)     │      │   (3002)     │
+      └──────┬───────┘     └──────┬───────┘      └──────┬───────┘
+             │                    │                     │
+             └────────────────────┼─────────────────────┘
+                                  ▼
+                ┌──────────────────────────────────┐
+                │  PostgreSQL 16   ·   Redis 7     │
+                │  ledger · audit · multisig_ops   │
+                └──────────────────────────────────┘
+                                  │
+                ┌─────────────────┼─────────────────┐
+                ▼                 ▼                 ▼
+          [Safe BNB]        [Squads SOL]       [RPC pools]
+```
+
+**Why a Go policy engine in the middle of two Node services?** Different runtime → smaller blast radius if either Node service is compromised (RCE, supply-chain). The policy engine is small, auditable, and does one thing: check rules before any signing path executes. See [`docs/system-architecture.md`](./docs/system-architecture.md).
+
+---
+
+## Tech Stack
+
+| Layer            | Technology                                                                   |
+| ---------------- | ---------------------------------------------------------------------------- |
+| **UI**           | React 18, Vite 5, TypeScript 5, TanStack Query, Tailwind, wagmi/viem, Solana wallet adapter |
+| **Admin API**    | Node 20, Fastify 5, Zod, Drizzle ORM, BullMQ, Socket.io, WebAuthn, OIDC      |
+| **Wallet Engine**| Node 20, Fastify, ethers v6, `@solana/web3.js`, `@sqds/multisig`             |
+| **Policy Engine**| Go 1.25, chi, pgx, sqlc, Prometheus                                          |
+| **Storage**      | PostgreSQL 16, Redis 7                                                       |
+| **Observability**| OpenTelemetry, Prometheus, Grafana, Jaeger, Sentry                           |
+| **Testing**      | Vitest 2, Playwright, `go test -race`                                        |
+| **Tooling**      | pnpm 9 workspaces, Turborepo, Biome, Husky, Docker Compose                   |
+
+---
+
+## Repository Layout
+
+```
+wallet-portal/
+├── apps/
+│   ├── admin-api/        # Fastify API — auth, ledger, audit, RBAC      (:3001)
+│   ├── wallet-engine/    # Chain I/O — block watcher, sweep, broadcast  (:3002)
+│   ├── policy-engine/    # Go gate — pre-sign rules, limits, time-lock  (:3003)
+│   └── ui/               # React admin portal                            (:5173)
+├── packages/
+│   ├── shared-types/     # Cross-service TypeScript contracts
+│   ├── ui-kit/           # Shared shadcn/Radix components
+│   ├── contracts/        # Chain ABI / IDL definitions
+│   └── config/           # Shared eslint/biome/tsconfig
+├── infra/
+│   ├── docker-compose.yml  # postgres, redis, otel, observability profile
+│   ├── postgres/, redis/, otel/, prometheus/, grafana/
+│   ├── chain/              # Local devnet / testnet helpers
+│   └── aws/                # IaC (terraform)
+├── scripts/
+│   ├── dev-up.sh, dev-down.sh, dev-status.sh   # Stack lifecycle
+│   ├── e2e-testnet/                            # Real-testnet E2E harness
+│   └── eval/                                   # Agent eval harness
+├── docs/                  # Architecture, runbooks, roadmap, code standards
+├── plans/                 # Implementation plans + agent reports
+└── .claude/               # Claude Code agent + skill configuration
+```
+
+---
+
+## Prerequisites
+
+- **Node.js** ≥ 20 (`.nvmrc` pins to 20.x — `nvm use`)
+- **pnpm** 9.15.0 (the version in `packageManager`; install with `corepack enable`)
+- **Go** 1.25.x (only required if running/building `policy-engine` outside Docker)
+- **Docker** + **Docker Compose v2** (Docker Desktop, OrbStack, or colima)
+- **Make** (for Go + sqlc helpers)
+- macOS 13+, Ubuntu 22.04+, or WSL2
+
+---
+
+## Quick Start
+
+```bash
+# 1. Install workspace dependencies
+pnpm install
+
+# 2. Copy env templates (one-time)
+cp infra/.env.compose.example          infra/.env.compose
+cp apps/admin-api/.env.example         apps/admin-api/.env
+cp apps/wallet-engine/.env.example     apps/wallet-engine/.env
+cp apps/policy-engine/.env.example     apps/policy-engine/.env
+cp apps/ui/.env.example                apps/ui/.env
+
+# 3. Boot the full stack (infra + migrations + seed + apps)
+pnpm dev:up
+
+# 4. In another terminal, verify everything is healthy
+pnpm dev:status
+```
+
+The first run pulls Postgres / Redis / OTel-collector images and applies migrations + seeds — expect ~30–60s on a warm cache. Subsequent runs are seconds.
+
+To stop and wipe local volumes:
+
+```bash
+pnpm dev:down
+```
+
+### Infra-only mode
+
+If you'd rather run apps from your IDE for breakpoints:
+
+```bash
+pnpm dev:up:infra        # postgres + redis + otel only
+pnpm dev                 # turbo run dev — starts the four apps
+```
+
+---
+
+## Available Scripts
+
+All scripts run from the repo root unless noted.
+
+### Stack lifecycle
+
+| Script               | Action                                                         |
+| -------------------- | -------------------------------------------------------------- |
+| `pnpm dev:up`        | Start infra → migrate DB → seed fixtures → run all four apps   |
+| `pnpm dev:up:infra`  | Start postgres + redis + otel only                             |
+| `pnpm dev`           | `turbo run dev` — start apps (assumes infra is already running)|
+| `pnpm dev:down`      | Stop compose services and remove volumes (destructive)         |
+| `pnpm dev:status`    | Print compose state + HTTP health probes for all services      |
+| `pnpm dev:logs`      | Tail compose logs                                              |
+
+### Build, test, quality
+
+| Script                | Action                                          |
+| --------------------- | ----------------------------------------------- |
+| `pnpm build`          | Turbo build across all workspaces               |
+| `pnpm typecheck`      | Strict TS typecheck (every package)             |
+| `pnpm lint`           | Biome linting                                   |
+| `pnpm format`         | Biome write-format                              |
+| `pnpm test`           | All Vitest suites in every app                  |
+| `pnpm test:coverage`  | All suites with V8 coverage                     |
+| `pnpm e2e`            | UI Playwright suite (smoke)                     |
+| `pnpm e2e:testnet`    | Real-testnet E2E (Solana devnet + BNB Chapel)   |
+| `pnpm go:build`       | Build the policy-engine binary (Go)             |
+| `pnpm go:test`        | `go test -race ./...`                           |
+
+### Database
+
+| Script              | Action                                         |
+| ------------------- | ---------------------------------------------- |
+| `pnpm db:migrate`   | Apply pending Drizzle migrations               |
+| `pnpm db:seed`      | Load idempotent dev fixtures (staff, wallets)  |
+| `pnpm db:reset`     | Drop + recreate local DB                       |
+
+> Lower-level Go helpers (`make sync-go-schema`, `make sqlc-generate`) live in the [`Makefile`](./Makefile).
+
+---
+
+## Environment Configuration
+
+Each service reads its own `.env` (see `*.env.example`). Key variables:
+
+| File                            | Critical variables                                                                |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `infra/.env.compose`            | `POSTGRES_*`, `REDIS_URL` — wiring for compose services                           |
+| `apps/admin-api/.env`           | `DATABASE_URL`, `SESSION_SECRET`, `SVC_BEARER_TOKEN`, `GOOGLE_CLIENT_ID/SECRET`, `WEBAUTHN_*` |
+| `apps/wallet-engine/.env`       | `DATABASE_URL`, `RPC_BNB_*`, `RPC_SOLANA_*`, `HD_MASTER_XPUB_BNB`, `SVC_BEARER_TOKEN` |
+| `apps/policy-engine/.env`       | `DATABASE_URL`, `SVC_BEARER_TOKEN`, `POLICY_DEV_MODE`                             |
+| `apps/ui/.env`                  | `VITE_ADMIN_API_URL`, `VITE_AUTH_DEV_MODE`                                        |
+
+**Generate secrets:**
+
+```bash
+openssl rand -hex 32        # SESSION_SECRET, SVC_BEARER_TOKEN, etc.
+```
+
+> `SVC_BEARER_TOKEN` must be **identical** across `admin-api`, `wallet-engine`, and `policy-engine` — it gates all internal `/internal/*` routes.
+
+---
+
+## Local Endpoints
+
+After `pnpm dev:up` (defaults — change `PORT` in each `.env` if they collide):
+
+| Service        | URL                                | Purpose                              |
+| -------------- | ---------------------------------- | ------------------------------------ |
+| UI             | http://localhost:5173              | Admin portal                         |
+| Admin API      | http://localhost:3001              | REST API                             |
+| Admin API docs | http://localhost:3001/docs         | Swagger UI                           |
+| Wallet Engine  | http://localhost:3002              | Internal chain I/O                   |
+| Policy Engine  | http://localhost:3003              | `/v1/check`, `/health/*`, `/metrics` |
+| Postgres       | `postgres://postgres:postgres@localhost:5433/wallet_portal` | DB |
+| Redis          | `redis://localhost:6380`           | Queues + pub-sub                     |
+| OTel collector | `http://localhost:4318` (HTTP)     | Trace ingest                         |
+
+### Observability profile (opt-in)
+
+```bash
+docker compose -f infra/docker-compose.yml --profile observability up -d
+```
+
+Adds Jaeger (`:16686`), Prometheus (`:9090`), and Grafana (`:3000`, login `admin` / `devpass`).
+
+---
+
+## Testing
+
+```bash
+pnpm test                # all unit suites
+pnpm test:coverage       # with V8 coverage reporter
+pnpm e2e                 # UI Playwright smoke
+pnpm e2e:testnet         # real-testnet E2E (Solana devnet + BNB Chapel)
+make go-test             # policy-engine Go suite with race detector
+```
+
+CI (`.github/workflows/ci.yml`) runs:
+
+1. **Lint + Typecheck** — Biome + tsc + `go vet` + golangci-lint
+2. **Unit Tests** — admin-api, wallet-engine, ui (Vitest), policy-engine (Go)
+3. **Smoke E2E** — Playwright against the full stack
+4. **Testnet E2E** — gated, runs against real Solana devnet + BNB Chapel
+
+---
+
+## Observability
+
+- **Tracing** — every service exports OTLP/HTTP to the collector at `:4318` (service name set per app via `OTEL_SERVICE_NAME`)
+- **Metrics** — Prometheus pulls from each app's `/metrics` endpoint
+- **Logs** — structured JSON via Pino (Node) / zerolog (Go); tail with `pnpm dev:logs`
+- **Errors** — Sentry SDK is wired into all four apps; leave `SENTRY_DSN` unset to disable (zero overhead)
+
+Dashboards live in `infra/grafana/dashboards/`. See the [observability guide](./docs/observability/) for setup.
+
+---
+
+## Documentation
+
+| Document                                                                | Purpose                                          |
+| ----------------------------------------------------------------------- | ------------------------------------------------ |
+| [`docs/system-architecture.md`](./docs/system-architecture.md)          | Full system design, flows, hot/cold tier model   |
+| [`docs/project-overview-pdr.md`](./docs/project-overview-pdr.md)        | Product requirements, roles, scope               |
+| [`docs/code-standards.md`](./docs/code-standards.md)                    | Conventions, naming, review checklist            |
+| [`docs/codebase-summary.md`](./docs/codebase-summary.md)                | Auto-generated structural overview               |
+| [`docs/project-roadmap.md`](./docs/project-roadmap.md)                  | Phase tracking and milestones                    |
+| [`docs/feature-matrix.md`](./docs/feature-matrix.md)                    | Per-feature status (auth, sweep, recovery, etc.) |
+| [`docs/runbooks/`](./docs/runbooks/)                                    | Ops playbooks (key rotation, alerts, backups)    |
+| [`docs/tech-stack.md`](./docs/tech-stack.md)                            | Library + version inventory                      |
+
+---
+
+## Contributing
+
+1. Branch off `main`: `git checkout -b feat/<scope>-<short-name>`
+2. Follow [Conventional Commits](https://www.conventionalcommits.org/) — no AI attribution in commit messages.
+3. Run before pushing:
+   ```bash
+   pnpm lint && pnpm typecheck && pnpm test
+   ```
+4. Open a PR — CI must be green; reviewers expect: tests for new behavior, no mocking around real bugs, docs updated when behavior changes.
+
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full checklist.
+
+---
+
+## License
+
+UNLICENSED — internal/private project. See [`LICENSE`](./LICENSE).

@@ -8,7 +8,7 @@ import { PublicKey } from '@solana/web3.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // vi.hoisted runs before vi.mock() factory — ensures spy is ready when the mock factory runs
-const { mockSystemTransfer } = vi.hoisted(() => {
+const { mockSystemTransfer, mockFindProgramAddressSync } = vi.hoisted(() => {
   // biome-ignore lint/suspicious/noExplicitAny: test stub params
   const mockSystemTransfer = vi.fn((params: any) => ({
     programId: { toBase58: () => '11111111111111111111111111111111' },
@@ -18,12 +18,36 @@ const { mockSystemTransfer } = vi.hoisted(() => {
     ],
     data: new Uint8Array(12),
   }));
-  return { mockSystemTransfer };
+  // Stub PublicKey.findProgramAddressSync — the ATA program ID in the source
+  // ('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bRR') is invalid in jsdom because
+  // the wasm curve check fails to find a valid nonce for this program.
+  // We use a counter to distinguish source ATA (call 1) from dest ATA (call 2).
+  // biome-ignore lint/suspicious/noExplicitAny: test stub
+  const mockFindProgramAddressSync = vi.fn((_seeds: any, _programId: any) => {
+    // stub PDA objects — only toBase58 is called by the source code after derivation
+    const SOURCE_ATA = {
+      toBase58: () => 'SysvarRent111111111111111111111111111111111',
+      toBuffer: () => Buffer.alloc(32, 1),
+    };
+    const DEST_ATA = {
+      toBase58: () => 'SysvarC1ock11111111111111111111111111111111',
+      toBuffer: () => Buffer.alloc(32, 2),
+    };
+    // .mock.calls.length is read BEFORE the current call is pushed, so 0 = first call
+    const call = mockFindProgramAddressSync.mock.calls.length;
+    return [call % 2 === 0 ? SOURCE_ATA : DEST_ATA, 255];
+  });
+  return { mockSystemTransfer, mockFindProgramAddressSync };
 });
 
-// Mock SystemProgram.transfer since buffer-layout is incompatible with jsdom
+// Mock SystemProgram.transfer since buffer-layout is incompatible with jsdom.
+// Also patch PublicKey.findProgramAddressSync — the ATA program ID in the source
+// ('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bRR') fails to produce a valid nonce
+// in jsdom's wasm context, so we stub it to return deterministic fake PDA objects.
 vi.mock('@solana/web3.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('@solana/web3.js')>();
+  // biome-ignore lint/suspicious/noExplicitAny: static method patch needed for test isolation
+  (real.PublicKey as any).findProgramAddressSync = mockFindProgramAddressSync;
   return {
     ...real,
     SystemProgram: {
@@ -190,5 +214,94 @@ describe('buildSolanaTransferInstruction — SPL token env guards', () => {
     expect(() =>
       buildSolanaTransferInstruction({ op: makeOp({ token: 'USDC' }), fromPubkey })
     ).toThrow('VITE_SOL_USDC_MINT not set');
+  });
+});
+
+// ── SPL token success paths ───────────────────────────────────────────────
+// Requires valid env vars — deriveVaultPda and findProgramAddressSync run real @solana/web3.js.
+
+describe('buildSolanaTransferInstruction — SPL token success', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_SQUADS_MULTISIG_PDA_DEVNET', VALID_MULTISIG_PDA);
+    vi.stubEnv('VITE_SOL_USDT_MINT', VALID_USDT_MINT);
+    vi.stubEnv('VITE_SOL_USDC_MINT', VALID_USDC_MINT);
+    // Reset call counter so each test sees predictable source/dest ordering
+    mockFindProgramAddressSync.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('returns SPL instruction with SPL_TOKEN_PROGRAM_ID for USDT', () => {
+    const op = makeOp({ token: 'USDT', amount: 10 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    // programId must be SPL token program
+    expect(ix.programId.toBase58()).toBe('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  });
+
+  it('returns SPL instruction with SPL_TOKEN_PROGRAM_ID for USDC', () => {
+    const op = makeOp({ token: 'USDC', amount: 5 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    expect(ix.programId.toBase58()).toBe('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  });
+
+  it('sets 3 account keys: sourceAta, destAta, authority', () => {
+    const op = makeOp({ token: 'USDT', amount: 10 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    expect(ix.keys).toHaveLength(3);
+    expect(ix.keys[0]?.isSigner).toBe(false);
+    expect(ix.keys[0]?.isWritable).toBe(true);
+    expect(ix.keys[1]?.isSigner).toBe(false);
+    expect(ix.keys[1]?.isWritable).toBe(true);
+    // authority (fromPubkey) is signer, not writable
+    expect(ix.keys[2]?.isSigner).toBe(true);
+    expect(ix.keys[2]?.isWritable).toBe(false);
+    expect(ix.keys[2]?.pubkey.toBase58()).toBe(fromPubkey.toBase58());
+  });
+
+  it('encodes transfer discriminator 3 in instruction data byte 0', () => {
+    const op = makeOp({ token: 'USDT', amount: 10 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    expect((ix.data as Buffer)[0]).toBe(3);
+  });
+
+  it('encodes amount as LE u64 in 6-decimal units for USDT (10 USDT = 10_000_000)', () => {
+    const op = makeOp({ token: 'USDT', amount: 10 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    const data = ix.data as Buffer;
+    const amountLE = data.readBigUInt64LE(1);
+    expect(amountLE).toBe(10_000_000n);
+  });
+
+  it('encodes amount as LE u64 in 6-decimal units for USDC (2.5 USDC = 2_500_000)', () => {
+    const op = makeOp({ token: 'USDC', amount: 2.5 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    const data = ix.data as Buffer;
+    const amountLE = data.readBigUInt64LE(1);
+    expect(amountLE).toBe(2_500_000n);
+  });
+
+  it('produces instruction data buffer of exactly 9 bytes', () => {
+    const op = makeOp({ token: 'USDT', amount: 1 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    expect((ix.data as Buffer).length).toBe(9);
+  });
+
+  it('source ATA and dest ATA are different public keys', () => {
+    const op = makeOp({ token: 'USDT', amount: 1 });
+    const ix = buildSolanaTransferInstruction({ op, fromPubkey });
+
+    const sourceAta = ix.keys[0]?.pubkey.toBase58();
+    const destAta = ix.keys[1]?.pubkey.toBase58();
+    expect(sourceAta).not.toBe(destAta);
   });
 });

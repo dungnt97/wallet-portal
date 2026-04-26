@@ -39,9 +39,10 @@ describe('useGasHistory hook', () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useGasHistory('bnb'), { wrapper });
 
-    await waitFor(() =>
-      expect(result.current.isSuccess ?? result.current.data !== undefined).toBeTruthy()
-    );
+    await waitFor(() => {
+      const r = result.current as { isSuccess?: boolean; data?: unknown };
+      expect(r.isSuccess ?? r.data !== undefined).toBeTruthy();
+    });
     expect(vi.mocked(api.get)).toHaveBeenCalledWith('/chain/gas-history?chain=bnb&range=24h');
   });
 

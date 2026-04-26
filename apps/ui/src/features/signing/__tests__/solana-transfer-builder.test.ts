@@ -5,7 +5,7 @@
 // Node.js Buffer polyfill not available in jsdom. We mock SystemProgram.transfer
 // to return a stub instruction and test our wrapper's routing/construction logic.
 import { PublicKey } from '@solana/web3.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // vi.hoisted runs before vi.mock() factory — ensures spy is ready when the mock factory runs
 const { mockSystemTransfer, mockFindProgramAddressSync } = vi.hoisted(() => {

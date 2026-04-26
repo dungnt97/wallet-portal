@@ -1,21 +1,33 @@
-/* biome-ignore lint/suspicious/noExplicitAny: mocking utilities require any types */
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddUserModal } from '../users-modals';
 
-vi.mock('@/api/users', () => ({
-  useCreateUser: () => ({
-    mutate: vi.fn(),
-    isPending: false,
-    isError: false,
-    error: null,
-  }),
+const mockMutate = vi.fn();
+const mockUseCreateUser = vi.fn(() => ({
+  mutate: mockMutate,
+  isPending: false,
+  isError: false,
+  error: null,
 }));
 
+vi.mock('@/api/users', () => ({
+  useCreateUser: () => mockUseCreateUser(),
+}));
+
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  children: ReactNode;
+  footer: ReactNode;
+}
+
 vi.mock('@/components/overlays', () => ({
-  Modal: ({ open, onClose, title, children, footer }: any) =>
+  Modal: ({ open, onClose, title, children, footer }: ModalProps) =>
     open ? (
+      // biome-ignore lint/a11y/useKeyWithClickEvents: test-only mock div
       <div data-testid="modal" onClick={onClose}>
         <h2>{title}</h2>
         {children}
@@ -32,6 +44,16 @@ vi.mock('@/icons', () => ({
 }));
 
 describe('AddUserModal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseCreateUser.mockReturnValue({
+      mutate: mockMutate,
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+  });
+
   it('does not render when closed', () => {
     const mockClose = vi.fn();
     const { queryByTestId } = render(<AddUserModal open={false} onClose={mockClose} />);
@@ -162,5 +184,56 @@ describe('AddUserModal', () => {
 
     const buttons = footer.querySelectorAll('button');
     expect(buttons.length).toBeGreaterThanOrEqual(2); // cancel + create
+  });
+
+  it('shows error panel when isError is true', () => {
+    mockUseCreateUser.mockReturnValue({
+      mutate: mockMutate,
+      isPending: false,
+      isError: true,
+      error: new Error('Email already exists'),
+    });
+
+    const mockClose = vi.fn();
+    render(<AddUserModal open={true} onClose={mockClose} />);
+    expect(screen.getByText(/Email already exists/)).toBeInTheDocument();
+  });
+
+  it('shows created-addresses view after successful creation', async () => {
+    let capturedOnSuccess: ((result: unknown) => void) | undefined;
+    const mutateSpy = vi.fn((_body: unknown, opts: { onSuccess?: (r: unknown) => void }) => {
+      capturedOnSuccess = opts.onSuccess;
+    });
+
+    mockUseCreateUser.mockReturnValue({
+      mutate: mutateSpy,
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    const mockClose = vi.fn();
+    render(<AddUserModal open={true} onClose={mockClose} />);
+
+    const input = screen.getByRole('textbox', { name: /email/i });
+    await user.type(input, 'alice@test.com');
+
+    const createBtn = screen.getByRole('button', { name: /create/i });
+    await user.click(createBtn);
+
+    // Simulate onSuccess callback from the mutation
+    act(() => {
+      capturedOnSuccess?.({
+        user: { id: 'u-1', email: 'alice@test.com', kycTier: 'basic' },
+        addresses: [
+          { chain: 'bnb', address: '0xBnbAddr', derivationPath: null, derivationIndex: 0 },
+          { chain: 'sol', address: 'SolAddr123', derivationPath: null, derivationIndex: 0 },
+        ],
+      });
+    });
+
+    // After success, the "Done" button appears
+    expect(await screen.findByRole('button', { name: /done/i })).toBeInTheDocument();
   });
 });

@@ -97,7 +97,7 @@ jobs:
 
       # Post comment — all GitHub context passed via env: to avoid injection
       - name: Post bundle size comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR_BYTES: ${{ steps.pr-size.outputs.total_bytes }}
           MAIN_BYTES: ${{ steps.main-size.outputs.total_bytes }}

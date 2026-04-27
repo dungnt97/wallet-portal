@@ -21,7 +21,7 @@
     "@opentelemetry/auto-instrumentations-node": "^0.73.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.215.0",
     "@opentelemetry/sdk-node": "^0.215.0",
-    "@sentry/node": "^10.49.0",
+    "@sentry/node": "^10.50.0",
     "@solana/web3.js": "^1.95.0",
     "@sqds/multisig": "^2",
     "@types/bs58": "^5.0.0",

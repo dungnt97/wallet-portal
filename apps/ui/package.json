@@ -33,7 +33,7 @@
     "@safe-global/api-kit": "^3",
     "@safe-global/protocol-kit": "^5",
     "@sentry/browser": "^10.49.0",
-    "@sentry/react": "^10.49.0",
+    "@sentry/react": "^10.50.0",
     "@simplewebauthn/browser": "^10",
     "@solana/wallet-adapter-react": "^0.15",
     "@solana/wallet-adapter-react-ui": "^0.9",

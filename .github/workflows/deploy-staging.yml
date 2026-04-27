@@ -29,7 +29,7 @@ jobs:
           echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/${{ matrix.service }}/Dockerfile

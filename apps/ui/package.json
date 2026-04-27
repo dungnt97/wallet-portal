@@ -41,7 +41,7 @@
     "@solana/web3.js": "^1",
     "@sqds/multisig": "^2",
     "@tailwindcss/vite": "^4.2.4",
-    "@tanstack/react-query": "^5.62.0",
+    "@tanstack/react-query": "^5.100.5",
     "@tanstack/react-query-devtools": "^5.62.0",
     "@wp/shared-types": "workspace:*",
     "@wp/ui-kit": "workspace:*",

@@ -162,7 +162,7 @@ jobs:
       # ── Artifact upload ───────────────────────────────────────────────────────
       - name: Upload HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testnet-e2e-report-${{ github.run_number }}
           path: apps/ui/playwright-testnet-report/
@@ -170,7 +170,7 @@ jobs:
 
       - name: Upload test results (XML for dashboards)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testnet-e2e-results-${{ github.run_number }}
           path: apps/ui/playwright-testnet-results.xml
@@ -178,7 +178,7 @@ jobs:
 
       - name: Upload failure videos and traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testnet-e2e-failure-artifacts-${{ github.run_number }}
           path: apps/ui/test-results/
@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload success artifacts (when debug mode enabled)
         if: inputs.debug_retain_artifacts == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testnet-e2e-debug-artifacts-${{ github.run_number }}
           path: apps/ui/test-results/

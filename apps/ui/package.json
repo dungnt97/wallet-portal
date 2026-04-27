@@ -42,7 +42,7 @@
     "@sqds/multisig": "^2",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/react-query": "^5.62.0",
-    "@tanstack/react-query-devtools": "^5.62.0",
+    "@tanstack/react-query-devtools": "^5.100.5",
     "@wp/shared-types": "workspace:*",
     "@wp/ui-kit": "workspace:*",
     "class-variance-authority": "^0.7.1",
